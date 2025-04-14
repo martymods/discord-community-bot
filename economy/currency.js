@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  userId: String,
-  guildId: String,
-  cash: { type: Number, default: 0 },
-  lastDaily: { type: Date, default: null }
-});
+    userId: String,
+    guildId: String,
+    cash: { type: Number, default: 0 },
+    lastDaily: { type: Date, default: null },
+    streak: { type: Number, default: 0 } // ⬅️ Add this line
+  });
+  
 
 const Currency = mongoose.model('Currency', userSchema);
 

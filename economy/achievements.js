@@ -31,4 +31,3 @@ client.commands.set('achievements', {
       message.reply(`🏆 Your Achievements:\n${user.achievements.join('\n')}`);
     }
   });
-  

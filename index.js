@@ -79,11 +79,15 @@ client.commands.set('flip', {
     const balance = await getBalance(message.author.id, message.guild.id);
     if (balance < amount) return message.reply("You're too broke for that bet.");
 
-    await games.flip(message, choice, amount, 
-      async amt => await addCash(message.author.id, message.guild.id, amt)
+    await games.flip(message, choice, amount,
+      async amt => {
+        if (amt > 0) return await addCash(message.author.id, message.guild.id, amt);
+        else return await removeCash(message.author.id, message.guild.id, Math.abs(amt));
+      }
     );
   }
 });
+
 
 client.commands.set('slots', {
   async execute(message, args) {

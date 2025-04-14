@@ -1,8 +1,16 @@
+const { items } = require('./items');
+
+let rotatingShop = [];
+
+function refreshShop() {
+  rotatingShop = items.filter(() => Math.random() < 0.4); // 40% chance to appear in today's shop
+}
+
+refreshShop(); // Initial load
+
+setInterval(refreshShop, 1000 * 60 * 60 * 24); // Refresh every 24 hours
+
 module.exports = {
-    shopItems: {
-      gem: { name: '💎 Gem', price: 500 },
-      medal: { name: '🎖️ Medal', price: 300 },
-      dice: { name: '🎲 Dice', price: 200 },
-    }
-  };
-  
+  rotatingShop,
+  refreshShop
+};

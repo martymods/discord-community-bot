@@ -18,7 +18,9 @@ global.client = client; // So Stripe/Paypal access your client
 
 const { Currency, getBalance, addCash, removeCash } = require('./economy/currency');
 const games = require('./economy/games');
-
+const { getRandomItem } = require('./economy/items');
+const { addItem, removeItem, getInventory, Inventory } = require('./economy/inventory');
+const { rotatingShop, refreshShop, shopItems } = require('./economy/shop');
 
 client.commands = new Collection();
 
@@ -215,7 +217,7 @@ client.on('messageCreate', async (message) => {
     client.commands.get(command).execute(message, args);
   }
   
-  const { getRandomItem } = require('./economy/items');
+
 const { addItem } = require('./economy/inventory');
 
 const drop = getRandomItem();

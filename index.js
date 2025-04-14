@@ -41,6 +41,21 @@ client.commands.set('ping', {
   }
 });
 
+client.commands.set('lootbox', {
+  async execute(message) {
+    const item = getRandomItem();
+    if (!item) return message.reply("You opened a lootbox... but it was empty 💨");
+
+    await addItem(message.author.id, message.guild.id, item.id);
+
+    if(item.rarity === 'Legendary'){
+      const channel = message.guild.systemChannel || message.channel;
+      channel.send(`💥 LEGENDARY DROP 💥\n<@${message.author.id}> just pulled a ${item.name} from a Lootbox! Respect.`);
+    } else {
+      message.reply(`🎁 You opened a lootbox and found ${item.name} (${item.rarity})!`);
+    }
+  }
+});
 
 
 client.commands.set('balance', {
@@ -56,6 +71,24 @@ client.commands.set('daily', {
     const now = new Date();
     const last = user.lastDaily || new Date(0);
     const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+    if (diff < 1) return message.reply("🕒 You already claimed your daily reward. Come back tomorrow!");
+
+// 👇 Add streak logic here
+if (!user.streak) user.streak = 1;
+else if (diff === 1) user.streak += 1;
+else user.streak = 1;
+
+let reward = 250;
+if (user.streak % 7 === 0) {
+  reward += 500;
+  message.reply("🔥 7-Day Streak! Bonus $500!");
+}
+
+user.cash += reward;
+user.lastDaily = now;
+await user.save();
+
+message.reply(`🎁 You claimed $${reward} DreamworldPoints for Day ${user.streak} of your streak.`);
 
     if (diff < 1) return message.reply("🕒 You already claimed your daily reward. Come back tomorrow!");
 
@@ -181,6 +214,16 @@ client.on('messageCreate', async (message) => {
   if (client.commands.has(command)) {
     client.commands.get(command).execute(message, args);
   }
+  
+  const { getRandomItem } = require('./economy/items');
+const { addItem } = require('./economy/inventory');
+
+const drop = getRandomItem();
+if (drop) {
+  await addItem(message.author.id, message.guild.id, drop.id);
+  message.channel.send(`🪂 <@${message.author.id}> found ${drop.name} (${drop.rarity}) and added it to their inventory!`);
+}
+
 });
 
 client.login(process.env.DISCORD_TOKEN);
@@ -255,16 +298,18 @@ client.commands.set('use', {
   }
 });
 
-const { shopItems } = require('./economy/shop');
+const { rotatingShop } = require('./economy/shop');
 
 client.commands.set('shop', {
   execute(message) {
-    const shop = Object.entries(shopItems).map(([key, item]) => `${item.name} - $${item.price} (Command: !buyitem ${key})`).join('\n');
-    message.reply(`🛒 Dreamworld Shop:\n${shop}`);
+    if (!rotatingShop.length) return message.reply("Shop is empty today... try again later.");
+
+    const shopList = rotatingShop.map(item => `${item.name} - $${item.value} (Requires Level ${item.levelRequired}) → Command: !buyitem ${item.id}`).join('\n');
+    message.reply(`🛒 Dreamworld Shop:\n${shopList}`);
   }
 });
 
-const { addItem } = require('./economy/inventory');
+
 
 client.commands.set('buyitem', {
   async execute(message, args) {
@@ -283,6 +328,56 @@ client.commands.set('buyitem', {
   }
 });
 
+
+client.commands.set('topxp', {
+  async execute(message) {
+    const raw = await Levels.fetchLeaderboard(message.guild.id, 5);
+    if (!raw.length) return message.reply("No XP found yet.");
+    const lb = await Levels.computeLeaderboard(client, raw, true);
+    const list = lb.map(e => `${e.position}. ${e.username} - Level ${e.level} (${e.xp} XP)`).join('\n');
+    message.reply("🏆 Top XP Users:\n" + list);
+  }
+});
+
+const { Currency } = require('./economy/currency');
+
+client.commands.set('richest', {
+  async execute(message) {
+    const top = await Currency.find({ guildId: message.guild.id }).sort({ cash: -1 }).limit(5);
+    const list = top.map((u, i) => `${i + 1}. <@${u.userId}> - $${u.cash}`).join('\n');
+    message.reply("💰 Richest Players:\n" + list);
+  }
+});
+
+client.commands.set('topcollectors', {
+  async execute(message) {
+    const users = await Inventory.find({ guildId: message.guild.id });
+    const sorted = users.sort((a, b) => {
+      const aItems = Array.from(a.items.values()).reduce((acc, val) => acc + val, 0);
+      const bItems = Array.from(b.items.values()).reduce((acc, val) => acc + val, 0);
+      return bItems - aItems;
+    }).slice(0, 5);
+
+    const list = sorted.map((u, i) => `${i + 1}. <@${u.userId}> - ${Array.from(u.items.values()).reduce((acc, val) => acc + val, 0)} Items`).join('\n');
+    message.reply("📦 Top Collectors:\n" + list);
+  }
+});
+
+client.commands.set('gambleitem', {
+  async execute(message, args) {
+    const item = args[0]?.toLowerCase();
+    if (!item) return message.reply("Usage: `!gambleitem item_name`");
+
+    const win = Math.random() < 0.4; // 40% win chance
+    if (win) {
+      await addItem(message.author.id, message.guild.id, item, 2);
+      message.reply(`🔥 Luck was on your side! Doubled your ${item}!`);
+    } else {
+      await removeItem(message.author.id, message.guild.id, item);
+      message.reply(`💀 You lost the gamble... your ${item} is gone.`);
+    }
+  }
+});
 
 app.use(express.json());
 app.use('/stripe/webhook', stripeWebhook);

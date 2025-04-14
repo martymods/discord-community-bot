@@ -21,6 +21,42 @@ const myOrdersCommand = require('./commands/myOrdersCommand');
 client.commands.set('buy', buyCommand);
 client.commands.set('myorders', myOrdersCommand);
 
+client.commands.set('ping', {
+  execute(message) {
+    message.channel.send('🏓 Pong!');
+  }
+});
+
+client.commands.set('help', {
+  execute(message) {
+    message.channel.send('Available commands: `!ping`, `!help`, `!kick @user`, `!ban @user`, `!buy`, `!myorders`');
+  }
+});
+
+// Add kick & ban (if you had them before)
+client.commands.set('kick', {
+  async execute(message, args) {
+    if (!message.member.permissions.has('KICK_MEMBERS')) return message.reply("No permissions.");
+    const member = message.mentions.members.first();
+    if (member) {
+      await member.kick();
+      message.channel.send(`${member.user.tag} has been kicked.`);
+    }
+  }
+});
+
+client.commands.set('ban', {
+  async execute(message, args) {
+    if (!message.member.permissions.has('BAN_MEMBERS')) return message.reply("No permissions.");
+    const member = message.mentions.members.first();
+    if (member) {
+      await member.ban();
+      message.channel.send(`${member.user.tag} has been banned.`);
+    }
+  }
+});
+
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -58,3 +94,4 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+

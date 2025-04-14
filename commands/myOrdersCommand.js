@@ -1,4 +1,3 @@
-
 const { Purchase } = require('../payments/database');
 
 module.exports = {

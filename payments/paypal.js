@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { Purchase } = require('./database');
 const { giveRole } = require('./roles');
@@ -44,4 +43,3 @@ router.post('/paypal/webhook', express.json(), async (req, res) => {
 });
 
 module.exports = router;
-

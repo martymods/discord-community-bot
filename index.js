@@ -16,6 +16,8 @@ const client = new Client({
 
 global.client = client; // So Stripe/Paypal access your client
 
+const { Currency, getBalance, addCash, removeCash } = require('./economy/currency');
+
 client.commands = new Collection();
 
 // Load Commands
@@ -37,7 +39,7 @@ client.commands.set('ping', {
   }
 });
 
-const { getBalance } = require('./economy/currency');
+
 
 client.commands.set('balance', {
   async execute(message) {
@@ -45,8 +47,6 @@ client.commands.set('balance', {
     message.reply(`💰 You currently have $${bal} DreamworldPoints.`);
   }
 });
-
-const { Currency } = require('./economy/currency');
 
 client.commands.set('daily', {
   async execute(message) {
@@ -65,7 +65,7 @@ client.commands.set('daily', {
   }
 });
 
-const { getBalance, removeCash, addCash } = require('./economy/currency');
+
 const { flip } = require('./economy/games');
 
 client.commands.set('flip', {
@@ -85,7 +85,6 @@ client.commands.set('flip', {
   }
 });
 
-const { getBalance, removeCash, addCash } = require('./economy/currency');
 const { slots } = require('./economy/games');
 
 client.commands.set('slots', {

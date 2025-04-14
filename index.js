@@ -380,26 +380,6 @@ client.commands.set('gambleitem', {
   }
 });
 
-<<<<<<< HEAD
-=======
-const ticketSchema = new mongoose.Schema({
-  userId: String,
-  guildId: String,
-  number: Number, // 1 to 50000
-  purchasedAt: { type: Date, default: Date.now }
-});
-
-const poolSchema = new mongoose.Schema({
-  guildId: String,
-  pool: { type: Number, default: 3000 }, // Starting at $3000
-  lastDraw: { type: Date, default: new Date() }
-});
-
-module.exports = mongoose.model('LotteryPool', poolSchema);
-
-module.exports = mongoose.model('Ticket', ticketSchema);
->>>>>>> 08b5326b7f59edfbaf7a224f659a098ff7017dfb
-
 client.commands.set('buyticket', {
   async execute(message, args) {
     const amount = parseInt(args[0]) || 1;

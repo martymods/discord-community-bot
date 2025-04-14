@@ -339,7 +339,6 @@ client.commands.set('topxp', {
   }
 });
 
-const { Currency } = require('./economy/currency');
 
 client.commands.set('richest', {
   async execute(message) {

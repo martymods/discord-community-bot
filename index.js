@@ -265,7 +265,6 @@ client.commands.set('shop', {
 });
 
 const { addItem } = require('./economy/inventory');
-const { getBalance, removeCash } = require('./economy/currency');
 
 client.commands.set('buyitem', {
   async execute(message, args) {

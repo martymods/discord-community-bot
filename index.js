@@ -407,6 +407,40 @@ client.commands.set('buyticket', {
   }
 });
 
+client.commands.set('mytickets', {
+  async execute(message) {
+    const tickets = await Ticket.find({ userId: message.author.id, guildId: message.guild.id });
+    if (!tickets.length) return message.reply("You don't have any tickets this week.");
+
+    const list = tickets.map(t => `#${t.number}`).join(', ');
+    message.reply(`🎟️ Your Tickets: ${list}`);
+  }
+});
+
+client.commands.set('lasttickets', {
+  async execute(message) {
+    const tickets = await Ticket.find({ guildId: message.guild.id }).sort({ purchasedAt: -1 }).limit(10);
+    if (!tickets.length) return message.reply("No tickets sold yet.");
+
+    const list = tickets.map(t => `<@${t.userId}> bought #${t.number}`).join('\n');
+    message.reply(`🎟️ Last 10 Tickets:\n${list}`);
+  }
+});
+
+client.commands.set('lotteryinfo', {
+  async execute(message) {
+    const pool = await Pool.findOne({ guildId: message.guild.id }) || { pool: 3000, lastDraw: new Date() };
+    const count = await Ticket.countDocuments({ guildId: message.guild.id });
+
+    message.reply(`🎰 Lottery Info:
+Current Pool: $${pool.pool}
+Tickets Sold: ${count}
+Next Draw: Sunday Midnight
+Last Draw Time: ${pool.lastDraw.toLocaleString()}`);
+  }
+});
+
+
 app.use(express.json());
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);

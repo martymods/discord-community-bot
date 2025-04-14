@@ -21,6 +21,9 @@ const games = require('./economy/games');
 const { getRandomItem } = require('./economy/items');
 const { addItem, removeItem, getInventory, Inventory } = require('./economy/inventory');
 const { rotatingShop, refreshShop, shopItems } = require('./economy/shop');
+const cron = require('node-cron');
+const Ticket = require('./economy/ticket');
+const Pool = require('./economy/pool');
 
 client.commands = new Collection();
 
@@ -374,6 +377,50 @@ client.commands.set('gambleitem', {
       await removeItem(message.author.id, message.guild.id, item);
       message.reply(`💀 You lost the gamble... your ${item} is gone.`);
     }
+  }
+});
+
+const ticketSchema = new mongoose.Schema({
+  userId: String,
+  guildId: String,
+  number: Number, // 1 to 50000
+  purchasedAt: { type: Date, default: Date.now }
+});
+
+const poolSchema = new mongoose.Schema({
+  guildId: String,
+  pool: { type: Number, default: 3000 }, // Starting at $3000
+  lastDraw: { type: Date, default: new Date() }
+});
+
+module.exports = mongoose.model('LotteryPool', poolSchema);
+
+module.exports = mongoose.model('Ticket', ticketSchema);
+
+client.commands.set('buyticket', {
+  async execute(message, args) {
+    const amount = parseInt(args[0]) || 1;
+    if (amount <= 0 || amount > 50) return message.reply("Buy between 1-50 tickets only.");
+    
+    const numbers = [];
+
+    for (let i = 0; i < amount; i++) {
+      const chosenNum = parseInt(args[1]) || Math.floor(Math.random() * 50000) + 1;
+      await Ticket.create({
+        userId: message.author.id,
+        guildId: message.guild.id,
+        number: chosenNum
+      });
+      numbers.push(chosenNum);
+    }
+
+    const pool = await Pool.findOneAndUpdate(
+      { guildId: message.guild.id },
+      { $inc: { pool: amount } },
+      { new: true, upsert: true }
+    );
+
+    message.reply(`🎟️ Bought ${amount} ticket(s) with numbers: ${numbers.join(', ')}. Current pool: $${pool.pool}`);
   }
 });
 

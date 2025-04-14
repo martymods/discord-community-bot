@@ -1,4 +1,3 @@
-
 module.exports = {
     name: 'buy',
     execute(message) {
@@ -9,3 +8,4 @@ module.exports = {
   💰 PayPal → https://your-paypal-checkout-link.com`);
     }
   }
+  

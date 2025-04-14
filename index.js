@@ -37,6 +37,75 @@ client.commands.set('ping', {
   }
 });
 
+const { getBalance } = require('./economy/currency');
+
+client.commands.set('balance', {
+  async execute(message) {
+    const bal = await getBalance(message.author.id, message.guild.id);
+    message.reply(`💰 You currently have $${bal} DreamworldPoints.`);
+  }
+});
+
+const { Currency } = require('./economy/currency');
+
+client.commands.set('daily', {
+  async execute(message) {
+    const user = await Currency.findOne({ userId: message.author.id, guildId: message.guild.id }) || new Currency({ userId: message.author.id, guildId: message.guild.id });
+    const now = new Date();
+    const last = user.lastDaily || new Date(0);
+    const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+
+    if (diff < 1) return message.reply("🕒 You already claimed your daily reward. Come back tomorrow!");
+
+    user.cash += 250;
+    user.lastDaily = now;
+    await user.save();
+
+    message.reply("🎁 You claimed your daily reward: 💰 $250 DreamworldPoints!");
+  }
+});
+
+const { getBalance, removeCash, addCash } = require('./economy/currency');
+const { flip } = require('./economy/games');
+
+client.commands.set('flip', {
+  async execute(message, args) {
+    const choice = args[0]?.toLowerCase();
+    const amount = parseInt(args[1]);
+
+    if (!['heads', 'tails'].includes(choice)) return message.reply("Usage: `!flip heads|tails amount`");
+    if (isNaN(amount) || amount <= 0) return message.reply("Bet a valid amount.");
+
+    const balance = await getBalance(message.author.id, message.guild.id);
+    if (balance < amount) return message.reply("You're too broke for that bet.");
+
+    await flip(message, choice, amount, 
+      async amt => await addCash(message.author.id, message.guild.id, amt)
+    );
+  }
+});
+
+const { getBalance, removeCash, addCash } = require('./economy/currency');
+const { slots } = require('./economy/games');
+
+client.commands.set('slots', {
+  async execute(message, args) {
+    const amount = parseInt(args[0]);
+    if (isNaN(amount) || amount <= 0) return message.reply("Usage: `!slots amount`");
+
+    const balance = await getBalance(message.author.id, message.guild.id);
+    if (balance < amount) return message.reply("Insufficient funds.");
+
+    await slots(message, amount, balance,
+      async amt => {
+        if (amt > 0) return await addCash(message.author.id, message.guild.id, amt);
+        else return await removeCash(message.author.id, message.guild.id, Math.abs(amt));
+      }
+    );
+  }
+});
+
+
 client.commands.set('roast', {
   execute(message) {
     const target = message.mentions.users.first();
@@ -147,3 +216,4 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+

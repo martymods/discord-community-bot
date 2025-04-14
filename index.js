@@ -257,7 +257,7 @@ client.commands.set('leaderboard', {
   }
 });
 
-const { getInventory } = require('./economy/inventory');
+const { addItem, removeItem, getInventory, Inventory } = require('./economy/inventory');
 
 client.commands.set('inventory', {
   async execute(message) {

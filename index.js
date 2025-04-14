@@ -298,7 +298,6 @@ client.commands.set('use', {
   }
 });
 
-const { rotatingShop } = require('./economy/shop');
 
 client.commands.set('shop', {
   execute(message) {

@@ -480,7 +480,6 @@ Pool carries over! Now at $${pool.pool}`);
 });
 
 
-app.use(express.json());
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));

@@ -127,9 +127,10 @@ client.commands.set('roast', {
 
 client.commands.set('help', {
   execute(message) {
-    message.channel.send('Available commands: `!ping`, `!help`, `!kick @user`, `!ban @user`, `!buy`, `!myorders`');
+    message.channel.send('Available commands: `!ping`, `!help`, `!kick @user`, `!ban @user`, `!buy`, `!myorders`, `!balance`, `!daily`, `!flip heads/tails amount`, `!slots amount`, `!rank`, `!leaderboard`, `!roast @user`');
   }
 });
+
 
 // Add kick & ban (if you had them before)
 client.commands.set('kick', {

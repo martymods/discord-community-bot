@@ -24,6 +24,8 @@ const { rotatingShop, refreshShop, shopItems } = require('./economy/shop');
 const cron = require('node-cron');
 const Ticket = require('./economy/ticket');
 const Pool = require('./economy/pool');
+const { triggerDrama } = require('./economy/drama');
+
 
 client.commands = new Collection();
 
@@ -211,6 +213,12 @@ mongoose.connect(process.env.MONGODB_URI, {
 client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
+
+// Drama Timer
+setInterval(() => {
+  triggerDrama(client);
+}, 60 * 60 * 1000); // Every 1 hour
+
 
 // Message Handler
   const greetedUsers = new Set();
@@ -491,4 +499,3 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
-

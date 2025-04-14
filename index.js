@@ -212,6 +212,79 @@ client.commands.set('leaderboard', {
   }
 });
 
+const { getInventory } = require('./economy/inventory');
+
+client.commands.set('inventory', {
+  async execute(message) {
+    const items = await getInventory(message.author.id, message.guild.id);
+
+    if (!items || items.size === 0) return message.reply("Your bag is empty.");
+
+    const itemList = [...items.entries()].map(([item, qty]) => `${item} x${qty}`).join('\n');
+    message.reply(`🎒 Your Inventory:\n${itemList}`);
+  }
+});
+
+const { removeItem } = require('./economy/inventory');
+
+client.commands.set('use', {
+  async execute(message, args) {
+    const item = args[0]?.toLowerCase();
+    if (!item) return message.reply("Usage: `!use item_name`");
+
+    const { addCash } = require('./economy/currency');
+
+    switch(item) {
+      case 'gem':
+        await removeItem(message.author.id, message.guild.id, item);
+        await addCash(message.author.id, message.guild.id, 100);
+        return message.reply("💎 Used a Gem! Gained $100 DreamworldPoints.");
+      case 'medal':
+        await removeItem(message.author.id, message.guild.id, item);
+        await addCash(message.author.id, message.guild.id, 50);
+        return message.reply("🎖️ Used a Medal! Gained $50 DreamworldPoints.");
+      case 'dice':
+        const xpGain = Math.floor(Math.random() * 25) + 5;
+        const Levels = require('discord-xp');
+        await removeItem(message.author.id, message.guild.id, item);
+        await Levels.appendXp(message.author.id, message.guild.id, xpGain);
+        return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
+      default:
+        return message.reply("Unknown item.");
+    }
+  }
+});
+
+const { shopItems } = require('./economy/shop');
+
+client.commands.set('shop', {
+  execute(message) {
+    const shop = Object.entries(shopItems).map(([key, item]) => `${item.name} - $${item.price} (Command: !buyitem ${key})`).join('\n');
+    message.reply(`🛒 Dreamworld Shop:\n${shop}`);
+  }
+});
+
+const { shopItems } = require('./economy/shop');
+const { addItem } = require('./economy/inventory');
+const { getBalance, removeCash } = require('./economy/currency');
+
+client.commands.set('buyitem', {
+  async execute(message, args) {
+    const item = args[0]?.toLowerCase();
+    if (!item || !shopItems[item]) return message.reply("Item not found.");
+
+    const cost = shopItems[item].price;
+    const balance = await getBalance(message.author.id, message.guild.id);
+
+    if (balance < cost) return message.reply("You're too broke to buy this.");
+
+    await removeCash(message.author.id, message.guild.id, cost);
+    await addItem(message.author.id, message.guild.id, item);
+
+    message.reply(`Purchased ${shopItems[item].name} for $${cost} DreamworldPoints!`);
+  }
+});
+
 
 app.use(express.json());
 app.use('/stripe/webhook', stripeWebhook);

@@ -1,5 +1,5 @@
 module.exports = {
-    async flip(message, choice, amount, balanceFn, updateFn) {
+    async flip(message, choice, amount, updateFn) {
       const result = Math.random() < 0.5 ? 'heads' : 'tails';
       if (result === choice) {
         await updateFn(amount);
@@ -9,6 +9,7 @@ module.exports = {
         message.channel.send(`🪙 It was ${result}! You lost 💸 $${amount}`);
       }
     },
+  
     async slots(message, amount, balance, updateFn) {
       const emojis = ['🍒', '🍋', '🍊', '🍇', '💎'];
       const spin = () => emojis[Math.floor(Math.random() * emojis.length)];

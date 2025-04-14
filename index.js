@@ -17,6 +17,8 @@ const client = new Client({
 global.client = client; // So Stripe/Paypal access your client
 
 const { Currency, getBalance, addCash, removeCash } = require('./economy/currency');
+const games = require('./economy/games');
+
 
 client.commands = new Collection();
 
@@ -66,8 +68,6 @@ client.commands.set('daily', {
 });
 
 
-const { flip } = require('./economy/games');
-
 client.commands.set('flip', {
   async execute(message, args) {
     const choice = args[0]?.toLowerCase();
@@ -79,13 +79,11 @@ client.commands.set('flip', {
     const balance = await getBalance(message.author.id, message.guild.id);
     if (balance < amount) return message.reply("You're too broke for that bet.");
 
-    await flip(message, choice, amount, 
+    await games.flip(message, choice, amount, 
       async amt => await addCash(message.author.id, message.guild.id, amt)
     );
   }
 });
-
-const { slots } = require('./economy/games');
 
 client.commands.set('slots', {
   async execute(message, args) {
@@ -95,7 +93,7 @@ client.commands.set('slots', {
     const balance = await getBalance(message.author.id, message.guild.id);
     if (balance < amount) return message.reply("Insufficient funds.");
 
-    await slots(message, amount, balance,
+    await games.slots(message, amount, balance,
       async amt => {
         if (amt > 0) return await addCash(message.author.id, message.guild.id, amt);
         else return await removeCash(message.author.id, message.guild.id, Math.abs(amt));
@@ -215,4 +213,3 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
-

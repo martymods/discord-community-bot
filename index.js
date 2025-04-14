@@ -218,7 +218,6 @@ client.on('messageCreate', async (message) => {
   }
   
 
-const { addItem } = require('./economy/inventory');
 
 const drop = getRandomItem();
 if (drop) {
@@ -270,7 +269,6 @@ client.commands.set('inventory', {
   }
 });
 
-const { removeItem } = require('./economy/inventory');
 
 client.commands.set('use', {
   async execute(message, args) {

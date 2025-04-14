@@ -8,4 +8,3 @@ module.exports = {
   💰 PayPal → https://your-paypal-checkout-link.com`);
     }
   }
-  

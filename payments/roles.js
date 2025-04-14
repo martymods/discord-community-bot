@@ -9,4 +9,3 @@ async function giveRole(guild, userId, roleId) {
   }
   
   module.exports = { giveRole, removeRole };
-  

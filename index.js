@@ -240,8 +240,7 @@ if (drop) {
 client.login(process.env.DISCORD_TOKEN);
 
 // Webhooks & Keep Alive
-const express = require('express');
-const app = express();
+const app = require('./keep_alive');
 const stripeWebhook = require('./payments/stripe');
 const paypalWebhook = require('./payments/paypal');
 

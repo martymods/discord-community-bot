@@ -165,7 +165,14 @@ client.commands.set('roast', {
 
 client.commands.set('help', {
   execute(message) {
-    message.channel.send('Available commands: `!ping`, `!help`, `!kick @user`, `!ban @user`, `!buy`, `!myorders`, `!balance`, `!daily`, `!flip heads/tails amount`, `!slots amount`, `!rank`, `!leaderboard`, `!roast @user`');
+    message.channel.send(`Available commands:
+\`!ping\`, \`!help\`, \`!kick @user\`, \`!ban @user\`, \`!buy\`, \`!myorders\`,
+\`!balance\`, \`!daily\`, \`!flip heads/tails amount\`, \`!slots amount\`,
+\`!rank\`, \`!leaderboard\`, \`!roast @user\`, \`!inventory\`, \`!use item_name\`,
+\`!shop\`, \`!buyitem item_name\`, \`!lootbox\`, \`!topxp\`, \`!richest\`,
+\`!topcollectors\`, \`!gambleitem item_name\`, \`!buyticket amount number(optional)\`,
+\`!mytickets\`, \`!lasttickets\`, \`!lotteryinfo\`
+`);
   }
 });
 
@@ -437,6 +444,39 @@ Current Pool: $${pool.pool}
 Tickets Sold: ${count}
 Next Draw: Sunday Midnight
 Last Draw Time: ${pool.lastDraw.toLocaleString()}`);
+  }
+});
+
+cron.schedule('0 0 * * 0', async () => {
+  const tickets = await Ticket.find({ guildId: 'YOUR_GUILD_ID' });
+  const winnerNum = Math.floor(Math.random() * 50000) + 1;
+  const pool = await Pool.findOne({ guildId: 'YOUR_GUILD_ID' });
+
+  if (!pool) return;
+
+  const winnerTicket = tickets.find(t => t.number === winnerNum);
+
+  const channel = client.channels.cache.get('YOUR_CHANNEL_ID'); // <- Put your channel ID here
+
+  if (winnerTicket) {
+    const user = `<@${winnerTicket.userId}>`;
+
+    channel.send(`🎉 **LOTTERY WINNER ANNOUNCEMENT** 🎉
+========================
+💰 Prize: $${pool.pool}
+🎟️ Winning Number: #${winnerNum}
+🏆 Winner: ${user}
+========================
+Congrats! Spend wisely.`);
+
+    await Ticket.deleteMany({ guildId: 'YOUR_GUILD_ID' });
+    pool.pool = 3000;
+    pool.lastDraw = new Date();
+    await pool.save();
+
+  } else {
+    channel.send(`💀 No winner this week. The winning number was #${winnerNum}.
+Pool carries over! Now at $${pool.pool}`);
   }
 });
 

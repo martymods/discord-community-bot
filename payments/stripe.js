@@ -1,4 +1,3 @@
-
 const Stripe = require('stripe');
 const express = require('express');
 const { Purchase } = require('./database');
@@ -55,4 +54,3 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
 });
 
 module.exports = router;
-

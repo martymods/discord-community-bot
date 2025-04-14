@@ -264,7 +264,6 @@ client.commands.set('shop', {
   }
 });
 
-const { shopItems } = require('./economy/shop');
 const { addItem } = require('./economy/inventory');
 const { getBalance, removeCash } = require('./economy/currency');
 

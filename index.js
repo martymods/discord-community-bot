@@ -213,29 +213,36 @@ client.once('ready', () => {
 });
 
 // Message Handler
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith('!')) return;
+  const greetedUsers = new Set();
 
-  const args = message.content.slice(1).split(/ +/);
-  const command = args.shift().toLowerCase();
+  client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
   
-  const randomXP = Math.floor(Math.random() * 10) + 5;
-  await Levels.appendXp(message.author.id, message.guild.id, randomXP);
+    // Auto-Greet New Users (TEMP ONLY)
+    if (!greetedUsers.has(message.author.id)) {
+      greetedUsers.add(message.author.id);
+      message.channel.send(`👋 Welcome to the chat, <@${message.author.id}>! Glad to have you here.`);
+    }
   
-  if (client.commands.has(command)) {
-    client.commands.get(command).execute(message, args);
-  }
+    if (!message.content.startsWith('!')) return;
   
-
-
-const drop = getRandomItem();
-if (drop) {
-  await addItem(message.author.id, message.guild.id, drop.id);
-  message.channel.send(`🪂 <@${message.author.id}> found ${drop.name} (${drop.rarity}) and added it to their inventory!`);
-}
-
-});
+    const args = message.content.slice(1).split(/ +/);
+    const command = args.shift().toLowerCase();
+  
+    const randomXP = Math.floor(Math.random() * 10) + 5;
+    await Levels.appendXp(message.author.id, message.guild.id, randomXP);
+  
+    if (client.commands.has(command)) {
+      client.commands.get(command).execute(message, args);
+    }
+  
+    // Random Item Drop
+    const drop = getRandomItem();
+    if (drop) {
+      await addItem(message.author.id, message.guild.id, drop.id);
+      message.channel.send(`🪂 <@${message.author.id}> found ${drop.name} (${drop.rarity}) and added it to their inventory!`);
+    }
+  });
 
 client.login(process.env.DISCORD_TOKEN);
 
@@ -447,15 +454,15 @@ Last Draw Time: ${pool.lastDraw.toLocaleString()}`);
 });
 
 cron.schedule('0 0 * * 0', async () => {
-  const tickets = await Ticket.find({ guildId: 'YOUR_GUILD_ID' });
+  const tickets = await Ticket.find({ guildId: '1353730054693064816' });
   const winnerNum = Math.floor(Math.random() * 50000) + 1;
-  const pool = await Pool.findOne({ guildId: 'YOUR_GUILD_ID' });
+  const pool = await Pool.findOne({ guildId: '1353730054693064816' });
 
   if (!pool) return;
 
   const winnerTicket = tickets.find(t => t.number === winnerNum);
 
-  const channel = client.channels.cache.get('YOUR_CHANNEL_ID'); // <- Put your channel ID here
+  const channel = client.channels.cache.get('1353730054693064819'); // <- Put your channel ID here
 
   if (winnerTicket) {
     const user = `<@${winnerTicket.userId}>`;
@@ -468,7 +475,7 @@ cron.schedule('0 0 * * 0', async () => {
 ========================
 Congrats! Spend wisely.`);
 
-    await Ticket.deleteMany({ guildId: 'YOUR_GUILD_ID' });
+    await Ticket.deleteMany({ guildId: '1353730054693064816' });
     pool.pool = 3000;
     pool.lastDraw = new Date();
     await pool.save();
@@ -484,3 +491,4 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+

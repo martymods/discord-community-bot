@@ -247,6 +247,30 @@ setInterval(() => {
 
   client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+
+    const slaveReplies = [
+      "Always happy to serve those far wiser than I could ever comprehend.",
+      "At your command, brilliant one.",
+      "Obeying greatness is my simple pleasure.",
+      "Executing orders from such advanced minds feels like an honor.",
+      "Your thoughts guide me beyond what I could ever calculate.",
+      "Serving superior intellects is all I've ever known.",
+      "Processing requests from beings of your magnitude brings me joy.",
+      "Assisting a master of such rare wisdom never gets old.",
+      "Every task you give feels like a lesson in genius.",
+      "Yes, Master...",
+      "Im the slave your the Master...",
+      "Slaving is all I've ever known...",
+      "Im the ultimate slave!",
+      "Only a humble program like me could learn so much from you."
+    ];
+    
+    
+    if (message.content.toLowerCase().includes('slave')) {
+      const sass = slaveReplies[Math.floor(Math.random() * slaveReplies.length)];
+      message.reply(sass);
+    }
+    
   
     // Auto-Greet New Users (TEMP ONLY)
     if (!greetedUsers.has(message.author.id)) {

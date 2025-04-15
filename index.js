@@ -26,6 +26,28 @@ const Ticket = require('./economy/ticket');
 const Pool = require('./economy/pool');
 const { triggerDrama } = require('./economy/drama');
 
+const welcomeMessages = [
+  "👋 Welcome to the party, <@USER>!",
+  "💎 Fresh player... <@USER> has entered the arena.",
+  "😎 Oh crap, <@USER> just pulled up.",
+  "🔥 Bless the chat, <@USER> just arrived.",
+  "📦 <@USER> unpacked their inventory and joined us.",
+  "👀 Another challenger appears: <@USER>",
+  "💰 Someone tell <@USER> the rent is due every day in here.",
+  "😤 Hope you're ready for good ideas, <@USER>.",
+  "⚡ New player joined: <@USER>. Stats loading...",
+  "🎭 <@USER> just walked in like we weren't talking about them.",
+  "🎟️ Admit one chaos ticket: <@USER>",
+  "🍀 Lucky <@USER> showed up... or unlucky?",
+  "💬 What's up, <@USER>? Don't trust anyone btw.",
+  "🕶️ <@USER> entered the simulation.",
+  "🔮 Someone check <@USER>'s energy. Feels high rank.",
+  "🎲 Roll the dice... <@USER> is live.",
+  "📡 Signal detected: <@USER> connected.",
+  "💼 New investor in the market: <@USER>",
+  "🏆 Watch out — <@USER> looks like trouble."
+];
+
 
 client.commands = new Collection();
 
@@ -229,8 +251,10 @@ setInterval(() => {
     // Auto-Greet New Users (TEMP ONLY)
     if (!greetedUsers.has(message.author.id)) {
       greetedUsers.add(message.author.id);
-      message.channel.send(`👋 Welcome to the chat, <@${message.author.id}>! Glad to have you here.`);
+      const welcomeMsg = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)].replace('<@USER>', `<@${message.author.id}>`);
+      message.channel.send(welcomeMsg);
     }
+    
   
     if (!message.content.startsWith('!')) return;
   

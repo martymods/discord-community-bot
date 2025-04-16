@@ -197,16 +197,60 @@ client.commands.set('roast', {
 
 client.commands.set('help', {
   execute(message) {
-    message.channel.send(`Available commands:
-\`!ping\`, \`!help\`, \`!kick @user\`, \`!ban @user\`, \`!buy\`, \`!myorders\`,
-\`!balance\`, \`!daily\`, \`!flip heads/tails amount\`, \`!slots amount\`,
-\`!rank\`, \`!leaderboard\`, \`!roast @user\`, \`!inventory\`, \`!use item_name\`,
-\`!shop\`, \`!buyitem item_name\`, \`!lootbox\`, \`!topxp\`, \`!richest\`,
-\`!topcollectors\`, \`!gambleitem item_name\`, \`!buyticket amount number(optional)\`,
-\`!mytickets\`, \`!lasttickets\`, \`!lotteryinfo\`
-`);
+    message.channel.send(`🧠 **Available Commands:**
+━━━━━━━━━━━━━━━━━━━━
+🎮 **Core Gameplay**
+!ping — Test the Slave
+!balance — Check your DreamworldPoints
+!daily — Claim daily rewards (+ streaks)
+!inventory — View your item bag
+!use <item> — Use an item like gem, dice, medal
+!shop — See the rotating item shop
+!buyitem <item> — Buy an item from the shop
+!gambleitem <item> — 40% chance to double an item
+
+💰 **Gambling Games**
+!flip heads|tails <amount> — Coin flip wager
+!slots <amount> — Play slots for big payouts
+
+💳 **Membership Tiers**
+!buy — View all premium tiers and payment links  
+!myorders — See your past payments and unlocked ranks  
+
+🎟️ **Lottery System**
+!buyticket <amount> <number(optional)>
+!mytickets — Your active tickets
+!lasttickets — Recent ticket buyers
+!lotteryinfo — Pool, tickets sold, next draw
+
+📊 **Leaderboard & XP**
+!rank — Your XP level
+!leaderboard — Top XP players
+!topxp — XP leaderboard
+!richest — Richest players
+!topcollectors — Top item hoarders
+
+🏀 $ 🎟️**Betting System**🏀 $ 🎟️
+!nbagames — List real NBA games today
+!nbabet <gameId> <team> <amount>
+!resolvebet <gameId> <winner> — Manual resolution
+!mybets — See your betting history
+!topbettors — Show top DreamToken winners
+!jackpot — Current jackpot pool + last winner
+
+⚔️ **Player Challenges**
+!challenge @user <amount> — Challenge a player
+!accept <userId> — Accept a challenge
+
+🎤 **Fun & Social**
+!roast @user — Light roast battle
+
+━━━━━━━━━━━━━━━━━━━━
+More chaos coming soon...
+    `);
   }
 });
+
 
 
 // Add kick & ban (if you had them before)
@@ -673,4 +717,3 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
-

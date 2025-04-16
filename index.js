@@ -910,13 +910,21 @@ client.commands.set('watchticker', {
 });
 
 function rotateSnipers() {
-  todaySnipes = getSniperRotation();
   const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
-  if (channel) {
-    const msg = `🧠 **Daily Sniper Rotation Activated**\nTracking:\n${todaySnipes.map((t, i) => `${i + 1}. $${t}`).join('\n')}\n\nStay alert.`;
-    channel.send(msg);
+  const currentRotation = getSniperRotation(); // ✅ ADD THIS LINE
+
+  if (!currentRotation.length) {
+    channel.send("⚠️ No tickers found for rotation.");
+    return;
   }
+
+  channel.send(`🧠 **Daily Sniper Rotation Activated**\nTracking:\n${currentRotation.map(t => `• $${t}`).join('\n')}\n\nStay alert.`);
+
+  currentRotation.forEach(ticker => {
+    scanOptionsFlow(client, ticker);
+  });
 }
+
 
 client.commands.set('rotate', {
   execute(message) {

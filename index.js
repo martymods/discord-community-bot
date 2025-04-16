@@ -26,6 +26,9 @@ const Ticket = require('./economy/ticket');
 const Pool = require('./economy/pool');
 const { triggerDrama } = require('./economy/drama');
 const { getTopWinners } = require('./economy/bettingStats');
+const { getUserHistory } = require('./economy/bettingHistory');
+const { getTodayGames } = require('./economy/nbaGames');
+const { createChallenge, acceptChallenge } = require('./economy/p2pBets');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -550,6 +553,50 @@ client.commands.set('topbettors', {
 
     const list = top.map((u, i) => `${i + 1}. <@${u.userId}> - Won ${u.tokensWon} DreamTokens`).join('\n');
     message.reply("💸 **Top Bettors**:\n" + list);
+  }
+});
+
+client.commands.set('mybets', {
+  async execute(message) {
+    const history = await getUserHistory(message.author.id, message.guild.id);
+    if (!history.length) return message.reply("You haven’t placed any bets yet.");
+
+    const log = history.map(h => 
+      `${h.date.toLocaleDateString()} - **${h.event}** (${h.option}) → ${h.outcome} ${h.amount} 💸`
+    ).join('\n');
+
+    message.reply(`📜 **Your Last Bets:**\n${log}`);
+  }
+});
+
+client.commands.set('nbagames', {
+  async execute(message) {
+    const games = await getTodayGames();
+    if (!games.length) return message.reply("No NBA games today.");
+
+    const list = games.map(g => `🏀 ${g.visitor} @ ${g.home} — ${g.status}`).join('\n');
+    message.reply("📅 **Today's NBA Games:**\n" + list);
+  }
+});
+
+client.commands.set('challenge', {
+  async execute(message, args) {
+    const opponent = message.mentions.users.first();
+    const amount = parseInt(args[1]);
+
+    if (!opponent || isNaN(amount)) return message.reply("Usage: `!challenge @user 100`");
+
+    message.channel.send(createChallenge(message, opponent.id, amount));
+  }
+});
+
+client.commands.set('accept', {
+  async execute(message, args) {
+    const challengerId = args[0];
+    if (!challengerId) return message.reply("Usage: `!accept USER_ID`");
+
+    const result = await acceptChallenge(client, message, challengerId);
+    message.channel.send(result);
   }
 });
 

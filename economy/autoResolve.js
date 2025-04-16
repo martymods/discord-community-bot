@@ -3,6 +3,7 @@ const { bets } = require('./betting');
 const { addTokens } = require('./dreamtokens');
 const { recordWin, recordLoss } = require('./bettingStats');
 const { sendWinDrama, sendLossDrama } = require('./dramaBetting');
+const { maybeTriggerJackpot } = require('./jackpotTrigger');
 
 async function resolveFinishedGames(client) {
   const games = await getTodayGames();
@@ -26,6 +27,7 @@ async function resolveFinishedGames(client) {
       await addTokens(winner.user, bet.guildId, payout);
       await recordWin(winner.user, bet.guildId, payout);
       sendWinDrama(client, winner.user, payout);
+      await maybeTriggerJackpot(client, winner.user, bet.guildId);
     }
 
     for (const loser of losers) {

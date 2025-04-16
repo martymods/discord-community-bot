@@ -937,8 +937,12 @@ client.commands.set('rotate', {
   }
 });
 
-// Run this when bot starts
-rotateSnipers();
+// Bot Ready
+client.once('ready', () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
+  rotateSnipers(); // ✅ Moved inside ready so channels are fully loaded
+});
+
 
 // Run this every 5 minutes
 setInterval(() => {

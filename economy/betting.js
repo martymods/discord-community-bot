@@ -1,5 +1,6 @@
 const { DreamTokens, addTokens, removeTokens } = require('./dreamtokens');
 const { recordWin, recordLoss } = require('./bettingStats');
+const { logBet } = require('./bettingHistory');
 const bets = new Map();
 
 module.exports = {
@@ -64,15 +65,17 @@ Place your bet:
     const totalWinnerBet = winners.reduce((a, b) => a + b.amount, 0);
 
     for (const winner of winners) {
-      const payout = Math.floor((winner.amount / totalWinnerBet) * potAfterFee);
-      await addTokens(winner.user, message.guild.id, payout);
-      await recordWin(winner.user, message.guild.id, payout);
-    }
-
-    for (const loser of losers) {
-      await recordLoss(loser.user, message.guild.id, loser.amount);
-    }
-
+        const payout = Math.floor((winner.amount / totalWinnerBet) * potAfterFee);
+        await addTokens(winner.user, message.guild.id, payout);
+        await recordWin(winner.user, message.guild.id, payout);
+        await logBet(winner.user, message.guild.id, bet.event, winnerChoice, winner.amount, 'Win');
+      }
+      
+      for (const loser of losers) {
+        await recordLoss(loser.user, message.guild.id, loser.amount);
+        await logBet(loser.user, message.guild.id, bet.event, winnerChoice === 'A' ? 'B' : 'A', loser.amount, 'Loss');
+      }
+      
     message.channel.send(`🎉 Bet Resolved! Winners on ${winnerChoice === 'A' ? bet.optionA : bet.optionB} split ${potAfterFee} DreamTokens!`);
 
     bets.delete(betId);

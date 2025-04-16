@@ -39,6 +39,9 @@ const { scanTicker } = require('./economy/financeIntel');
 const { scanOptionsFlow } = require('./economy/flowIntel');
 const { addTrackedTicker, getAllSnipers, getTrackedTickers } = require('./economy/sniperTargets');
 const { scanAllSnipers } = require('./economy/flowIntel');
+const { getSniperRotation } = require('./economy/sniperTargets');
+
+let todaySnipes = [];
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -903,6 +906,26 @@ client.commands.set('watchticker', {
     message.reply(`📈 Added ${ticker} to watchlist.`);
   }
 });
+
+function rotateSnipers() {
+  todaySnipes = getSniperRotation();
+  const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
+  if (channel) {
+    const msg = `🧠 **Daily Sniper Rotation Activated**\nTracking:\n${todaySnipes.map((t, i) => `${i + 1}. $${t}`).join('\n')}\n\nStay alert.`;
+    channel.send(msg);
+  }
+}
+
+// Run this when bot starts
+rotateSnipers();
+
+// Run this every 5 minutes
+setInterval(() => {
+  for (const t of todaySnipes) {
+    scanTicker(client, t);
+    scanOptionsFlow(client, t);
+  }
+}, 5 * 60 * 1000);
 
 
 cron.schedule('0 12 * * *', () => {

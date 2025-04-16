@@ -1,4 +1,4 @@
-const MusicOrders = require('../musicorders.js'); // fixed path
+const MusicOrders = require('../MusicOrders.js'); // fixed path
 
 async function hasPaidForSubmission(userId, guildId) {
   const order = await MusicOrders.findOne({ userId, guildId });

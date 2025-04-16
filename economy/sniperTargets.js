@@ -27,9 +27,11 @@ function getSniperRotation(count = 3) {
   }
   
   module.exports = {
-    addTicker,
-    removeTicker,
+    addTrackedTicker,
+    removeTrackedTicker,
     getTrackedTickers,
+    getAllSnipers,
     getSniperRotation
   };
+  
   

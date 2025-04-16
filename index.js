@@ -35,7 +35,7 @@ const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
-
+const { scanTicker } = require('./economy/financeIntel');
 
 
 const welcomeMessages = [
@@ -297,6 +297,13 @@ mongoose.connect(process.env.MONGODB_URI, {
 client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
+
+setInterval(() => {
+  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'TSLA');
+  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'AMD');
+  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'AAPL');
+}, 60 * 1000 * 5); // every 5 minutes
+
 
 // Drama Timer
 setInterval(() => {

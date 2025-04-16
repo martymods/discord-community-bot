@@ -647,10 +647,13 @@ client.commands.set('nbagames', {
       const line = `🏀 ${g.visitor} @ ${g.home} — ${g.status}\n`;
     
       // 🧠 Run prediction
-      const predicted = simpleLogicPredict(g, teamStats);
-      if (predicted) {
-        sendToSportsIntel(client, message.guild.id, `📊 Predicted winner: **${predicted}** for ${g.home} vs ${g.visitor}`);
+      if (teamStats[g.home] && teamStats[g.visitor]) {
+        const predicted = simpleLogicPredict(g, teamStats);
+        if (predicted) {
+          sendToSportsIntel(client, message.guild.id, `📊 Predicted winner: **${predicted}** for ${g.home} vs ${g.visitor}`);
+        }
       }
+      
     
       if ((currentMessage + line).length > MAX_CHARS) {
         await message.channel.send(currentMessage);

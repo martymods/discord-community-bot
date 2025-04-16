@@ -2,8 +2,12 @@ const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+// after this line 👇
+const app = require('./keep_alive');
 
+// now it's safe to add this 👇
 app.use('/sharedphotos', express.static('public/sharedphotos'));
+
 
 const Levels = require("discord-xp");
 Levels.setURL(process.env.MONGODB_URI); // Using same MongoDB

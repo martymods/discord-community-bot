@@ -36,6 +36,7 @@ const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
 const { scanTicker } = require('./economy/financeIntel');
+const { scanOptionsFlow } = require('./economy/flowIntel');
 
 
 const welcomeMessages = [
@@ -578,6 +579,12 @@ Last Draw Time: ${pool.lastDraw.toLocaleString()}`);
   }
 });
 
+['TSLA', 'AAPL', 'AMD'].forEach(ticker => {
+  scanTicker(client, ticker);
+  scanOptionsFlow(client, ticker);
+});
+
+
 cron.schedule('0 0 * * 0', async () => {
   const tickets = await Ticket.find({ guildId: '1353730054693064816' });
   const winnerNum = Math.floor(Math.random() * 50000) + 1;
@@ -856,9 +863,28 @@ function sendToSportsIntel(client, guildId, content) {
   if (channel) channel.send(content);
 }
 
+const watchlist = new Set(['TSLA', 'AAPL', 'AMD']); // default list
+
+client.commands.set('watchticker', {
+  execute(message, args) {
+    const ticker = args[0]?.toUpperCase();
+    if (!ticker) return message.reply("Usage: `!watchticker TICKER`");
+    watchlist.add(ticker);
+    message.reply(`📈 Added ${ticker} to watchlist.`);
+  }
+});
+
+
 cron.schedule('0 12 * * *', () => {
   runDailyPredictions(client);
 });
+
+setInterval(() => {
+  for (const ticker of watchlist) {
+    scanTicker(client, ticker);
+    scanOptionsFlow(client, ticker);
+  }
+}, 5 * 60 * 1000);
 
 
 app.use('/stripe/webhook', stripeWebhook);

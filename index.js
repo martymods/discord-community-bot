@@ -771,9 +771,21 @@ client.commands.set('mysubmission', {
   }
 });
 
+client.on('messageCreate', async (message) => {
+  if (
+    message.channel.name === 'art-submission' &&
+    (message.content.includes('youtube.com') || message.content.includes('soundcloud.com'))
+  ) {
+    const paid = await hasPaidForSubmission(message.author.id, message.guild.id);
+    if (!paid) {
+      message.delete();
+      message.author.send('You must pay before submitting music.');
+    }
+  }
+});
+
 
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
-

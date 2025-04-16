@@ -1,42 +1,47 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const recentGames = new Map(); // gameId → { home, visitor }
 
-const RAPID_API_KEY = '36c5da5fe5mshe18e4122d0e413p12cf89jsnbd5be527669f';
-
 async function getTodayGames() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const response = await fetch(`https://api-basketball.p.rapidapi.com/games?date=${today}`, {
+    const res = await fetch(`https://api-basketball.p.rapidapi.com/games?date=${today}`, {
       method: 'GET',
       headers: {
-        'X-RapidAPI-Key': RAPID_API_KEY,
+        'X-RapidAPI-Key': '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f',
         'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
       }
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`API returned status ${response.status}: ${text}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`API returned status ${res.status}: ${errText}`);
     }
 
-    const data = await response.json();
-    const games = data.response || [];
+    const data = await res.json();
 
-    return games.map(game => {
-      const id = String(game.id);
-      const home = game.teams.home.name;
-      const visitor = game.teams.away.name;
-      const status = game.status.long;
-      const date = game.date;
+    if (!data.response || data.response.length === 0) {
+      console.log("🟡 No games returned for today.");
+      return [];
+    }
 
-      recentGames.set(id, { home, visitor });
+    return data.response.map(game => {
+      const home = game.teams?.home?.name || 'Unknown';
+      const visitor = game.teams?.away?.name || 'Unknown';
 
-      return { id, home, visitor, status, date };
+      recentGames.set(String(game.id), { home, visitor });
+
+      return {
+        id: game.id,
+        home,
+        visitor,
+        status: game.status?.long || 'Unknown',
+        date: game.date
+      };
     });
 
   } catch (error) {
-    console.error("❌ Error fetching NBA games:", error.message);
+    console.error("❌ Error fetching NBA games:", error);
     return [];
   }
 }

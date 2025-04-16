@@ -1,41 +1,45 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const recentGames = new Map(); // gameId → { home, visitor }
 
+const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f'; // Your actual RapidAPI key
+
 async function getTodayGames() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
+  const url = `https://api-basketball.p.rapidapi.com/games?date=${today}&league=12&season=2023-2024`; // League 12 = NBA
+
+  const options = {
+    method: 'GET',
+    headers: {
+      'X-RapidAPI-Key': API_KEY,
+      'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
+    }
+  };
 
   try {
-    const res = await fetch(`https://api-basketball.p.rapidapi.com/games?date=${today}`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f',
-        'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
-      }
-    });
+    const res = await fetch(url, options);
 
     if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`API returned status ${res.status}: ${errText}`);
+      throw new Error(`API returned status ${res.status}: ${await res.text()}`);
     }
 
-    const data = await res.json();
+    const json = await res.json();
 
-    if (!data.response || data.response.length === 0) {
-      console.log("🟡 No games returned for today.");
+    if (!json.response || json.response.length === 0) {
+      console.log("🟡 No games found for today.");
       return [];
     }
 
-    return data.response.map(game => {
-      const home = game.teams?.home?.name || 'Unknown';
-      const visitor = game.teams?.away?.name || 'Unknown';
-
-      recentGames.set(String(game.id), { home, visitor });
+    return json.response.map(game => {
+      recentGames.set(String(game.id), {
+        home: game.teams.home.name,
+        visitor: game.teams.away.name
+      });
 
       return {
         id: game.id,
-        home,
-        visitor,
-        status: game.status?.long || 'Unknown',
+        home: game.teams.home.name,
+        visitor: game.teams.away.name,
+        status: game.status.long,
         date: game.date
       };
     });

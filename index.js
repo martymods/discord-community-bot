@@ -31,7 +31,8 @@ const { getTodayGames } = require('./economy/nbaGames');
 const { createChallenge, acceptChallenge } = require('./economy/p2pBets');
 const { recentGames } = require('./economy/nbaGames');
 const { placeBet } = require('./economy/betting');
-const { resolveFinishedGames } = require('./autoResolve');
+const { resolveFinishedGames } = require('./economy/autoResolve');
+
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",

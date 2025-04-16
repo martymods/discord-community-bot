@@ -33,6 +33,7 @@ const { recentGames } = require('./economy/nbaGames');
 const { placeBet } = require('./economy/betting');
 const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
+const { hasPaidForSubmission } = require('./economy/musicPayCheck');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -712,6 +713,57 @@ client.commands.set('jackpot', {
 setInterval(() => {
   resolveFinishedGames(client);
 }, 3 * 60 * 1000);
+
+client.commands.set('submitmusic', {
+  execute(message) {
+    if (message.channel.name !== 'art-submission') {
+      return message.reply("🎶 Music submissions are only accepted in #art-submission.");
+    }
+
+    message.channel.send(`🎧 Want to submit your track to the playlist?
+
+💸 Submit Fee: $5
+Every submission gets reviewed and may be featured.
+
+🔗 Pay Here:
+Stripe: https://buy.stripe.com/test_YOUR_LINK  
+PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YOUR_ID
+
+Once paid, use:
+!mysubmission <your link or description>
+`);
+  }
+});
+
+client.commands.set('mysubmission', {
+  async execute(message, args) {
+    if (message.channel.name !== 'art-submission') {
+      return message.reply("🚫 Music submissions only allowed in #art-submission.");
+    }
+
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+    const link = args.join(' ');
+
+    if (!link || !link.includes('http')) {
+      return message.reply("Please include a valid link or description of your submission.");
+    }
+
+    const hasPaid = await hasPaidForSubmission(userId, guildId);
+    if (!hasPaid) {
+      return message.reply("💸 Please complete your payment before submitting. Use `!submitmusic` to get started.");
+    }
+
+    message.reply("✅ Submission received. Our curators will check it out!");
+    message.guild.channels.cache.find(c => c.name === 'art-submission')
+      .send(`🎶 **New Submission by <@${userId}>:**\n${link}`);
+
+    // Optional: tag them as artist
+    const role = message.guild.roles.cache.find(r => r.name === 'Submitted Artist');
+    if (role) message.member.roles.add(role);
+  }
+});
+
 
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);

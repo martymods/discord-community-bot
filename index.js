@@ -32,7 +32,7 @@ const { createChallenge, acceptChallenge } = require('./economy/p2pBets');
 const { recentGames } = require('./economy/nbaGames');
 const { placeBet } = require('./economy/betting');
 const { resolveFinishedGames } = require('./economy/autoResolve');
-
+const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -653,6 +653,14 @@ client.commands.set('nbabet', {
     }
 
     await placeBet(message, betId, option, amount);
+  }
+});
+
+client.commands.set('jackpot', {
+  async execute(message) {
+    const amount = getJackpotAmount();
+    const last = getLastWinner();
+    message.channel.send(`🎰 Current Jackpot: **${amount} DreamTokens**\nLast Winner: <@${last ?? 'Nobody yet'}>`);
   }
 });
 

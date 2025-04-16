@@ -2,6 +2,7 @@ const { DreamTokens, addTokens, removeTokens } = require('./dreamtokens');
 const { recordWin, recordLoss } = require('./bettingStats');
 const { logBet } = require('./bettingHistory');
 const bets = new Map();
+const { addToJackpot } = require('./jackpot');
 
 module.exports = {
   bets, // Store active bets
@@ -42,6 +43,7 @@ Place your bet:
     await removeTokens(message.author.id, message.guild.id, amount);
 
     bet.pot += amount;
+    addToJackpot(amount);
     if (choice === 'A') bet.betsA.push({ user: message.author.id, amount });
     if (choice === 'B') bet.betsB.push({ user: message.author.id, amount });
 
@@ -67,6 +69,8 @@ Place your bet:
     for (const winner of winners) {
         const payout = Math.floor((winner.amount / totalWinnerBet) * potAfterFee);
         await addTokens(winner.user, message.guild.id, payout);
+        const { maybeTriggerJackpot } = require('./jackpotTrigger');
+        await maybeTriggerJackpot(message.client, winner.user, message.guild.id);
         await recordWin(winner.user, message.guild.id, payout);
         await logBet(winner.user, message.guild.id, bet.event, winnerChoice, winner.amount, 'Win');
       }

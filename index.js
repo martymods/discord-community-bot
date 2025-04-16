@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 require('dotenv').config();
 
+
 // after this line 👇
 const app = require('./keep_alive');
 
@@ -995,13 +996,14 @@ client.commands.set('realshop', {
       const embed = new EmbedBuilder()
         .setTitle(item.name)
         .setDescription(`${item.description}\n💰 Cost: ${item.cost} DreamworldPoints\n📦 S&H: $${item.shippingFeeUSD}`)
-        .setImage(`https://github.com/martymods/discord-community-bot/tree/main/public/sharedphotos/${item.image.split('/').pop()}`)
+        .setImage(`https://discord-community-bot.onrender.com/sharedphotos/${item.image.split('/').pop()}`)
         .setColor('#00ffcc');
 
       message.channel.send({ embeds: [embed] });
     }
   }
 });
+
 
 // Bot Ready
 client.once('ready', () => {

@@ -5,7 +5,8 @@ const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f'; // Your ac
 
 async function getTodayGames() {
   const today = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
-  const url = `https://api-basketball.p.rapidapi.com/games?date=${today}&league=12&season=2023-2024`; // League 12 = NBA
+  const url = `https://api-basketball.p.rapidapi.com/games?date=${today}&league=12&season=2024-2025`;
+
 
   const options = {
     method: 'GET',

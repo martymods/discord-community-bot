@@ -6,6 +6,12 @@ async function getTodayGames() {
 
   try {
     const res = await fetch(`https://www.balldontlie.io/api/v1/games?start_date=${today}&end_date=${today}`);
+
+    if (!res.ok) {
+      const html = await res.text();
+      throw new Error(`API returned status ${res.status}:\n${html}`);
+    }
+
     const data = await res.json();
 
     if (!data || !data.data || data.data.length === 0) {

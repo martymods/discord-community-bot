@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 
+app.use('/sharedphotos', express.static('public/sharedphotos'));
+
 const Levels = require("discord-xp");
 Levels.setURL(process.env.MONGODB_URI); // Using same MongoDB
 
@@ -987,7 +989,7 @@ client.commands.set('realshop', {
       const embed = new EmbedBuilder()
         .setTitle(item.name)
         .setDescription(`${item.description}\n💰 Cost: ${item.cost} DreamworldPoints\n📦 S&H: $${item.shippingFeeUSD}`)
-        .setImage(`https://discord-community-bot.onrender.com/sharedphotos/${item.image.split('/').pop()}`)
+        .setImage(`https://github.com/martymods/discord-community-bot/tree/main/public/sharedphotos/${item.image.split('/').pop()}`)
         .setColor('#00ffcc');
 
       message.channel.send({ embeds: [embed] });

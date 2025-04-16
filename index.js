@@ -33,7 +33,7 @@ const { recentGames } = require('./economy/nbaGames');
 const { placeBet } = require('./economy/betting');
 const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
-const { hasPaidForSubmission } = require('./economy/musicPayCheck');
+const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",

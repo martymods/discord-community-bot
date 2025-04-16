@@ -27,6 +27,12 @@ function getSniperRotation(count = 3) {
   return shuffled.slice(0, count);
 }
 
+// Pre-seed with common sniper-worthy tickers
+[
+    "PLTR", "SOFI", "NVDA", "RIVN", "SPY", "QQQ", "MARA", "RIOT", "COIN", "TSM", "TQQQ", "BBBY"
+  ].forEach(t => addTrackedTicker(t, 'default', 'system'));
+  
+
 module.exports = {
   addTrackedTicker,
   removeTrackedTicker,

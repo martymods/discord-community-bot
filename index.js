@@ -29,6 +29,8 @@ const { getTopWinners } = require('./economy/bettingStats');
 const { getUserHistory } = require('./economy/bettingHistory');
 const { getTodayGames } = require('./economy/nbaGames');
 const { createChallenge, acceptChallenge } = require('./economy/p2pBets');
+const { recentGames } = require('./economy/nbaGames');
+const { placeBet } = require('./economy/betting');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -597,6 +599,44 @@ client.commands.set('accept', {
 
     const result = await acceptChallenge(client, message, challengerId);
     message.channel.send(result);
+  }
+});
+
+client.commands.set('nbabet', {
+  async execute(message, args) {
+    const gameId = args[0];
+    const teamName = args[1]?.toLowerCase();
+    const amount = parseInt(args[2]);
+
+    if (!gameId || !teamName || isNaN(amount)) {
+      return message.reply("Usage: `!nbabet <gameId> <teamName> <amount>`");
+    }
+
+    const game = recentGames.get(gameId);
+    if (!game) return message.reply("Invalid game ID. Try `!nbagames` first.");
+
+    const home = game.home.toLowerCase();
+    const visitor = game.visitor.toLowerCase();
+
+    let option = null;
+    if (teamName === home) option = 'A';
+    else if (teamName === visitor) option = 'B';
+
+    if (!option) {
+      return message.reply(`Team must be either "${game.home}" or "${game.visitor}".`);
+    }
+
+    const label = `${game.visitor} @ ${game.home}`;
+    const betId = `nba-${gameId}`;
+
+    if (!global.bets) global.bets = require('./economy/betting').bets;
+
+    // Create the bet once
+    if (!global.bets.has(betId)) {
+      require('./economy/betting').createBet(message, label, game.visitor, game.home, 100);
+    }
+
+    await placeBet(message, betId, option, amount);
   }
 });
 

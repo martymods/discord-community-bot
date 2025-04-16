@@ -31,6 +31,7 @@ const { getTodayGames } = require('./economy/nbaGames');
 const { createChallenge, acceptChallenge } = require('./economy/p2pBets');
 const { recentGames } = require('./economy/nbaGames');
 const { placeBet } = require('./economy/betting');
+const { resolveFinishedGames } = require('./autoResolve');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -654,7 +655,13 @@ client.commands.set('nbabet', {
   }
 });
 
+// Run every 3 minutes
+setInterval(() => {
+  resolveFinishedGames(client);
+}, 3 * 60 * 1000);
+
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+

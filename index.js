@@ -34,7 +34,8 @@ const { placeBet } = require('./economy/betting');
 const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
-const { simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
+const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
+
 
 
 const welcomeMessages = [
@@ -625,8 +626,6 @@ client.commands.set('mybets', {
     message.reply(`📜 **Your Last Bets:**\n${log}`);
   }
 });
-
-const { buildRealTeamStats, simpleLogicPredict } = require('./economy/sportsPredict');
 
 client.commands.set('nbagames', {
   async execute(message) {

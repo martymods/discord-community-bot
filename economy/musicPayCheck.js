@@ -6,9 +6,3 @@ async function hasPaidForSubmission(userId, guildId) {
 }
 
 module.exports = { hasPaidForSubmission };
-
-order.submitted = true;
-(async () => {
-  await order.save();
-})();
-

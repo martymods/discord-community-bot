@@ -8,6 +8,10 @@ const app = require('./keep_alive');
 // now it's safe to add this 👇
 app.use('/sharedphotos', express.static('public/sharedphotos'));
 
+// Webhooks & Keep Alive
+
+const stripeWebhook = require('./payments/stripe');
+const paypalWebhook = require('./payments/paypal');
 
 const Levels = require("discord-xp");
 Levels.setURL(process.env.MONGODB_URI); // Using same MongoDB
@@ -382,10 +386,7 @@ setInterval(() => {
 
 client.login(process.env.DISCORD_TOKEN);
 
-// Webhooks & Keep Alive
-const app = require('./keep_alive');
-const stripeWebhook = require('./payments/stripe');
-const paypalWebhook = require('./payments/paypal');
+
 
 client.commands.set('rank', {
   async execute(message) {

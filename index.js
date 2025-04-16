@@ -1,6 +1,7 @@
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 require('dotenv').config();
+
 
 const Levels = require("discord-xp");
 Levels.setURL(process.env.MONGODB_URI); // Using same MongoDB

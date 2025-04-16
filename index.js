@@ -300,12 +300,6 @@ client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-setInterval(() => {
-  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'TSLA');
-  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'AMD');
-  scanTicker(client, 'YOUR_GUILD_ID_HERE', 'AAPL');
-}, 60 * 1000 * 5); // every 5 minutes
-
 
 // Drama Timer
 setInterval(() => {
@@ -579,12 +573,6 @@ Next Draw: Sunday Midnight
 Last Draw Time: ${pool.lastDraw.toLocaleString()}`);
   }
 });
-
-['TSLA', 'AAPL', 'AMD'].forEach(ticker => {
-  scanTicker(client, ticker);
-  scanOptionsFlow(client, ticker);
-});
-
 
 cron.schedule('0 0 * * 0', async () => {
   const tickets = await Ticket.find({ guildId: '1353730054693064816' });

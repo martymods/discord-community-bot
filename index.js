@@ -37,7 +37,8 @@ const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
 const { scanTicker } = require('./economy/financeIntel');
 const { scanOptionsFlow } = require('./economy/flowIntel');
-
+const { addTrackedTicker, getAllSnipers, getTrackedTickers } = require('./economy/sniperTargets');
+const { scanAllSnipers } = require('./economy/flowIntel');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -854,6 +855,48 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+client.commands.set('snipe', {
+  async execute(message) {
+    const tracked = getAllSnipers();
+    if (!tracked.length) return message.reply("🔍 No active sniper targets.");
+
+    const lines = tracked.map(s =>
+      `• **${s.ticker}** (Added by: <@${s.addedBy}>, Source: ${s.source})`
+    );
+    message.reply("🎯 Current Sniper Targets:\n" + lines.join('\n'));
+  }
+});
+
+client.commands.set('track', {
+  async execute(message, args) {
+    const ticker = args[0]?.toUpperCase();
+    if (!ticker) return message.reply("Usage: `!track <TICKER>`");
+
+    addTrackedTicker(ticker, 'manual', message.author.id);
+    message.reply(`🛰️ Now tracking **${ticker}** for sniper activity.`);
+  }
+});
+
+client.commands.set('sniperlog', {
+  async execute(message) {
+    const channel = client.channels.cache.get('1362077468076539904'); // Finance channel
+    if (channel) {
+      channel.send(`📈 Sniper Report requested by <@${message.author.id}> — view logs in pinned messages.`);
+      message.reply("📬 Posted sniper log message in #finance-intel.");
+    }
+  }
+});
+
+client.commands.set('nominate', {
+  async execute(message, args) {
+    const ticker = args[0]?.toUpperCase();
+    if (!ticker) return message.reply("Usage: `!nominate <TICKER>`");
+
+    addTrackedTicker(ticker, 'nomination', message.author.id);
+    message.reply(`🎯 You nominated **${ticker}** as a sniper play. We'll start watching it closely.`);
+  }
+});
+
 
 const SPORTS_CHANNEL_NAME = 'sports-intel';
 
@@ -885,6 +928,12 @@ setInterval(() => {
     scanOptionsFlow(client, ticker);
   }
 }, 5 * 60 * 1000);
+
+
+setInterval(() => {
+  scanAllSnipers(client);
+}, 1000 * 60 * 5); // Every 5 minutes
+
 
 
 app.use('/stripe/webhook', stripeWebhook);

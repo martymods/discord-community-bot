@@ -243,6 +243,13 @@ client.commands.set('help', {
 !challenge @user <amount> — Challenge a player
 !accept <userId> — Accept a challenge
 
+<<<<<<< HEAD
+=======
+🎧 **Paid Music Submissions**
+!submitmusic — Shows payment & submission info  
+!mysubmission <link or description> — Submit music (after payment)
+
+>>>>>>> b701715 (Update betting system, add jackpot, autoResolve, musicPayCheck)
 🎤 **Fun & Social**
 !roast @user — Light roast battle
 

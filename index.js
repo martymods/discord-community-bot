@@ -42,6 +42,9 @@ const { scanOptionsFlow } = require('./economy/flowIntel');
 const { addTrackedTicker, getAllSnipers, getTrackedTickers } = require('./economy/sniperTargets');
 const { scanAllSnipers } = require('./economy/flowIntel');
 const { getSniperRotation } = require('./economy/sniperTargets');
+const realShopItems = require('./economy/realShopItems');
+const { getBalance, removeCash } = require('./economy/currency');
+
 
 let todaySnipes = [];
 
@@ -934,6 +937,60 @@ client.commands.set('rotate', {
     if (message.channel.name !== 'finance-intel') return;
     rotateSnipers(); // No need to pass client
     message.reply("🔄 Sniper rotation triggered manually.");
+  }
+});
+
+client.commands.set('buyreal', {
+  async execute(message, args) {
+    if (message.channel.name !== 'bank') {
+      return message.reply('Please use this command inside #bank.');
+    }
+
+    const itemId = args[0];
+    const item = realShopItems.find(i => i.id === itemId);
+
+    if (!item) {
+      return message.reply(`Item not found. Try: ${realShopItems.map(i => `\`${i.id}\``).join(', ')}`);
+    }
+
+    const userBalance = await getBalance(message.author.id, message.guild.id);
+    if (userBalance < item.cost) {
+      return message.reply(`You need ${item.cost} DreamworldPoints to buy this.`);
+    }
+
+    await removeCash(message.author.id, message.guild.id, item.cost);
+
+    message.author.send(
+      `📝 Shipping Info Request:
+You purchased **${item.name}** for ${item.cost} DreamworldPoints.
+
+To complete your order, reply with:
+**Name**
+**Full Address**
+**Email**
+
+⚠️ You will receive a secure link to pay $${item.shippingFeeUSD} for shipping & handling.`
+    );
+
+    message.reply(`✅ You bought **${item.name}**! Check your DMs to enter shipping info.`);
+  }
+});
+
+client.commands.set('realshop', {
+  execute(message) {
+    if (message.channel.name !== 'bank') {
+      return message.reply('Use this in the #bank channel only.');
+    }
+
+    for (const item of realShopItems) {
+      const embed = new EmbedBuilder()
+        .setTitle(item.name)
+        .setDescription(`${item.description}\n💰 Cost: ${item.cost} DreamworldPoints\n📦 S&H: $${item.shippingFeeUSD}`)
+        .setImage(`https://discord-community-bot.onrender.com/sharedphotos/${item.image.split('/').pop()}`)
+        .setColor('#00ffcc');
+
+      message.channel.send({ embeds: [embed] });
+    }
   }
 });
 

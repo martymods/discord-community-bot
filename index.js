@@ -918,6 +918,14 @@ function rotateSnipers() {
   }
 }
 
+client.commands.set('rotate', {
+  execute(message) {
+    if (message.channel.name !== 'finance-intel') return;
+    rotateSnipers(client); // Call the same function used in the auto interval
+    message.reply("🔄 Sniper rotation triggered manually.");
+  }
+});
+
 // Run this when bot starts
 rotateSnipers();
 

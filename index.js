@@ -576,10 +576,24 @@ client.commands.set('nbagames', {
     const games = await getTodayGames();
     if (!games.length) return message.reply("No NBA games today.");
 
-    const list = games.map(g => `🏀 ${g.visitor} @ ${g.home} — ${g.status}`).join('\n');
-    message.reply("📅 **Today's NBA Games:**\n" + list);
+    const MAX_CHARS = 1900; // Discord message safe buffer
+    let currentMessage = "📅 **Today's NBA Games:**\n";
+
+    for (const g of games) {
+      const line = `🏀 ${g.visitor} @ ${g.home} — ${g.status}\n`;
+      if ((currentMessage + line).length > MAX_CHARS) {
+        await message.channel.send(currentMessage);
+        currentMessage = '';
+      }
+      currentMessage += line;
+    }
+
+    if (currentMessage.length > 0) {
+      await message.channel.send(currentMessage);
+    }
   }
 });
+
 
 client.commands.set('challenge', {
   async execute(message, args) {

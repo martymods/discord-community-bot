@@ -1,5 +1,5 @@
 // economy/flowIntel.js
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { EmbedBuilder } = require('discord.js');
 
 const FINNHUB_API_KEY = 'cvvs82hr01qod00lsvpgcvvs82hr01qod00lsvq0';

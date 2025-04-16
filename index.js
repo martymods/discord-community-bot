@@ -911,12 +911,14 @@ client.commands.set('watchticker', {
 
 function rotateSnipers() {
   const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
-  const currentRotation = getSniperRotation(); // ✅ ADD THIS LINE
+  const currentRotation = getSniperRotation();
 
   if (!currentRotation.length) {
     channel.send("⚠️ No tickers found for rotation.");
     return;
   }
+
+  todaySnipes = currentRotation; // ✅ Save this for the interval scans
 
   channel.send(`🧠 **Daily Sniper Rotation Activated**\nTracking:\n${currentRotation.map(t => `• $${t}`).join('\n')}\n\nStay alert.`);
 
@@ -926,10 +928,11 @@ function rotateSnipers() {
 }
 
 
+
 client.commands.set('rotate', {
   execute(message) {
     if (message.channel.name !== 'finance-intel') return;
-    rotateSnipers(client); // Call the same function used in the auto interval
+    rotateSnipers(); // No need to pass client
     message.reply("🔄 Sniper rotation triggered manually.");
   }
 });

@@ -5,34 +5,31 @@ async function getTodayGames() {
   const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const res = await fetch(`https://nba.balldontlie.io/api/v1/games?start_date=${today}&end_date=${today}`);
+    const response = await fetch(`https://api-basketball.p.rapidapi.com/games?date=${today}`, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': '36c5da5fe5mshe18e4122d0e413p12cf89jsnbd5be527669f',
+        'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
+      }
+    });
 
-
-    if (!res.ok) {
-      const html = await res.text();
-      throw new Error(`API returned status ${res.status}:\n${html}`);
+    if (!response.ok) {
+      throw new Error(`API returned status ${response.status}`);
     }
 
-    const data = await res.json();
+    const data = await response.json();
+    const games = data.response || [];
 
-    if (!data || !data.data || data.data.length === 0) {
-      console.log("🟡 No games returned for today.");
-      return [];
-    }
+    return games.map(game => {
+      const id = String(game.id);
+      const home = game.teams.home.name;
+      const visitor = game.teams.away.name;
+      const status = game.status.short;
+      const date = game.date;
 
-    return data.data.map(game => {
-      recentGames.set(String(game.id), {
-        home: game.home_team.full_name,
-        visitor: game.visitor_team.full_name
-      });
+      recentGames.set(id, { home, visitor });
 
-      return {
-        id: game.id,
-        home: game.home_team.full_name,
-        visitor: game.visitor_team.full_name,
-        status: game.status,
-        date: game.date
-      };
+      return { id, home, visitor, status, date };
     });
 
   } catch (error) {

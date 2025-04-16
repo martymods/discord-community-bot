@@ -894,7 +894,6 @@ function sendToSportsIntel(client, guildId, content) {
   if (channel) channel.send(content);
 }
 
-const watchlist = new Set(['TSLA', 'AAPL', 'AMD']); // default list
 
 client.commands.set('watchticker', {
   execute(message, args) {
@@ -909,13 +908,6 @@ client.commands.set('watchticker', {
 cron.schedule('0 12 * * *', () => {
   runDailyPredictions(client);
 });
-
-setInterval(() => {
-  for (const ticker of watchlist) {
-    scanTicker(client, ticker);
-    scanOptionsFlow(client, ticker);
-  }
-}, 5 * 60 * 1000);
 
 
 setInterval(() => {

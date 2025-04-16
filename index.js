@@ -733,8 +733,8 @@ client.commands.set('submitmusic', {
 Every submission gets reviewed and may be featured.
 
 🔗 Pay Here:
-Stripe: https://buy.stripe.com/test_YOUR_LINK  
-PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YOUR_ID
+Stripe: https://buy.stripe.com/test_fZebLRg6Gh0GgdWfZ6 
+PayPal: https://www.paypal.com/ncp/payment/UT4BMB4AG4ABA
 
 Once paid, use:
 !mysubmission <your link or description>
@@ -776,3 +776,4 @@ app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+

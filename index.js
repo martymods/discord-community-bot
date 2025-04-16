@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
+const express = require('express'); // ✅ <-- ADD THIS LINE
 require('dotenv').config();
 
 // after this line 👇

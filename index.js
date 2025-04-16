@@ -644,23 +644,19 @@ client.commands.set('nbagames', {
 
     for (const g of games) {
       const line = `🏀 ${g.visitor} @ ${g.home} — ${g.status}\n`;
-    
-      // 🧠 Run prediction
-      if (teamStats[g.home] && teamStats[g.visitor]) {
-        const predicted = simpleLogicPredict(g, teamStats);
-        if (predicted) {
-          sendToSportsIntel(client, message.guild.id, `📊 Predicted winner: **${predicted}** for ${g.home} vs ${g.visitor}`);
-        }
+
+      // ✅ Only predict for upcoming games
+      if (g.status === 'Not Started') {
+        const predicted = simpleLogicPredict(g);
+        sendToSportsIntel(client, message.guild.id, `📊 Predicted winner: **${predicted}** for ${g.home} vs ${g.visitor}`);
       }
-      
-    
+
       if ((currentMessage + line).length > MAX_CHARS) {
         await message.channel.send(currentMessage);
         currentMessage = '';
       }
       currentMessage += line;
     }
-    
 
     if (currentMessage.length > 0) {
       await message.channel.send(currentMessage);

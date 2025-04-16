@@ -5,7 +5,8 @@ async function getTodayGames() {
   const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const res = await fetch(`https://www.balldontlie.io/api/v1/games?start_date=${today}&end_date=${today}`);
+    const res = await fetch(`https://nba.balldontlie.io/api/v1/games?start_date=${today}&end_date=${today}`);
+
 
     if (!res.ok) {
       const html = await res.text();

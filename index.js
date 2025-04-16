@@ -34,7 +34,6 @@ const { placeBet } = require('./economy/betting');
 const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
-const { simpleLogicPredict, weightedScorePredict } = require('./economy/sportsPredict');
 const { simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
 
 

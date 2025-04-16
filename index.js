@@ -35,6 +35,7 @@ const { resolveFinishedGames } = require('./economy/autoResolve');
 const { getJackpotAmount, getLastWinner } = require('./economy/jackpot');
 const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 const { simpleLogicPredict, weightedScorePredict } = require('./economy/sportsPredict');
+const { simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
 
 
 const welcomeMessages = [
@@ -245,13 +246,12 @@ client.commands.set('help', {
 !challenge @user <amount> — Challenge a player
 !accept <userId> — Accept a challenge
 
-<<<<<<< HEAD
-=======
+
 🎧 **Paid Music Submissions**
 !submitmusic — Shows payment & submission info  
 !mysubmission <link or description> — Submit music (after payment)
 
->>>>>>> b701715 (Update betting system, add jackpot, autoResolve, musicPayCheck)
+
 🎤 **Fun & Social**
 !roast @user — Light roast battle
 
@@ -729,6 +729,19 @@ client.commands.set('nbabet', {
   }
 });
 
+client.commands.set('nbapredict', {
+  async execute(message) {
+    const games = await getTodayGames();
+    if (!games.length) return message.reply("No games to predict.");
+
+    for (const game of games) {
+      const predicted = simpleLogicPredict(game);
+      message.channel.send(`📊 Prediction for **${game.visitor} @ ${game.home}**: **${predicted}** will win.`);
+    }
+  }
+});
+
+
 client.commands.set('jackpot', {
   async execute(message) {
     const amount = getJackpotAmount();
@@ -814,6 +827,9 @@ function sendToSportsIntel(client, guildId, content) {
   if (channel) channel.send(content);
 }
 
+cron.schedule('0 12 * * *', () => {
+  runDailyPredictions(client);
+});
 
 
 app.use('/stripe/webhook', stripeWebhook);

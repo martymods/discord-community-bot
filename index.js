@@ -25,6 +25,7 @@ const cron = require('node-cron');
 const Ticket = require('./economy/ticket');
 const Pool = require('./economy/pool');
 const { triggerDrama } = require('./economy/drama');
+const { getTopWinners } = require('./economy/bettingStats');
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -542,6 +543,15 @@ Pool carries over! Now at $${pool.pool}`);
   }
 });
 
+client.commands.set('topbettors', {
+  async execute(message) {
+    const top = await getTopWinners(message.guild.id);
+    if (!top.length) return message.reply("No betting records yet.");
+
+    const list = top.map((u, i) => `${i + 1}. <@${u.userId}> - Won ${u.tokensWon} DreamTokens`).join('\n');
+    message.reply("💸 **Top Bettors**:\n" + list);
+  }
+});
 
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);

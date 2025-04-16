@@ -1,6 +1,7 @@
 // economy/flowIntel.js
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const { EmbedBuilder } = require('discord.js');
+const { getTrackedTickers } = require('./sniperTargets');
 
 const FINNHUB_API_KEY = 'cvvs82hr01qod00lsvpgcvvs82hr01qod00lsvq0';
 const FINANCE_CHANNEL_ID = '1362077468076539904';
@@ -26,31 +27,38 @@ function buildFlowEmbed(ticker, alertData) {
 }
 
 async function scanOptionsFlow(client, ticker) {
-    try {
-      const data = await fetchOptionsFlow(ticker);
-      if (!data?.data) return;
-  
-      for (const chain of data.data) {
-        // ✅ Fix: Ensure chain.options is iterable
-        if (!Array.isArray(chain.options)) {
-          console.warn(`⚠️ No iterable options for ${ticker}`);
-          continue;
-        }
-  
-        for (const contract of chain.options) {
-          const { volume, openInterest, type, strike, expirationDate } = contract;
-          if (volume && openInterest && volume > openInterest * 2) {
-            const embed = buildFlowEmbed(ticker, { volume, openInterest, type, strike, expirationDate });
-            const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
-            if (channel) await channel.send({ embeds: [embed] });
-          }
+  try {
+    const data = await fetchOptionsFlow(ticker);
+    if (!data?.data) return;
+
+    for (const chain of data.data) {
+      if (!Array.isArray(chain.options)) {
+        console.warn(`⚠️ No iterable options for ${ticker}`);
+        continue;
+      }
+
+      for (const contract of chain.options) {
+        const { volume, openInterest, type, strike, expirationDate } = contract;
+        if (volume && openInterest && volume > openInterest * 2) {
+          const embed = buildFlowEmbed(ticker, { volume, openInterest, type, strike, expirationDate });
+          const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
+          if (channel) await channel.send({ embeds: [embed] });
         }
       }
-    } catch (err) {
-      console.error(`❌ Error checking options for ${ticker}:`, err.message);
     }
+  } catch (err) {
+    console.error(`❌ Error checking options for ${ticker}:`, err.message);
   }
-  
+}
+
+async function scanAllSnipers(client) {
+  const tickers = getTrackedTickers();
+  for (const t of tickers) {
+    await scanOptionsFlow(client, t);
+  }
+}
+
 module.exports = {
-  scanOptionsFlow
+  scanOptionsFlow,
+  scanAllSnipers
 };

@@ -26,25 +26,31 @@ function buildFlowEmbed(ticker, alertData) {
 }
 
 async function scanOptionsFlow(client, ticker) {
-  try {
-    const data = await fetchOptionsFlow(ticker);
-    if (!data?.data) return;
-
-    for (const chain of data.data) {
-      for (const contract of chain.options) {
-        const { volume, openInterest, type, strike, expirationDate } = contract;
-        if (volume && openInterest && volume > openInterest * 2) {
-          const embed = buildFlowEmbed(ticker, { volume, openInterest, type, strike, expirationDate });
-          const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
-          if (channel) await channel.send({ embeds: [embed] });
+    try {
+      const data = await fetchOptionsFlow(ticker);
+      if (!data?.data) return;
+  
+      for (const chain of data.data) {
+        // ✅ Fix: Ensure chain.options is iterable
+        if (!Array.isArray(chain.options)) {
+          console.warn(`⚠️ No iterable options for ${ticker}`);
+          continue;
+        }
+  
+        for (const contract of chain.options) {
+          const { volume, openInterest, type, strike, expirationDate } = contract;
+          if (volume && openInterest && volume > openInterest * 2) {
+            const embed = buildFlowEmbed(ticker, { volume, openInterest, type, strike, expirationDate });
+            const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
+            if (channel) await channel.send({ embeds: [embed] });
+          }
         }
       }
+    } catch (err) {
+      console.error(`❌ Error checking options for ${ticker}:`, err.message);
     }
-  } catch (err) {
-    console.error(`❌ Error checking options for ${ticker}:`, err.message);
   }
-}
-
+  
 module.exports = {
   scanOptionsFlow
 };

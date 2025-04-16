@@ -5,6 +5,8 @@ require('dotenv').config();
 const Levels = require("discord-xp");
 Levels.setURL(process.env.MONGODB_URI); // Using same MongoDB
 
+const FINANCE_CHANNEL_ID = '1362077468076539904';
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,

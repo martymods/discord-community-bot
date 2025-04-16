@@ -626,12 +626,40 @@ client.commands.set('mybets', {
   }
 });
 
-// Temporary placeholder team stats
-const teamStats = {
-  'Golden State Warriors': { recentWins: 4, recentLosses: 1, homeWinRate: 0.8, winStreak: 3, avgPoints: 112, headToHeadAdvantage: 1 },
-  'Memphis Grizzlies': { recentWins: 1, recentLosses: 4, homeWinRate: 0.45, winStreak: 0, avgPoints: 104, headToHeadAdvantage: 0 },
-  // ... add more as needed
-};
+const { buildRealTeamStats, simpleLogicPredict } = require('./economy/sportsPredict');
+
+client.commands.set('nbagames', {
+  async execute(message) {
+    const games = await getTodayGames();
+    if (!games.length) return message.reply("No NBA games today.");
+
+    const stats = await buildRealTeamStats(games); // ✅ Step 1: build real stats
+
+    const MAX_CHARS = 1900;
+    let currentMessage = "📅 **Today's NBA Games:**\n";
+
+    for (const g of games) {
+      const line = `🏀 ${g.visitor} @ ${g.home} — ${g.status}\n`;
+
+      // ✅ Step 2: use real prediction logic
+      const predicted = simpleLogicPredict(g, stats);
+      if (predicted) {
+        sendToSportsIntel(client, message.guild.id, `📊 Predicted winner: **${predicted}** for ${g.visitor} @ ${g.home}`);
+      }
+
+      if ((currentMessage + line).length > MAX_CHARS) {
+        await message.channel.send(currentMessage);
+        currentMessage = '';
+      }
+
+      currentMessage += line;
+    }
+
+    if (currentMessage.length > 0) {
+      await message.channel.send(currentMessage);
+    }
+  }
+});
 
 
 client.commands.set('nbagames', {

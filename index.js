@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
+const hideoutMap = new Map(); // userId → timestamp when hideout expires
 require('dotenv').config();
 
 
@@ -1102,6 +1103,11 @@ client.commands.set('steal', {
     const target = message.mentions.users.first();
     if (!target) return message.reply("Tag someone to rob: `!steal @user`");
     if (target.id === message.author.id) return message.reply("You can't rob yourself.");
+    const hideout = hideoutMap.get(target.id);
+if (hideout && hideout > Date.now()) {
+  return message.reply(`🧢 That user is hiding out. You can’t target them right now.`);
+}
+
 
     const now = Date.now();
     const cooldown = stealCooldowns.get(message.author.id) || 0;
@@ -1245,6 +1251,11 @@ client.commands.set('bounty', {
       return message.reply("That player isn’t being watched by the authorities yet.");
     }
 
+    const hideout = hideoutMap.get(target.id);
+if (hideout && hideout > Date.now()) {
+  return message.reply(`🧢 That user is currently hiding in a safehouse. Wait until they resurface.`);
+}
+
     const reward = Math.floor(Math.random() * 300) + 200; // $200 - $500
     await addCash(message.author.id, message.guild.id, 100); // Optional: small refund to user for justice
     await removeCash(target.id, message.guild.id, reward);
@@ -1267,6 +1278,30 @@ client.commands.set('bounty', {
   }
 });
 
+client.commands.set('hideout', {
+  async execute(message) {
+    const cooldown = hideoutMap.get(message.author.id);
+    const now = Date.now();
+
+    if (cooldown && cooldown > now) {
+      const minsLeft = Math.ceil((cooldown - now) / 60000);
+      return message.reply(`🕵️ You’re already in hiding for another ${minsLeft} minute(s).`);
+    }
+
+    // 10 minutes of hiding time
+    const duration = 10 * 60 * 1000;
+    hideoutMap.set(message.author.id, now + duration);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🏚️ You’ve Entered a Hideout")
+      .setDescription(`You're off the grid. No PvP crimes can affect you for the next **10 minutes**.`)
+      .setColor("#5555ff")
+      .setFooter({ text: "Hiding in plain sight..." })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+});
 
 // Run this every 5 minutes
 setInterval(() => {
@@ -1286,6 +1321,12 @@ setInterval(() => {
   scanAllSnipers(client);
 }, 1000 * 60 * 5); // Every 5 minutes
 
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, end] of hideoutMap.entries()) {
+    if (end <= now) hideoutMap.delete(id);
+  }
+}, 60 * 1000);
 
 
 app.use('/stripe/webhook', stripeWebhook);

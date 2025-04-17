@@ -522,6 +522,15 @@ client.commands.set('use', {
         await removeItem(message.author.id, message.guild.id, item);
         await Levels.appendXp(message.author.id, message.guild.id, xpGain);
         return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
+        case 'disguise':
+  wantedMap.set(message.author.id, { fails: 0, watched: false });
+  await removeItem(message.author.id, message.guild.id, item);
+  return message.reply("🎭 Disguise Kit activated! You’re now off the radar.");
+case 'lease':
+  const now = Date.now();
+  hideoutMap.set(message.author.id, now + 10 * 60 * 1000); // 10 min
+  await removeItem(message.author.id, message.guild.id, item);
+  return message.reply("🏠 You activated an Extended Lease! You’ll remain safe for 10 minutes.");
       default:
         return message.reply("Unknown item.");
     }

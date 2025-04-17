@@ -234,7 +234,7 @@ client.commands.set('help', {
 !balance — Check DreamworldPoints  
 !daily — Claim daily rewards (streaks)  
 !inventory — See your item bag  
-!use <item> — Use item like gem, dice, skull, etc.  
+!use <item> — Use gem, dice, skull, etc.  
 !shop — View daily shop  
 !buyitem <item> — Buy shop item  
 > Example: \`!buyitem dice\`  
@@ -276,38 +276,46 @@ client.commands.set('help', {
         .setColor('#aa00ff'),
 
       new EmbedBuilder()
-        .setTitle('🏀 Betting & Crime')
+        .setTitle('⚔️ PvP & Crime System')
+        .setDescription(`
+!steal @user — Try robbing someone  
+> Example: \`!steal @rival\`  
+!crime — Solo heist attempt  
+!wanted @user — Check someone's status  
+!bounty @user — Place bounty on wanted player  
+!hideout — Enter safehouse (5 min PvP shield)
+
+🎒 Item Powers:
+!use disguise — Clear your wanted level  
+!use lease — Extend hideout time  
+!use skull — Reduce steal cooldown
+        `)
+        .setColor('#ff0055'),
+
+      new EmbedBuilder()
+        .setTitle('🏀 Betting System')
         .setDescription(`
 !nbagames — Today’s NBA games  
 !nbabet <gameId> <team> <amount>  
 > Example: \`!nbabet 1001 LAL 200\`  
-!resolvebet <gameId> <winner> — Manual resolve  
+!resolvebet <gameId> <winner> — (Admin only)  
 > Example: \`!resolvebet 1001 LAL\`  
 !mybets — Your bet history  
 !topbettors — Top DreamToken earners  
-!jackpot — View current pot
-
-!steal @user — Try robbing someone  
-> Example: \`!steal @rival\`  
-!challenge @user <amount> — Duel a player  
-> Example: \`!challenge @user 500\`  
-!accept <userId> — Accept a duel  
-> Example: \`!accept 123456\`  
-!bounty @user — Place a bounty  
-!hideout — Hide from PvP (5 min safehouse)
+!jackpot — View current jackpot
         `)
-        .setColor('#ff5555'),
+        .setColor('#ffaa44'),
 
       new EmbedBuilder()
         .setTitle('🛍️ Real Items & Submissions')
         .setDescription(`
-!realshop — View real items  
-!buyreal <itemId>  
+!realshop — View real items for sale  
+!buyreal <itemId> — Redeem real item  
 > Example: \`!buyreal ps5clear\`
 
-!submitmusic — View payment info  
-!mysubmission <link>  
-> Example: \`!mysubmission https://sound.link\`
+!submitmusic — Show payment instructions  
+!mysubmission <link> — Submit track  
+> Example: \`!mysubmission https://link\`
         `)
         .setColor('#00ddff'),
 
@@ -317,15 +325,15 @@ client.commands.set('help', {
 !snipe — View all sniper tickers  
 !track <ticker> — Start tracking  
 !sniperlog — View alert log  
-!nominate <ticker> — Suggest stock  
-!rotate — Manual snipe rotation  
-!banktotal — Show total wealth
+!nominate <ticker> — Suggest a sniper  
+!rotate — Manual sniper refresh  
+!banktotal — Show total game wealth
 
-!roast @user — Roast a player  
+!roast @user — Light insult  
 > Example: \`!roast @jeffbezos\`
         `)
-        .setFooter({ text: 'More chaos coming soon... 🌀' })
-        .setColor('#cccccc')
+        .setFooter({ text: 'More coming soon... 🌀' })
+        .setColor('#cccccc'),
     ];
 
     let page = 0;
@@ -344,7 +352,8 @@ client.commands.set('help', {
     });
 
     collector.on('collect', interaction => {
-      if (interaction.user.id !== message.author.id) return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
+      if (interaction.user.id !== message.author.id)
+        return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
 
       if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
       else if (interaction.customId === 'next') page = (page + 1) % pages.length;
@@ -353,6 +362,7 @@ client.commands.set('help', {
     });
   }
 });
+
 
 // Add kick & ban (if you had them before)
 client.commands.set('kick', {

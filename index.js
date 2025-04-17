@@ -1233,6 +1233,41 @@ client.commands.set('wanted', {
   }
 });
 
+client.commands.set('bounty', {
+  async execute(message, args) {
+    const target = message.mentions.users.first();
+    if (!target) return message.reply("You must tag someone to place a bounty: `!bounty @user`");
+
+    if (target.id === message.author.id) return message.reply("You can’t place a bounty on yourself.");
+    
+    const targetState = wantedMap.get(target.id);
+    if (!targetState || !targetState.watched) {
+      return message.reply("That player isn’t being watched by the authorities yet.");
+    }
+
+    const reward = Math.floor(Math.random() * 300) + 200; // $200 - $500
+    await addCash(message.author.id, message.guild.id, 100); // Optional: small refund to user for justice
+    await removeCash(target.id, message.guild.id, reward);
+
+    const bountyEmbed = new EmbedBuilder()
+      .setTitle("🎯 Bounty Placed!")
+      .setDescription(`**<@${message.author.id}>** has placed a bounty on **<@${target.id}>**!`)
+      .addFields(
+        { name: "💥 Reward", value: `$${reward} has been taken from them.`, inline: true },
+        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." }
+      )
+      .setColor("#ff5555")
+      .setFooter({ text: "Bounty System Activated" })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [bountyEmbed] });
+
+    // Optionally reset the "watched" status after bounty
+    wantedMap.set(target.id, { fails: 0, watched: false });
+  }
+});
+
+
 // Run this every 5 minutes
 setInterval(() => {
   for (const t of todaySnipes) {

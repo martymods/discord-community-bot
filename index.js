@@ -223,9 +223,9 @@ client.commands.set('roast', {
 });
 
 
-client.on('guildMemberAdd', async (member) => {
-  try {
-    const helpMessage = `🧠 **Available Commands:**
+client.commands.set('help', {
+  execute(message) {
+    message.channel.send(`🧠 **Available Commands:**
 ━━━━━━━━━━━━━━━━━━━━
 🎮 **Core Gameplay**
 !ping — Test the Slave  
@@ -238,65 +238,71 @@ client.on('guildMemberAdd', async (member) => {
 !gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
 
 💰 **Gambling Games**
-!flip heads|tails <amount> — Wager on coin flip  
-> Example: \`!flip heads 50\`  
+!flip heads|tails <amount> — Coin flip wager  
+> Example: \`!flip heads 20\`  
 !slots <amount> — Try your luck on slot machine  
-> Example: \`!slots 100\`  
+> Example: \`!slots 100\`
 
 💳 **Membership Tiers**
 !buy — View premium tiers & payment links  
 !myorders — View past purchases & current ranks  
 
 🎟️ **Lottery System**
-!buyticket <amount> <number(optional)> — Buy lottery tickets  
-> Example: \`!buyticket 5 7\`  
-!mytickets — Check your active tickets  
-!lasttickets — See who just bought in  
-!lotteryinfo — Pool size, tickets sold, and draw time  
+!buyticket <amount> <number(optional)>  
+> Example: \`!buyticket 5 777\`  
+!mytickets — Your current tickets  
+!lasttickets — Who just bought in  
+!lotteryinfo — Jackpot size, ticket count, draw info
 
 📊 **Leaderboard & XP**
-!rank — Check your XP level  
-!leaderboard — Overall top players  
-!topxp — Highest XP earners  
-!richest — Richest Dreamworld users  
-!topcollectors — Hoarders of the most items  
+!rank — Your XP and level  
+!leaderboard — Top 5 level players  
+!topxp — Highest XP holders  
+!richest — Top cash holders  
+!topcollectors — Inventory hoarders
 
 🏀 $ 🎟️ **Betting System**
-!nbagames — Today's real NBA matchups  
-!nbabet <gameId> <team> <amount> — Bet on a real game  
-> Example: \`!nbabet 10176 LAL 200\`  
-!resolvebet <gameId> <winner> — (Admin only) Finalize result  
-> Example: \`!resolvebet 10176 LAL\`  
-!mybets — See your active & past bets  
-!topbettors — Top DreamToken earners  
-!jackpot — Current jackpot size & last winner  
+!nbagames — Today’s NBA matchups  
+!nbabet <gameId> <team> <amount>  
+> Example: \`!nbabet 888 LAL 200\`  
+!resolvebet <gameId> <winner> — (Admin only)  
+> Example: \`!resolvebet 888 LAL\`  
+!mybets — Check your betting history  
+!topbettors — Richest bettors  
+!jackpot — Prize pool + last winner  
 
-⚔️ **Player Challenges**
+⚔️ **PvP Combat**
+!steal @user — Attempt to rob another player  
+> Example: \`!steal @rival\`  
 !challenge @user <amount> — Duel someone  
-> Example: \`!challenge @Marty 300\`  
-!accept <userId> — Accept challenge from another  
-> Example: \`!accept 9021\`  
+> Example: \`!challenge @player 300\`  
+!accept <userId> — Accept a challenge  
+> Example: \`!accept 12345\`
 
-🛍️ **Real World Store**
-!realshop — View limited real product rewards  
-!buyreal <item> — Redeem product with DreamworldPoints  
-> Example: \`!buyreal Clear PS5 Controller\`
+📈 **Finance & Stock Tools**
+!snipe — Show all tracked sniper tickers  
+!track <ticker> — Begin tracking a stock  
+!sniperlog — View alert history  
+!nominate <ticker> — Suggest a sniper  
+!rotate — Manually trigger sniper rotation  
+!banktotal — Total in-game cash and DreamTokens
 
-🎧 **Paid Music Submissions**
-!submitmusic — Show payment + submission options  
-!mysubmission <link or info> — Send your track after payment  
-> Example: \`!mysubmission https://link-to-song.com\`  
+🛍️ **Real Store**
+!realshop — View real-world item rewards  
+!buyreal <itemId> — Redeem item  
+> Example: \`!buyreal ps5clear\`
 
-🎤 **Fun & Social**
-!roast @user — Send a spicy roast  
-> Example: \`!roast @casualgambler\`  
+🎧 **Music Submission**
+!submitmusic — Show payment + submission steps  
+!mysubmission <link or info> — Submit after paying  
+> Example: \`!mysubmission https://track.link\`
+
+🎤 **Social & Fun**
+!roast @user — Light roast  
+> Example: \`!roast @casualgambler\`
 
 ━━━━━━━━━━━━━━━━━━━━  
-More coming soon... 🌀`;
-
-    await member.send(helpMessage);
-  } catch (err) {
-    console.warn(`❌ Could not DM new member (${member.user.tag}):`, err.message);
+More chaos coming soon... 🌀`);
   }
 });
 

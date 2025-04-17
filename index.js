@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
@@ -1074,8 +1075,18 @@ client.commands.set('steal', {
       result = `🚨 You got caught! You lost $${lost} instead.`;
     }
 
-    message.channel.send(result);
-    stealCooldowns.set(message.author.id, Date.now() + 5 * 60 * 1000); // 5-minute cooldown
+    // 📣 PvP Alert Broadcast
+const alertEmbed = new EmbedBuilder()
+.setTitle(success ? '💥 Robbery Successful!' : '🚨 Failed Heist!')
+.setDescription(success
+  ? `**<@${message.author.id}>** just stole **$${stolen}** from **<@${target.id}>**!`
+  : `**<@${message.author.id}>** tried to rob **<@${target.id}>** and got caught! Lost **$${lost}**.`)
+.setColor(success ? '#00ff88' : '#ff4444')
+.setTimestamp()
+.setFooter({ text: 'Player vs Player Crime Detected' });
+
+message.channel.send({ embeds: [alertEmbed] });
+  stealCooldowns.set(message.author.id, Date.now() + 5 * 60 * 1000); // 5-minute cooldown
   }
 });
 

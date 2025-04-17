@@ -224,7 +224,7 @@ client.commands.set('roast', {
 
 client.commands.set('help', {
   execute(message) {
-    message.channel.send(`🧠 **Available Commands:**
+    const part1 = `🧠 **Available Commands:**
 ━━━━━━━━━━━━━━━━━━━━
 🎮 **Core Gameplay**
 !ping — Test the Slave  
@@ -237,73 +237,69 @@ client.commands.set('help', {
 !gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
 
 💰 **Gambling Games**
-!flip heads|tails <amount> — Coin flip wager  
+!flip heads|tails <amount>  
 > Example: \`!flip heads 20\`  
-!slots <amount> — Try your luck on slot machine  
+!slots <amount>  
 > Example: \`!slots 100\`
 
-💳 **Membership Tiers**
-!buy — View premium tiers & payment links  
-!myorders — View past purchases & current ranks  
+💳 **Membership**
+!buy — Premium tiers & links  
+!myorders — View your ranks`;
 
-🎟️ **Lottery System**
+    const part2 = `🎟️ **Lottery System**
 !buyticket <amount> <number(optional)>  
 > Example: \`!buyticket 5 777\`  
 !mytickets — Your current tickets  
 !lasttickets — Who just bought in  
-!lotteryinfo — Jackpot size, ticket count, draw info
+!lotteryinfo — Jackpot + draw info
 
-📊 **Leaderboard & XP**
+📊 **Leaderboards**
 !rank — Your XP and level  
 !leaderboard — Top 5 level players  
 !topxp — Highest XP holders  
 !richest — Top cash holders  
 !topcollectors — Inventory hoarders
 
-🏀 $ 🎟️ **Betting System**
+🏀 **Betting System**
 !nbagames — Today’s NBA matchups  
 !nbabet <gameId> <team> <amount>  
-> Example: \`!nbabet 888 LAL 200\`  
-!resolvebet <gameId> <winner> — (Admin only)  
-> Example: \`!resolvebet 888 LAL\`  
-!mybets — Check your betting history  
+!resolvebet <gameId> <winner>  
+!mybets — Your betting history  
 !topbettors — Richest bettors  
-!jackpot — Prize pool + last winner  
+!jackpot — Current pool & last winner`;
 
-⚔️ **PvP Combat**
-!steal @user — Attempt to rob another player  
-> Example: \`!steal @rival\`  
-!challenge @user <amount> — Duel someone  
-> Example: \`!challenge @player 300\`  
-!accept <userId> — Accept a challenge  
-> Example: \`!accept 12345\`
+    const part3 = `⚔️ **PvP Combat**
+!steal @user — Attempt to rob  
+!challenge @user <amount> — Duel  
+!accept <userId> — Accept challenge
 
-📈 **Finance & Stock Tools**
-!snipe — Show all tracked sniper tickers  
-!track <ticker> — Begin tracking a stock  
-!sniperlog — View alert history  
-!nominate <ticker> — Suggest a sniper  
-!rotate — Manually trigger sniper rotation  
-!banktotal — Total in-game cash and DreamTokens
+📈 **Finance Tools**
+!snipe — Tracked sniper stocks  
+!track <ticker> — Start tracking  
+!rotate — Force sniper rotation  
+!banktotal — Combined economy total
 
 🛍️ **Real Store**
-!realshop — View real-world item rewards  
-!buyreal <itemId> — Redeem item  
+!realshop — Browse real items  
+!buyreal <itemId> — Redeem  
 > Example: \`!buyreal ps5clear\`
 
-🎧 **Music Submission**
-!submitmusic — Show payment + submission steps  
-!mysubmission <link or info> — Submit after paying  
-> Example: \`!mysubmission https://track.link\`
+🎧 **Music**
+!submitmusic — Submission info  
+!mysubmission <link/info> — Submit
 
-🎤 **Social & Fun**
-!roast @user — Light roast  
-> Example: \`!roast @casualgambler\`
+🎤 **Social**
+!roast @user — Roast someone
 
-━━━━━━━━━━━━━━━━━━━━  
-More chaos coming soon... 🌀`);
+━━━━━━━━━━━━━━━━━━━━
+More coming soon... 🌀`;
+
+    message.channel.send(part1);
+    message.channel.send(part2);
+    message.channel.send(part3);
   }
 });
+
 
 // Add kick & ban (if you had them before)
 client.commands.set('kick', {

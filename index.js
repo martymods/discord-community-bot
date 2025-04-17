@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActionRowBuilder, B
 const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
+const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
 require('dotenv').config();
 
 
@@ -1100,14 +1101,11 @@ client.commands.set('steal', {
   async execute(message) {
     const target = message.mentions.users.first();
     if (!target) return message.reply("Tag someone to rob: `!steal @user`");
-
     if (target.id === message.author.id) return message.reply("You can't rob yourself.");
 
-    // Cooldown logic
     const now = Date.now();
     const cooldown = stealCooldowns.get(message.author.id) || 0;
     const timeLeft = cooldown - now;
-
     if (timeLeft > 0) {
       const seconds = Math.ceil(timeLeft / 1000);
       return message.reply(`⏳ You’re laying low... try again in ${seconds}s.`);
@@ -1115,37 +1113,51 @@ client.commands.set('steal', {
 
     const targetBalance = await getBalance(target.id, message.guild.id);
     const yourBalance = await getBalance(message.author.id, message.guild.id);
-
     if (targetBalance < 100) return message.reply("They're too broke to steal from.");
 
+    // ⚖️ Determine success
     const success = Math.random() < 0.5;
-    let result = "";
+    const userId = message.author.id;
+    let alertEmbed;
 
     if (success) {
       const stolen = Math.floor(targetBalance * (Math.random() * 0.2 + 0.1)); // 10–30%
       await removeCash(target.id, message.guild.id, stolen);
-      await addCash(message.author.id, message.guild.id, stolen);
-      result = `💸 You successfully robbed <@${target.id}> and took $${stolen}!`;
+      await addCash(userId, message.guild.id, stolen);
+
+      // Reset fail streak
+      wantedMap.set(userId, { fails: 0, watched: false });
+
+      alertEmbed = new EmbedBuilder()
+        .setTitle("💸 Heist Successful!")
+        .setDescription(`**<@${userId}>** stole **$${stolen}** from **<@${target.id}>**!`)
+        .setColor("#00ff88")
+        .setFooter({ text: 'Crime Success' })
+        .setTimestamp();
     } else {
       const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1)); // 10–20%
-      await removeCash(message.author.id, message.guild.id, lost);
-      result = `🚨 You got caught! You lost $${lost} instead.`;
+      await removeCash(userId, message.guild.id, lost);
+
+      // Track failures
+      const state = wantedMap.get(userId) || { fails: 0, watched: false };
+      state.fails += 1;
+      if (state.fails >= 3) state.watched = true;
+      wantedMap.set(userId, state);
+
+      alertEmbed = new EmbedBuilder()
+        .setTitle("🚨 Failed Robbery!")
+        .setDescription(`**<@${userId}>** got caught trying to rob **<@${target.id}>** and lost **$${lost}**.`)
+        .setColor("#ff4444")
+        .addFields({ name: "Wanted Level", value: state.watched ? "🚨 Watched" : `❌ Failed attempts: ${state.fails}` })
+        .setFooter({ text: 'Crime Failure' })
+        .setTimestamp();
     }
 
-    // 📣 PvP Alert Broadcast
-const alertEmbed = new EmbedBuilder()
-.setTitle(success ? '💥 Robbery Successful!' : '🚨 Failed Heist!')
-.setDescription(success
-  ? `**<@${message.author.id}>** just stole **$${stolen}** from **<@${target.id}>**!`
-  : `**<@${message.author.id}>** tried to rob **<@${target.id}>** and got caught! Lost **$${lost}**.`)
-.setColor(success ? '#00ff88' : '#ff4444')
-.setTimestamp()
-.setFooter({ text: 'Player vs Player Crime Detected' });
-
-message.channel.send({ embeds: [alertEmbed] });
-  stealCooldowns.set(message.author.id, Date.now() + 5 * 60 * 1000); // 5-minute cooldown
+    message.channel.send({ embeds: [alertEmbed] });
+    stealCooldowns.set(userId, now + 5 * 60 * 1000); // 5-min cooldown
   }
 });
+
 
 client.commands.set('crime', {
   async execute(message) {

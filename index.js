@@ -396,8 +396,17 @@ setInterval(() => {
     await Levels.appendXp(message.author.id, message.guild.id, randomXP);
   
     if (client.commands.has(command)) {
-      client.commands.get(command).execute(message, args);
+      console.log(`✅ Running command: ${command}`);
+      try {
+        await client.commands.get(command).execute(message, args);
+      } catch (err) {
+        console.error(`❌ Error executing command ${command}:`, err);
+        message.reply("Something went wrong running that command.");
+      }
+    } else {
+      console.warn(`⚠️ Unknown command: ${command}`);
     }
+    
   
     // Random Item Drop
     const drop = getRandomItem();
@@ -1093,12 +1102,6 @@ const alertEmbed = new EmbedBuilder()
 message.channel.send({ embeds: [alertEmbed] });
   stealCooldowns.set(message.author.id, Date.now() + 5 * 60 * 1000); // 5-minute cooldown
   }
-});
-
-// Bot Ready
-client.once('ready', () => {
-  console.log(`🤖 Logged in as ${client.user.tag}`);
-  rotateSnipers(); // ✅ Moved inside ready so channels are fully loaded
 });
 
 

@@ -254,13 +254,97 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true
 }).then(() => console.log('MongoDB Connected'));
 
+client.commands.set('help', {
+  execute(message) {
+    message.channel.send(`🧠 **Available Commands:**
+━━━━━━━━━━━━━━━━━━━━
+🎮 **Core Gameplay**
+!ping — Test the Slave  
+!balance — Check your DreamworldPoints  
+!daily — Claim daily rewards (+ streaks)  
+!inventory — View your item bag  
+!use <item> — Use an item (e.g., !use gem)  
+!shop — See the rotating item shop  
+!buyitem <item> — Buy something (e.g., !buyitem dice)  
+!gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
+
+💰 **Gambling Games**
+!flip heads|tails <amount> — Coin flip wager  
+> Example: \`!flip heads 20\`  
+!slots <amount> — Try your luck on slot machine  
+> Example: \`!slots 100\`
+
+💳 **Membership Tiers**
+!buy — View premium tiers & payment links  
+!myorders — View past purchases & current ranks  
+
+🎟️ **Lottery System**
+!buyticket <amount> <number(optional)>  
+> Example: \`!buyticket 5 777\`  
+!mytickets — Your current tickets  
+!lasttickets — Who just bought in  
+!lotteryinfo — Jackpot size, ticket count, draw info
+
+📊 **Leaderboard & XP**
+!rank — Your XP and level  
+!leaderboard — Top 5 level players  
+!topxp — Highest XP holders  
+!richest — Top cash holders  
+!topcollectors — Inventory hoarders
+
+🏀 $ 🎟️ **Betting System**
+!nbagames — Today’s NBA matchups  
+!nbabet <gameId> <team> <amount>  
+> Example: \`!nbabet 888 LAL 200\`  
+!resolvebet <gameId> <winner> — (Admin only)  
+> Example: \`!resolvebet 888 LAL\`  
+!mybets — Check your betting history  
+!topbettors — Richest bettors  
+!jackpot — Prize pool + last winner  
+
+⚔️ **PvP Combat**
+!steal @user — Attempt to rob another player  
+> Example: \`!steal @rival\`  
+!challenge @user <amount> — Duel someone  
+> Example: \`!challenge @player 300\`  
+!accept <userId> — Accept a challenge  
+> Example: \`!accept 12345\`
+
+📈 **Finance & Stock Tools**
+!snipe — Show all tracked sniper tickers  
+!track <ticker> — Begin tracking a stock  
+!sniperlog — View alert history  
+!nominate <ticker> — Suggest a sniper  
+!rotate — Manually trigger sniper rotation  
+!banktotal — Total in-game cash and DreamTokens
+
+🛍️ **Real Store**
+!realshop — View real-world item rewards  
+!buyreal <itemId> — Redeem item  
+> Example: \`!buyreal ps5clear\`
+
+🎧 **Music Submission**
+!submitmusic — Show payment + submission steps  
+!mysubmission <link or info> — Submit after paying  
+> Example: \`!mysubmission https://track.link\`
+
+🎤 **Social & Fun**
+!roast @user — Light roast  
+> Example: \`!roast @casualgambler\`
+
+━━━━━━━━━━━━━━━━━━━━  
+More chaos coming soon... 🌀`);
+  }
+});
+
+
 console.log("📦 Registered commands:", client.commands.map((_, name) => name).join(', '));
 
 // Bot Ready
 client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
+  rotateSnipers(); // ✅ keep this one
 });
-
 
 // Drama Timer
 setInterval(() => {
@@ -1023,88 +1107,6 @@ message.channel.send({ embeds: [alertEmbed] });
   }
 });
 
-client.commands.set('help', {
-  execute(message) {
-    message.channel.send(`🧠 **Available Commands:**
-━━━━━━━━━━━━━━━━━━━━
-🎮 **Core Gameplay**
-!ping — Test the Slave  
-!balance — Check your DreamworldPoints  
-!daily — Claim daily rewards (+ streaks)  
-!inventory — View your item bag  
-!use <item> — Use an item (e.g., !use gem)  
-!shop — See the rotating item shop  
-!buyitem <item> — Buy something (e.g., !buyitem dice)  
-!gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
-
-💰 **Gambling Games**
-!flip heads|tails <amount> — Coin flip wager  
-> Example: \`!flip heads 20\`  
-!slots <amount> — Try your luck on slot machine  
-> Example: \`!slots 100\`
-
-💳 **Membership Tiers**
-!buy — View premium tiers & payment links  
-!myorders — View past purchases & current ranks  
-
-🎟️ **Lottery System**
-!buyticket <amount> <number(optional)>  
-> Example: \`!buyticket 5 777\`  
-!mytickets — Your current tickets  
-!lasttickets — Who just bought in  
-!lotteryinfo — Jackpot size, ticket count, draw info
-
-📊 **Leaderboard & XP**
-!rank — Your XP and level  
-!leaderboard — Top 5 level players  
-!topxp — Highest XP holders  
-!richest — Top cash holders  
-!topcollectors — Inventory hoarders
-
-🏀 $ 🎟️ **Betting System**
-!nbagames — Today’s NBA matchups  
-!nbabet <gameId> <team> <amount>  
-> Example: \`!nbabet 888 LAL 200\`  
-!resolvebet <gameId> <winner> — (Admin only)  
-> Example: \`!resolvebet 888 LAL\`  
-!mybets — Check your betting history  
-!topbettors — Richest bettors  
-!jackpot — Prize pool + last winner  
-
-⚔️ **PvP Combat**
-!steal @user — Attempt to rob another player  
-> Example: \`!steal @rival\`  
-!challenge @user <amount> — Duel someone  
-> Example: \`!challenge @player 300\`  
-!accept <userId> — Accept a challenge  
-> Example: \`!accept 12345\`
-
-📈 **Finance & Stock Tools**
-!snipe — Show all tracked sniper tickers  
-!track <ticker> — Begin tracking a stock  
-!sniperlog — View alert history  
-!nominate <ticker> — Suggest a sniper  
-!rotate — Manually trigger sniper rotation  
-!banktotal — Total in-game cash and DreamTokens
-
-🛍️ **Real Store**
-!realshop — View real-world item rewards  
-!buyreal <itemId> — Redeem item  
-> Example: \`!buyreal ps5clear\`
-
-🎧 **Music Submission**
-!submitmusic — Show payment + submission steps  
-!mysubmission <link or info> — Submit after paying  
-> Example: \`!mysubmission https://track.link\`
-
-🎤 **Social & Fun**
-!roast @user — Light roast  
-> Example: \`!roast @casualgambler\`
-
-━━━━━━━━━━━━━━━━━━━━  
-More chaos coming soon... 🌀`);
-  }
-});
 
 
 // Run this every 5 minutes

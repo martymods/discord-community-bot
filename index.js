@@ -56,7 +56,7 @@ const { addTrackedTicker, getAllSnipers, getTrackedTickers } = require('./econom
 const { scanAllSnipers } = require('./economy/flowIntel');
 const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
-
+const TokenModel = require('./economy/bettingStatsModel');
 
 
 let todaySnipes = [];

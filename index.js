@@ -1147,6 +1147,60 @@ message.channel.send({ embeds: [alertEmbed] });
   }
 });
 
+client.commands.set('crime', {
+  async execute(message) {
+    const userId = message.author.id;
+    const now = Date.now();
+    const cooldown = stealCooldowns.get(userId) || 0;
+    const timeLeft = cooldown - now;
+
+    if (timeLeft > 0) {
+      const seconds = Math.ceil(timeLeft / 1000);
+      const embed = new EmbedBuilder()
+        .setTitle('⏳ You’re Laying Low...')
+        .setDescription(`Try again in **${seconds}s**.`)
+        .setColor('#ff4444');
+      return message.reply({ embeds: [embed] });
+    }
+
+    const crimes = [
+      '📦 Package Theft',
+      '💻 Crypto Scam',
+      '🏪 Corner Store Robbery',
+      '📞 Phone Fraud',
+      '🎯 Sneaky Pickpocket'
+    ];
+
+    const chosen = crimes[Math.floor(Math.random() * crimes.length)];
+    const success = Math.random() < 0.55;
+
+    let resultText = '';
+    let color = '';
+    const amount = Math.floor(Math.random() * 150) + 50;
+
+    if (success) {
+      await addCash(userId, message.guild.id, amount);
+      await Levels.appendXp(userId, message.guild.id, 10);
+      resultText = `✅ You pulled off **${chosen}** and got away with **$${amount}** + 10 XP!`;
+      color = '#00ff88';
+    } else {
+      await removeCash(userId, message.guild.id, Math.floor(amount / 2));
+      resultText = `🚨 You got caught trying **${chosen}** and lost **$${Math.floor(amount / 2)}**!`;
+      color = '#ff3333';
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(success ? '💰 Crime Success!' : '🚨 Crime Failed!')
+      .setDescription(resultText)
+      .setFooter({ text: 'Urban Crime Network' })
+      .setColor(color)
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+
+    stealCooldowns.set(userId, now + 10 * 60 * 1000); // 10 minute cooldown
+  }
+});
 
 
 // Run this every 5 minutes

@@ -1312,6 +1312,64 @@ client.commands.set('hideout', {
   }
 });
 
+client.commands.set('use', {
+  async execute(message, args) {
+    const item = args[0]?.toLowerCase();
+    if (!item) return message.reply("Usage: `!use item_name`");
+
+    const { addCash } = require('./economy/currency');
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    const used = await removeItem(userId, guildId, item);
+    if (!used) return message.reply(`You don't have any **${item}** to use.`);
+
+    switch(item) {
+      case 'gem':
+        await addCash(userId, guildId, 100);
+        return message.reply("💎 Used a Gem! Gained $100 DreamworldPoints.");
+
+      case 'medal':
+        await addCash(userId, guildId, 50);
+        return message.reply("🎖️ Used a Medal! Gained $50 DreamworldPoints.");
+
+      case 'dice':
+        const xpGain = Math.floor(Math.random() * 25) + 5;
+        const Levels = require('discord-xp');
+        await Levels.appendXp(userId, guildId, xpGain);
+        return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
+
+      case 'disguise':
+        if (wantedMap.has(userId)) {
+          wantedMap.set(userId, { fails: 0, watched: false });
+          return message.reply("🎭 You used a Disguise Kit and slipped off the radar. You're no longer being watched.");
+        } else {
+          return message.reply("🎭 You're not being watched... no need to use a disguise.");
+        }
+
+      case 'lease':
+        const current = hideoutMap.get(userId) || 0;
+        hideoutMap.set(userId, Math.max(Date.now(), current) + 10 * 60 * 1000);
+        return message.reply("🏠 You used an Extended Lease. Your hideout is secured for 10 more minutes.");
+
+      case 'skull':
+        const now = Date.now();
+        const cd = stealCooldowns.get(userId) || 0;
+        if (cd > now) {
+          const reduced = now + (cd - now) / 2;
+          stealCooldowns.set(userId, reduced);
+          const seconds = Math.ceil((reduced - now) / 1000);
+          return message.reply(`💀 Used a Skull Ring. Your steal cooldown is now reduced. You can try again in **${seconds}s**.`);
+        } else {
+          return message.reply("💀 You're not on cooldown. No need to use this right now.");
+        }
+
+      default:
+        return message.reply("❌ Unknown or unusable item.");
+    }
+  }
+});
+
 // Run this every 5 minutes
 setInterval(() => {
   for (const t of todaySnipes) {

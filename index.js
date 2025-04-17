@@ -222,68 +222,82 @@ client.commands.set('roast', {
 });
 
 
-client.commands.set('help', {
-  execute(message) {
-    message.channel.send(`🧠 **Available Commands:**
+client.on('guildMemberAdd', async (member) => {
+  try {
+    const helpMessage = `🧠 **Available Commands:**
 ━━━━━━━━━━━━━━━━━━━━
 🎮 **Core Gameplay**
-!ping — Test the Slave
-!balance — Check your DreamworldPoints
-!daily — Claim daily rewards (+ streaks)
-!inventory — View your item bag
-!use <item> — Use an item like gem, dice, medal
-!shop — See the rotating item shop
-!buyitem <item> — Buy an item from the shop
-!gambleitem <item> — 40% chance to double an item
+!ping — Test the Slave  
+!balance — Check your DreamworldPoints  
+!daily — Claim daily rewards (+ streaks)  
+!inventory — View your item bag  
+!use <item> — Use an item (e.g., !use gem)  
+!shop — See the rotating item shop  
+!buyitem <item> — Buy something (e.g., !buyitem dice)  
+!gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
 
 💰 **Gambling Games**
-!flip heads|tails <amount> — Coin flip wager
-!slots <amount> — Play slots for big payouts
+!flip heads|tails <amount> — Wager on coin flip  
+> Example: \`!flip heads 50\`  
+!slots <amount> — Try your luck on slot machine  
+> Example: \`!slots 100\`  
 
 💳 **Membership Tiers**
-!buy — View all premium tiers and payment links  
-!myorders — See your past payments and unlocked ranks  
+!buy — View premium tiers & payment links  
+!myorders — View past purchases & current ranks  
 
 🎟️ **Lottery System**
-!buyticket <amount> <number(optional)>
-!mytickets — Your active tickets
-!lasttickets — Recent ticket buyers
-!lotteryinfo — Pool, tickets sold, next draw
+!buyticket <amount> <number(optional)> — Buy lottery tickets  
+> Example: \`!buyticket 5 7\`  
+!mytickets — Check your active tickets  
+!lasttickets — See who just bought in  
+!lotteryinfo — Pool size, tickets sold, and draw time  
 
 📊 **Leaderboard & XP**
-!rank — Your XP level
-!leaderboard — Top XP players
-!topxp — XP leaderboard
-!richest — Richest players
-!topcollectors — Top item hoarders
+!rank — Check your XP level  
+!leaderboard — Overall top players  
+!topxp — Highest XP earners  
+!richest — Richest Dreamworld users  
+!topcollectors — Hoarders of the most items  
 
-🏀 $ 🎟️**Betting System**🏀 $ 🎟️
-!nbagames — List real NBA games today
-!nbabet <gameId> <team> <amount>
-!resolvebet <gameId> <winner> — Manual resolution
-!mybets — See your betting history
-!topbettors — Show top DreamToken winners
-!jackpot — Current jackpot pool + last winner
+🏀 $ 🎟️ **Betting System**
+!nbagames — Today's real NBA matchups  
+!nbabet <gameId> <team> <amount> — Bet on a real game  
+> Example: \`!nbabet 10176 LAL 200\`  
+!resolvebet <gameId> <winner> — (Admin only) Finalize result  
+> Example: \`!resolvebet 10176 LAL\`  
+!mybets — See your active & past bets  
+!topbettors — Top DreamToken earners  
+!jackpot — Current jackpot size & last winner  
 
 ⚔️ **Player Challenges**
-!challenge @user <amount> — Challenge a player
-!accept <userId> — Accept a challenge
+!challenge @user <amount> — Duel someone  
+> Example: \`!challenge @Marty 300\`  
+!accept <userId> — Accept challenge from another  
+> Example: \`!accept 9021\`  
 
+🛍️ **Real World Store**
+!realshop — View limited real product rewards  
+!buyreal <item> — Redeem product with DreamworldPoints  
+> Example: \`!buyreal Clear PS5 Controller\`
 
 🎧 **Paid Music Submissions**
-!submitmusic — Shows payment & submission info  
-!mysubmission <link or description> — Submit music (after payment)
-
+!submitmusic — Show payment + submission options  
+!mysubmission <link or info> — Send your track after payment  
+> Example: \`!mysubmission https://link-to-song.com\`  
 
 🎤 **Fun & Social**
-!roast @user — Light roast battle
+!roast @user — Send a spicy roast  
+> Example: \`!roast @casualgambler\`  
 
-━━━━━━━━━━━━━━━━━━━━
-More chaos coming soon...
-    `);
+━━━━━━━━━━━━━━━━━━━━  
+More coming soon... 🌀`;
+
+    await member.send(helpMessage);
+  } catch (err) {
+    console.warn(`❌ Could not DM new member (${member.user.tag}):`, err.message);
   }
 });
-
 
 
 // Add kick & ban (if you had them before)

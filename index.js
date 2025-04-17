@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, } = require('discord.js');
 const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
@@ -223,43 +223,126 @@ client.commands.set('roast', {
 });
 
 client.commands.set('help', {
-  execute(message) {
-    const coreEmbed = new EmbedBuilder()
-      .setTitle('🧠 Dreamworld Bot Commands')
-      .setDescription('Here are all the core gameplay commands you can use:')
-      .addFields(
-        { name: '🎮 Core Gameplay', value: '`!ping`, `!balance`, `!daily`, `!inventory`, `!use <item>`, `!shop`, `!buyitem <item>`, `!gambleitem <item>`' },
-        { name: '💰 Gambling Games', value: '`!flip heads|tails <amount>`\n`!slots <amount>`' },
-        { name: '💳 Membership', value: '`!buy`, `!myorders`' },
-      )
-      .setColor('#00ffaa')
-      .setFooter({ text: 'Page 1 of 3 — Use !help again to see more' });
+  async execute(message) {
+    const pages = [
+      new EmbedBuilder()
+        .setTitle('🎮 Core Gameplay')
+        .setDescription(`
+!ping — Test the Slave  
+!balance — Check DreamworldPoints  
+!daily — Claim daily rewards (streaks)  
+!inventory — See your item bag  
+!use <item> — Use item like gem/dice  
+!shop — View daily shop  
+!buyitem <item> — Buy shop item  
+> Example: \`!buyitem dice\`  
+!gambleitem <item> — 40% chance to double  
+> Example: \`!gambleitem medal\`
+        `)
+        .setColor('#00ffaa'),
 
-    const leaderboardEmbed = new EmbedBuilder()
-      .setTitle('📊 Lottery, Leaderboards & Betting')
-      .addFields(
-        { name: '🎟️ Lottery System', value: '`!buyticket <amount> <number>`\n`!mytickets`, `!lasttickets`, `!lotteryinfo`' },
-        { name: '📊 Leaderboards', value: '`!rank`, `!leaderboard`, `!topxp`, `!richest`, `!topcollectors`' },
-        { name: '🏀 Betting System', value: '`!nbagames`, `!nbabet`, `!resolvebet`, `!mybets`, `!topbettors`, `!jackpot`' },
-      )
-      .setColor('#ffdd33')
-      .setFooter({ text: 'Page 2 of 3 — Use !help again to see more' });
+      new EmbedBuilder()
+        .setTitle('💰 Gambling Games')
+        .setDescription(`
+!flip heads|tails <amount>  
+> Example: \`!flip heads 50\`  
+!slots <amount> — Try your luck  
+> Example: \`!slots 100\`
+        `)
+        .setColor('#ffaa00'),
 
-    const socialEmbed = new EmbedBuilder()
-      .setTitle('🛠️ PvP, Tools, Store, and Fun')
-      .addFields(
-        { name: '⚔️ PvP Combat', value: '`!steal @user`, `!challenge @user <amount>`, `!accept <userId>`' },
-        { name: '📈 Finance Tools', value: '`!snipe`, `!track <ticker>`, `!rotate`, `!banktotal`' },
-        { name: '🛍️ Real Store', value: '`!realshop`, `!buyreal <itemId>`' },
-        { name: '🎧 Music', value: '`!submitmusic`, `!mysubmission <link>`' },
-        { name: '🎤 Fun & Social', value: '`!roast @user`' },
-      )
-      .setColor('#ff33aa')
-      .setFooter({ text: 'Page 3 of 3 — Have fun, stay chaotic' });
+      new EmbedBuilder()
+        .setTitle('🎟️ Lottery System')
+        .setDescription(`
+!buyticket <amount> <number(optional)>  
+> Example: \`!buyticket 5 333\`  
+!mytickets — See your tickets  
+!lasttickets — Recent ticket buyers  
+!lotteryinfo — Jackpot status
+        `)
+        .setColor('#ff00aa'),
 
-    message.channel.send({ embeds: [coreEmbed] });
-    message.channel.send({ embeds: [leaderboardEmbed] });
-    message.channel.send({ embeds: [socialEmbed] });
+      new EmbedBuilder()
+        .setTitle('📊 XP & Leaderboards')
+        .setDescription(`
+!rank — Your XP and level  
+!leaderboard — Top players  
+!topxp — Highest XP  
+!richest — Top cash holders  
+!topcollectors — Item hoarders
+        `)
+        .setColor('#aa00ff'),
+
+      new EmbedBuilder()
+        .setTitle('🏀 Betting & PvP')
+        .setDescription(`
+!nbagames — Today's NBA games  
+!nbabet <gameId> <team> <amount>  
+> Example: \`!nbabet 1001 LAL 200\`  
+!resolvebet <gameId> <winner> — Manual resolve  
+!mybets — Your bet history  
+!topbettors — Top DreamToken earners  
+!jackpot — View current pot
+
+!steal @user — Try robbing someone  
+!challenge @user <amount>  
+!accept <userId> — Accept a duel
+        `)
+        .setColor('#ff5555'),
+
+      new EmbedBuilder()
+        .setTitle('🛍️ Real Items & Submissions')
+        .setDescription(`
+!realshop — View real items  
+!buyreal <itemId>  
+> Example: \`!buyreal ps5clear\`
+
+!submitmusic — View payment info  
+!mysubmission <link>  
+> Example: \`!mysubmission https://sound.link\`
+        `)
+        .setColor('#00ddff'),
+
+      new EmbedBuilder()
+        .setTitle('📈 Stock Tools & Misc')
+        .setDescription(`
+!snipe — View all sniper tickers  
+!track <ticker> — Start tracking  
+!sniperlog — View alert log  
+!nominate <ticker> — Suggest stock  
+!rotate — Manual snipe rotation  
+!banktotal — Show total wealth
+
+!roast @user — Roast a player  
+> Example: \`!roast @jeffbezos\`
+        `)
+        .setFooter({ text: 'More chaos coming soon... 🌀' })
+        .setColor('#cccccc')
+    ];
+
+    let page = 0;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('prev').setLabel('⏮️ Back').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('next').setLabel('⏭️ Next').setStyle(ButtonStyle.Primary)
+    );
+
+    const helpMessage = await message.channel.send({
+      embeds: [pages[page]],
+      components: [row]
+    });
+
+    const collector = helpMessage.createMessageComponentCollector({
+      time: 120000,
+    });
+
+    collector.on('collect', interaction => {
+      if (interaction.user.id !== message.author.id) return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
+
+      if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
+      else if (interaction.customId === 'next') page = (page + 1) % pages.length;
+
+      interaction.update({ embeds: [pages[page]], components: [row] });
+    });
   }
 });
 

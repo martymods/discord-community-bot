@@ -1214,6 +1214,24 @@ client.commands.set('crime', {
   }
 });
 
+client.commands.set('wanted', {
+  execute(message, args) {
+    const target = message.mentions.users.first() || message.author;
+    const state = wantedMap.get(target.id) || { fails: 0, watched: false };
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🚔 Wanted Status: ${target.username}`)
+      .addFields(
+        { name: "❌ Failed Heists", value: `${state.fails} attempt(s)`, inline: true },
+        { name: "👁️ Status", value: state.watched ? "🚨 **Watched**" : "✅ Not Watched", inline: true }
+      )
+      .setColor(state.watched ? "#ff0000" : "#00ff88")
+      .setTimestamp()
+      .setFooter({ text: 'Crime Watchlist' });
+
+    message.channel.send({ embeds: [embed] });
+  }
+});
 
 // Run this every 5 minutes
 setInterval(() => {

@@ -1035,6 +1035,42 @@ client.commands.set('banktotal', {
   }
 });
 
+const stealCooldown = new Set();
+
+client.commands.set('steal', {
+  async execute(message) {
+    const target = message.mentions.users.first();
+    if (!target) return message.reply("Tag someone to rob: `!steal @user`");
+
+    if (target.id === message.author.id) return message.reply("You can't rob yourself.");
+    if (stealCooldown.has(message.author.id)) return message.reply("🕒 Wait before trying another heist.");
+
+    const targetBalance = await getBalance(target.id, message.guild.id);
+    const yourBalance = await getBalance(message.author.id, message.guild.id);
+
+    if (targetBalance < 100) return message.reply("They're too broke to steal from.");
+
+    const success = Math.random() < 0.5;
+    let result = "";
+
+    if (success) {
+      const stolen = Math.floor(targetBalance * (Math.random() * 0.2 + 0.1)); // 10–30%
+      await removeCash(target.id, message.guild.id, stolen);
+      await addCash(message.author.id, message.guild.id, stolen);
+      result = `💸 You successfully robbed <@${target.id}> and took $${stolen}!`;
+    } else {
+      const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1)); // 10–20%
+      await removeCash(message.author.id, message.guild.id, lost);
+      result = `🚨 You got caught! You lost $${lost} instead.`;
+    }
+
+    message.channel.send(result);
+    stealCooldown.add(message.author.id);
+    setTimeout(() => stealCooldown.delete(message.author.id), 5 * 60 * 1000); // 5 mins
+  }
+});
+
+
 // Bot Ready
 client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);

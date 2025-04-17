@@ -7,4 +7,5 @@ const BettingStatsSchema = new mongoose.Schema({
   tokensWon: { type: Number, default: 0 }
 });
 
-module.exports = mongoose.model('BettingStats', BettingStatsSchema);
+module.exports = mongoose.models.BettingStats || mongoose.model('BettingStats', BettingStatsSchema);
+

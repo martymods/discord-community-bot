@@ -4,6 +4,8 @@ const items = [
     { name: '🎲 Dice', id: 'dice', value: 25, rarity: 'Rare', levelRequired: 0, chance: 0.1 },
     { name: '👑 Crown', id: 'crown', value: 500, rarity: 'Epic', levelRequired: 10, chance: 0.05 },
     { name: '💀 Skull Ring', id: 'skull', value: 1000, rarity: 'Legendary', levelRequired: 20, chance: 0.01 },
+    { name: '🎭 Disguise Kit', id: 'disguise', value: 300, rarity: 'Rare', levelRequired: 0, chance: 0.05 },
+    { name: '🏠 Extended Lease', id: 'lease', value: 500, rarity: 'Epic', levelRequired: 0, chance: 0.03 }
   ];
   
   module.exports = {

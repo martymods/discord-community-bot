@@ -224,82 +224,44 @@ client.commands.set('roast', {
 
 client.commands.set('help', {
   execute(message) {
-    const part1 = `🧠 **Available Commands:**
-━━━━━━━━━━━━━━━━━━━━
-🎮 **Core Gameplay**
-!ping — Test the Slave  
-!balance — Check your DreamworldPoints  
-!daily — Claim daily rewards (+ streaks)  
-!inventory — View your item bag  
-!use <item> — Use an item (e.g., !use gem)  
-!shop — See the rotating item shop  
-!buyitem <item> — Buy something (e.g., !buyitem dice)  
-!gambleitem <item> — Risk item to double (e.g., !gambleitem medal)
+    const coreEmbed = new EmbedBuilder()
+      .setTitle('🧠 Dreamworld Bot Commands')
+      .setDescription('Here are all the core gameplay commands you can use:')
+      .addFields(
+        { name: '🎮 Core Gameplay', value: '`!ping`, `!balance`, `!daily`, `!inventory`, `!use <item>`, `!shop`, `!buyitem <item>`, `!gambleitem <item>`' },
+        { name: '💰 Gambling Games', value: '`!flip heads|tails <amount>`\n`!slots <amount>`' },
+        { name: '💳 Membership', value: '`!buy`, `!myorders`' },
+      )
+      .setColor('#00ffaa')
+      .setFooter({ text: 'Page 1 of 3 — Use !help again to see more' });
 
-💰 **Gambling Games**
-!flip heads|tails <amount>  
-> Example: \`!flip heads 20\`  
-!slots <amount>  
-> Example: \`!slots 100\`
+    const leaderboardEmbed = new EmbedBuilder()
+      .setTitle('📊 Lottery, Leaderboards & Betting')
+      .addFields(
+        { name: '🎟️ Lottery System', value: '`!buyticket <amount> <number>`\n`!mytickets`, `!lasttickets`, `!lotteryinfo`' },
+        { name: '📊 Leaderboards', value: '`!rank`, `!leaderboard`, `!topxp`, `!richest`, `!topcollectors`' },
+        { name: '🏀 Betting System', value: '`!nbagames`, `!nbabet`, `!resolvebet`, `!mybets`, `!topbettors`, `!jackpot`' },
+      )
+      .setColor('#ffdd33')
+      .setFooter({ text: 'Page 2 of 3 — Use !help again to see more' });
 
-💳 **Membership**
-!buy — Premium tiers & links  
-!myorders — View your ranks`;
+    const socialEmbed = new EmbedBuilder()
+      .setTitle('🛠️ PvP, Tools, Store, and Fun')
+      .addFields(
+        { name: '⚔️ PvP Combat', value: '`!steal @user`, `!challenge @user <amount>`, `!accept <userId>`' },
+        { name: '📈 Finance Tools', value: '`!snipe`, `!track <ticker>`, `!rotate`, `!banktotal`' },
+        { name: '🛍️ Real Store', value: '`!realshop`, `!buyreal <itemId>`' },
+        { name: '🎧 Music', value: '`!submitmusic`, `!mysubmission <link>`' },
+        { name: '🎤 Fun & Social', value: '`!roast @user`' },
+      )
+      .setColor('#ff33aa')
+      .setFooter({ text: 'Page 3 of 3 — Have fun, stay chaotic' });
 
-    const part2 = `🎟️ **Lottery System**
-!buyticket <amount> <number(optional)>  
-> Example: \`!buyticket 5 777\`  
-!mytickets — Your current tickets  
-!lasttickets — Who just bought in  
-!lotteryinfo — Jackpot + draw info
-
-📊 **Leaderboards**
-!rank — Your XP and level  
-!leaderboard — Top 5 level players  
-!topxp — Highest XP holders  
-!richest — Top cash holders  
-!topcollectors — Inventory hoarders
-
-🏀 **Betting System**
-!nbagames — Today’s NBA matchups  
-!nbabet <gameId> <team> <amount>  
-!resolvebet <gameId> <winner>  
-!mybets — Your betting history  
-!topbettors — Richest bettors  
-!jackpot — Current pool & last winner`;
-
-    const part3 = `⚔️ **PvP Combat**
-!steal @user — Attempt to rob  
-!challenge @user <amount> — Duel  
-!accept <userId> — Accept challenge
-
-📈 **Finance Tools**
-!snipe — Tracked sniper stocks  
-!track <ticker> — Start tracking  
-!rotate — Force sniper rotation  
-!banktotal — Combined economy total
-
-🛍️ **Real Store**
-!realshop — Browse real items  
-!buyreal <itemId> — Redeem  
-> Example: \`!buyreal ps5clear\`
-
-🎧 **Music**
-!submitmusic — Submission info  
-!mysubmission <link/info> — Submit
-
-🎤 **Social**
-!roast @user — Roast someone
-
-━━━━━━━━━━━━━━━━━━━━
-More coming soon... 🌀`;
-
-    message.channel.send(part1);
-    message.channel.send(part2);
-    message.channel.send(part3);
+    message.channel.send({ embeds: [coreEmbed] });
+    message.channel.send({ embeds: [leaderboardEmbed] });
+    message.channel.send({ embeds: [socialEmbed] });
   }
 });
-
 
 // Add kick & ban (if you had them before)
 client.commands.set('kick', {

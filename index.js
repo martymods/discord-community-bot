@@ -234,7 +234,7 @@ client.commands.set('help', {
 !balance — Check DreamworldPoints  
 !daily — Claim daily rewards (streaks)  
 !inventory — See your item bag  
-!use <item> — Use item like gem/dice  
+!use <item> — Use item like gem, dice, skull, etc.  
 !shop — View daily shop  
 !buyitem <item> — Buy shop item  
 > Example: \`!buyitem dice\`  
@@ -276,19 +276,25 @@ client.commands.set('help', {
         .setColor('#aa00ff'),
 
       new EmbedBuilder()
-        .setTitle('🏀 Betting & PvP')
+        .setTitle('🏀 Betting & Crime')
         .setDescription(`
-!nbagames — Today's NBA games  
+!nbagames — Today’s NBA games  
 !nbabet <gameId> <team> <amount>  
 > Example: \`!nbabet 1001 LAL 200\`  
 !resolvebet <gameId> <winner> — Manual resolve  
+> Example: \`!resolvebet 1001 LAL\`  
 !mybets — Your bet history  
 !topbettors — Top DreamToken earners  
 !jackpot — View current pot
 
 !steal @user — Try robbing someone  
-!challenge @user <amount>  
-!accept <userId> — Accept a duel
+> Example: \`!steal @rival\`  
+!challenge @user <amount> — Duel a player  
+> Example: \`!challenge @user 500\`  
+!accept <userId> — Accept a duel  
+> Example: \`!accept 123456\`  
+!bounty @user — Place a bounty  
+!hideout — Hide from PvP (5 min safehouse)
         `)
         .setColor('#ff5555'),
 

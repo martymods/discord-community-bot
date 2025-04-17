@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
+const stealCooldowns = new Map(); // userId → timestamp
 require('dotenv').config();
 
 
@@ -1043,7 +1044,16 @@ client.commands.set('steal', {
     if (!target) return message.reply("Tag someone to rob: `!steal @user`");
 
     if (target.id === message.author.id) return message.reply("You can't rob yourself.");
-    if (stealCooldown.has(message.author.id)) return message.reply("🕒 Wait before trying another heist.");
+
+    // Cooldown logic
+    const now = Date.now();
+    const cooldown = stealCooldowns.get(message.author.id) || 0;
+    const timeLeft = cooldown - now;
+
+    if (timeLeft > 0) {
+      const seconds = Math.ceil(timeLeft / 1000);
+      return message.reply(`⏳ You’re laying low... try again in ${seconds}s.`);
+    }
 
     const targetBalance = await getBalance(target.id, message.guild.id);
     const yourBalance = await getBalance(message.author.id, message.guild.id);
@@ -1065,11 +1075,9 @@ client.commands.set('steal', {
     }
 
     message.channel.send(result);
-    stealCooldown.add(message.author.id);
-    setTimeout(() => stealCooldown.delete(message.author.id), 5 * 60 * 1000); // 5 mins
+    stealCooldowns.set(message.author.id, Date.now() + 5 * 60 * 1000); // 5-minute cooldown
   }
 });
-
 
 // Bot Ready
 client.once('ready', () => {

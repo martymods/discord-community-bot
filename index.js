@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
-const { EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp

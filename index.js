@@ -489,12 +489,17 @@ Gang Bonuses:
         return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
       }
     
-      await interaction.deferUpdate(); // Prevent "interaction failed"
-    
-      if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
-      else if (interaction.customId === 'next') page = (page + 1) % pages.length;
-    
-      await interaction.editReply({ embeds: [pages[page]], components: [row] });
+      collector.on('collect', async interaction => {
+        if (interaction.user.id !== message.author.id) {
+          return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
+        }
+      
+        if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
+        else if (interaction.customId === 'next') page = (page + 1) % pages.length;
+      
+        await interaction.update({ embeds: [pages[page]], components: [row] });
+      });
+      
     });
     
   }

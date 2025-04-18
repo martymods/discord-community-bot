@@ -17,6 +17,8 @@ const turfZones = new Map(); // { zoneId: { owner: 'heist', lastRaid: timestamp 
 const turfRaidCooldowns = new Map(); // { userId: timestamp }
 // 🛡️ Fortification Tracker
 const turfFortifications = new Map(); // zone => fortification level (0–3)
+const scavengeCooldowns = new Map(); // userId → timestamp
+
 
 // Initial Turf Setup
 turfZones.set("Downtown", { owner: "heist", lastRaid: 0 });

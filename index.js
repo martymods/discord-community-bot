@@ -935,6 +935,37 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return;
+
+  const { message, user, customId } = interaction;
+
+  // Get the embeds from the original help command
+  const pages = message.embeds;
+  if (!pages || pages.length === 0) return;
+
+  // Store a simple page index using a message-level map
+  const currentIndex = pages.findIndex(embed => embed.title === message.embeds[0].title);
+  let newIndex = currentIndex;
+
+  if (customId === 'prev') {
+    newIndex = (currentIndex - 1 + pages.length) % pages.length;
+  } else if (customId === 'next') {
+    newIndex = (currentIndex + 1) % pages.length;
+  }
+
+  // Only allow the original user to navigate
+  if (interaction.user.id !== message.interaction?.user?.id && interaction.user.id !== user.id) {
+    return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
+  }
+
+  await interaction.update({
+    embeds: [pages[newIndex]],
+    components: message.components
+  });
+});
+
+
 client.commands.set('snipe', {
   async execute(message) {
     const tracked = getAllSnipers();

@@ -1607,44 +1607,42 @@ client.commands.set('lurk', {
 
 client.commands.set('scavenge', {
   async execute(message) {
-    const roll = Math.random();
-    let embed;
+    const userId = message.author.id;
 
-    if (roll < 0.6) {
-      const cashFound = Math.floor(Math.random() * 150) + 50;
-      await addCash(message.author.id, message.guild.id, cashFound);
-      embed = new EmbedBuilder()
-        .setTitle("🔍 You Scavenged the Streets...")
-        .setDescription(`Found **$${cashFound}** in loose change and drops.`)
-        .setColor('#00cc88')
-        .setThumbnail(message.author.displayAvatarURL())
-        .setFooter({ text: 'Urban survival pays off... sometimes.' });
-
-    } else if (roll < 0.85) {
-      const item = getRandomItem();
-      if (item) {
-        await addItem(message.author.id, message.guild.id, item.id);
-        embed = new EmbedBuilder()
-          .setTitle("🎁 Street Find!")
-          .setDescription(`You found a **${item.name}** while digging through crates.`)
-          .setColor('#ffaa00')
-          .setThumbnail(message.author.displayAvatarURL());
-      } else {
-        embed = new EmbedBuilder()
-          .setTitle("📦 Empty Crate")
-          .setDescription("Nothing but rats and dust.")
-          .setColor('#999999');
-      }
-    } else {
-      const loss = Math.floor(Math.random() * 100) + 20;
-      await removeCash(message.author.id, message.guild.id, loss);
-      embed = new EmbedBuilder()
-        .setTitle("🚓 Caught by Security!")
-        .setDescription(`Lost **$${loss}** paying a fine for trespassing.`)
-        .setColor('#ff3333')
-        .setThumbnail('https://media.giphy.com/media/l4FGGafcOHmrlQxG0/giphy.gif')
-        .setFooter({ text: "Better luck next time." });
+    // Cooldown check (10 minutes)
+    const cooldown = scavengeCooldowns.get(userId) || 0;
+    const now = Date.now();
+    if (cooldown > now) {
+      const secondsLeft = Math.ceil((cooldown - now) / 1000);
+      return message.reply(`🕳️ You're still searching... try again in ${secondsLeft}s.`);
     }
+
+    const failChance = Math.random();
+    if (failChance < 0.25) {
+      // 25% chance to find nothing
+      scavengeCooldowns.set(userId, now + 10 * 60 * 1000);
+      return message.reply("🪨 You rummaged through trash but found nothing this time.");
+    }
+
+    // Reward range
+    const cash = Math.floor(Math.random() * 70) + 30; // $30–$100
+    const xp = Math.floor(Math.random() * 30) + 20;   // 20–50 XP
+
+    await addCash(userId, message.guild.id, cash);
+    await addXP(userId, message.guild.id, xp);
+
+    scavengeCooldowns.set(userId, now + 10 * 60 * 1000);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🗑️ Scavenge Results")
+      .setDescription(`You found some scraps while scavenging.`)
+      .addFields(
+        { name: "💸 Cash", value: `$${cash}`, inline: true },
+        { name: "🧠 XP", value: `${xp} XP`, inline: true }
+      )
+      .setColor("#999999")
+      .setFooter({ text: "Try again in 10 minutes." })
+      .setTimestamp();
 
     message.channel.send({ embeds: [embed] });
   }

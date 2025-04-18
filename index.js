@@ -6,6 +6,8 @@ const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
 const hideoutMap = new Map(); // userId → timestamp when hideout expires
 const crimeStreaks = new Map(); // userId → { success: n, fail: n }
 const heatMap = new Map(); // userId → { heat: 0–100, lastActivity: timestamp }
+const pvpTasks = new Map(); // userId => { crimes: 0, lastReset: Date }
+const survivalAchievements = new Set(); // userIds who survived theft with rare items
 
 require('dotenv').config();
 
@@ -1200,11 +1202,11 @@ client.commands.set('steal', {
     const target = message.mentions.users.first();
     if (!target) return message.reply("Tag someone to rob: `!steal @user`");
     if (target.id === message.author.id) return message.reply("You can't rob yourself.");
-    const hideout = hideoutMap.get(target.id);
-if (hideout && hideout > Date.now()) {
-  return message.reply(`🧢 That user is hiding out. You can’t target them right now.`);
-}
 
+    const hideout = hideoutMap.get(target.id);
+    if (hideout && hideout > Date.now()) {
+      return message.reply(`🧢 That user is hiding out. You can’t target them right now.`);
+    }
 
     const now = Date.now();
     const cooldown = stealCooldowns.get(message.author.id) || 0;
@@ -1216,34 +1218,33 @@ if (hideout && hideout > Date.now()) {
 
     const targetBalance = await getBalance(target.id, message.guild.id);
     const targetInventory = await getInventory(target.id, message.guild.id);
-
-// 💨 Auto-escape with Smoke Bomb
-if (targetInventory.has('smoke')) {
-  await removeItem(target.id, message.guild.id, 'smoke');
-  return message.reply(`💨 **<@${target.id}>** threw a **Smoke Bomb** and escaped your robbery attempt!`);
-}
-
     const yourBalance = await getBalance(message.author.id, message.guild.id);
+
     if (targetBalance < 100) return message.reply("They're too broke to steal from.");
 
-    // ⚖️ Determine success
-    const success = Math.random() < 0.5;
+    // 💨 Auto-escape
+    if (targetInventory.has('smoke')) {
+      await removeItem(target.id, message.guild.id, 'smoke');
+      return message.reply(`💨 **<@${target.id}>** threw a **Smoke Bomb** and escaped your robbery attempt!`);
+    }
+
     const userId = message.author.id;
+    const success = Math.random() < 0.5;
+    const heat = heatMap.get(userId) || { heat: 0, lastActivity: now };
     let alertEmbed;
 
     if (success) {
-      const stolen = Math.floor(targetBalance * (Math.random() * 0.2 + 0.1)); // 10–30%
+      let stolen = Math.floor(targetBalance * (Math.random() * 0.2 + 0.1));
       let finalSteal = stolen;
+
       if (targetInventory.has('vest')) {
-        finalSteal = Math.floor(stolen * 0.5); // Reduces by 50%
+        finalSteal = Math.floor(stolen * 0.5);
         await removeItem(target.id, message.guild.id, 'vest');
-        message.channel.send(`🛡️ **<@${target.id}>'s** Reflective Vest absorbed half the damage!`);
+        message.channel.send(`🛡️ <@${target.id}>'s Reflective Vest absorbed half the damage!`);
       }
-      
+
       await removeCash(target.id, message.guild.id, finalSteal);
       await addCash(userId, message.guild.id, finalSteal);
-      
-      await addCash(userId, message.guild.id, stolen);
 
       // Reset fail streak
       wantedMap.set(userId, { fails: 0, watched: false });
@@ -1256,7 +1257,7 @@ if (targetInventory.has('smoke')) {
         .setFooter({ text: 'Crime Success' })
         .setTimestamp();
     } else {
-      const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1)); // 10–20%
+      const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));
       await removeCash(userId, message.guild.id, lost);
 
       // Track failures
@@ -1265,52 +1266,80 @@ if (targetInventory.has('smoke')) {
       if (state.fails >= 3) state.watched = true;
       wantedMap.set(userId, state);
 
+      // 🎯 Survival achievement
+      if (targetInventory.has('skull') && !survivalAchievements.has(target.id)) {
+        survivalAchievements.add(target.id);
+        const survivalEmbed = new EmbedBuilder()
+          .setTitle("🛡️ Rare Item Survived Theft!")
+          .setDescription(`<@${target.id}> successfully defended their **Skull Ring** during a robbery attempt!`)
+          .setColor("#00ccff")
+          .setFooter({ text: "Survival Achievement Unlocked" })
+          .setTimestamp();
+        message.channel.send({ embeds: [survivalEmbed] });
+      }
+
       alertEmbed = new EmbedBuilder()
         .setTitle("🚨 Failed Robbery!")
         .setDescription(`**<@${userId}>** got caught trying to rob **<@${target.id}>** and lost **$${lost}**.`)
         .setColor("#ff4444")
-        .addFields({ name: "Wanted Level", value: state.watched ? "🚨 Watched" : `❌ Failed attempts: ${state.fails}` })
-        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
+        .addFields(
+          { name: "Wanted Level", value: state.watched ? "🚨 Watched" : `❌ Failed attempts: ${state.fails}` },
+          { name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true }
+        )
         .setFooter({ text: 'Crime Failure' })
         .setTimestamp();
     }
 
     // Track crime streak
-const streak = crimeStreaks.get(userId) || { success: 0, fail: 0 };
+    const streak = crimeStreaks.get(userId) || { success: 0, fail: 0 };
+    if (success) {
+      streak.success++;
+      streak.fail = 0;
+      if (streak.success === 3) {
+        await addCash(userId, message.guild.id, 150);
+        message.channel.send(`🔥 **Crime Spree Bonus**: You gained a $150 bonus for 3 successful robberies in a row!`);
+      }
+    } else {
+      streak.fail++;
+      streak.success = 0;
+      if (streak.fail === 3) {
+        wantedMap.set(userId, { watched: true, fails: 3 });
+        message.channel.send(`🚨 **You're now being watched by authorities!** One more fail and a bounty might hit your head.`);
+      }
+    }
+    crimeStreaks.set(userId, streak);
 
-if (success) {
-  streak.success++;
-  streak.fail = 0;
+    // Heat system
+    heat.heat = Math.min(heat.heat + (success ? 15 : 5), 100);
+    heat.lastActivity = now;
+    heatMap.set(userId, heat);
 
-  if (streak.success === 3) {
-    await addCash(userId, message.guild.id, 150); // Bonus
-    message.channel.send(`🔥 **Crime Spree Bonus**: You gained a $150 bonus for 3 successful robberies in a row!`);
-  }
+    // 🎯 PvP Task Tracker
+    let task = pvpTasks.get(userId) || { crimes: 0, lastReset: 0 };
+    const dayPassed = now - task.lastReset > 24 * 60 * 60 * 1000;
+    if (dayPassed) {
+      task = { crimes: 0, lastReset: now };
+    }
 
-} else {
-  streak.fail++;
-  streak.success = 0;
-
-  if (streak.fail === 3) {
-    wantedMap.set(userId, { watched: true, fails: 3 });
-    message.channel.send(`🚨 **You're now being watched by authorities!** One more fail and a bounty might hit your head.`);
-  }
-}
-
-crimeStreaks.set(userId, streak);
-
-// Increase heat
-const heat = heatMap.get(userId) || { heat: 0, lastActivity: now };
-heat.heat = Math.min(heat.heat + (success ? 15 : 5), 100);
-heat.lastActivity = now;
-heatMap.set(userId, heat);
-
-
+    if (success) {
+      task.crimes++;
+      pvpTasks.set(userId, task);
+      if (task.crimes === 3) {
+        await addCash(userId, message.guild.id, 500);
+        const rewardEmbed = new EmbedBuilder()
+          .setTitle("🎯 Daily PvP Task Complete!")
+          .setDescription("You completed 3 successful crimes today and earned **$500**!")
+          .setColor("#ffaa00")
+          .setTimestamp();
+        message.channel.send({ embeds: [rewardEmbed] });
+      }
+    }
 
     message.channel.send({ embeds: [alertEmbed] });
-    stealCooldowns.set(userId, now + 5 * 60 * 1000); // 5-min cooldown
+    stealCooldowns.set(userId, now + 5 * 60 * 1000);
   }
 });
+
 
 
 client.commands.set('crime', {
@@ -1393,55 +1422,57 @@ client.commands.set('bounty', {
     if (!target) return message.reply("You must tag someone to place a bounty: `!bounty @user`");
 
     if (target.id === message.author.id) return message.reply("You can’t place a bounty on yourself.");
-    
+
     const targetState = wantedMap.get(target.id);
     if (!targetState || !targetState.watched) {
       return message.reply("That player isn’t being watched by the authorities yet.");
     }
 
     const hideout = hideoutMap.get(target.id);
-if (hideout && hideout > Date.now()) {
-  return message.reply(`🧢 That user is currently hiding in a safehouse. Wait until they resurface.`);
-}
+    if (hideout && hideout > Date.now()) {
+      return message.reply(`🧢 That user is currently hiding in a safehouse. Wait until they resurface.`);
+    }
 
-// 🎯 Reward Multiplier Logic
-const streak = crimeStreaks.get(target.id) || { success: 0, fail: 0 };
-const heat = heatMap.get(target.id) || { heat: 0 };
-const userInventory = await getInventory(target.id, message.guild.id);
+    // 🎯 Reward Multiplier Logic
+    const streak = crimeStreaks.get(target.id) || { success: 0, fail: 0 };
+    const heat = heatMap.get(target.id) || { heat: 0 };
+    const userInventory = await getInventory(target.id, message.guild.id);
 
-let multiplier = 1;
-multiplier += Math.min(streak.success * 0.1, 0.5);         // Streak bonus (up to 0.5)
-if (userInventory.has('skull')) multiplier += 0.25;        // Skull Ring bonus
-if (heat.heat >= 100) multiplier += 0.5;                   // Infamous
-else if (heat.heat >= 75) multiplier += 0.3;               // Hot
+    let multiplier = 1;
+    multiplier += Math.min(streak.success * 0.1, 0.5); // Up to 1.5x
+    if (userInventory.has('skull')) multiplier += 0.25;
+    if (heat.heat >= 100) multiplier += 0.5;
+    else if (heat.heat >= 75) multiplier += 0.3;
 
-const reward = Math.floor((Math.random() * 300 + 200) * multiplier);
+    const reward = Math.floor((Math.random() * 300 + 200) * multiplier);
 
-
-
-    await addCash(message.author.id, message.guild.id, 100); // Optional: small refund to user for justice
+    // Optional justice refund
+    await addCash(message.author.id, message.guild.id, 100);
     await removeCash(target.id, message.guild.id, reward);
 
     const bountyEmbed = new EmbedBuilder()
       .setTitle("🎯 Bounty Placed!")
       .setDescription(`**<@${message.author.id}>** has placed a bounty on **<@${target.id}>**!`)
       .addFields(
-        { name: "💥 Reward", value: `$${reward} has been taken from them.`, inline: true },
-        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." },
-        { name: "💥 Reward", value: `$${reward} taken from them.\n🎯 Multiplier: x${multiplier.toFixed(2)}`, inline: true },
-        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." },
-        { name: "🔥 Heat Bonus", value: `${multiplier > 1 ? `${(multiplier * 100 - 100).toFixed(0)}% Increased` : "None"}`, inline: true }
+        { name: "💥 Total Deducted", value: `$${reward}`, inline: true },
+        { name: "🔥 Heat Rank", value: getHeatRank(heat.heat), inline: true },
+        { name: "🎯 Multiplier Breakdown", value: `
+• Crime Streak: \`+${Math.min(streak.success * 10, 50)}%\`
+• Skull Ring: ${userInventory.has('skull') ? '`+25%`' : '`None`'}
+• Heat Bonus: ${heat.heat >= 100 ? '`+50%`' : heat.heat >= 75 ? '`+30%`' : '`None`'}
+        `.trim() }
       )
-      .setColor("#ff5555")
       .setFooter({ text: "Bounty System Activated" })
+      .setColor("#ff5555")
       .setTimestamp();
 
     message.channel.send({ embeds: [bountyEmbed] });
 
-    // Optionally reset the "watched" status after bounty
+    // Reset watched status
     wantedMap.set(target.id, { fails: 0, watched: false });
   }
 });
+
 
 client.commands.set('hideout', {
   async execute(message) {

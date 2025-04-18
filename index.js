@@ -1161,31 +1161,71 @@ client.on('interactionCreate', async interaction => {
 
   const { message, user, customId } = interaction;
 
-  // Get the embeds from the original help command
-  const pages = message.embeds;
-  if (!pages || pages.length === 0) return;
+  if (!message.embeds.length) return;
 
-  // Store a simple page index using a message-level map
-  const currentIndex = pages.findIndex(embed => embed.title === message.embeds[0].title);
-  let newIndex = currentIndex;
-
-  if (customId === 'prev') {
-    newIndex = (currentIndex - 1 + pages.length) % pages.length;
-  } else if (customId === 'next') {
-    newIndex = (currentIndex + 1) % pages.length;
-  }
-
-  // Only allow the original user to navigate
-  if (interaction.user.id !== user.id) {
+  // Only allow the user who triggered the original help command
+  const originalUserId = message.interaction?.user?.id || user.id;
+  if (interaction.user.id !== originalUserId) {
     return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
   }
-  
+
+  // Determine the current page number from embed footer
+  const currentEmbed = message.embeds[0];
+  const footerText = currentEmbed.footer?.text;
+  const match = footerText?.match(/Page (\d+) of (\d+)/);
+
+  if (!match) return;
+
+  let currentPage = parseInt(match[1]);
+  const totalPages = parseInt(match[2]);
+
+  if (customId === 'help_next') currentPage++;
+  else if (customId === 'help_back') currentPage--;
+
+  // Clamp the page index
+  currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+  // Rebuild the embed for the new page
+  const helpPages = getHelpPages(); // ⬅️ You must define this helper (see below)
+  const newEmbed = helpPages[currentPage - 1];
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('help_back')
+      .setLabel('⏮️ Back')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(currentPage === 1),
+    new ButtonBuilder()
+      .setCustomId('help_next')
+      .setLabel('⏭️ Next')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(currentPage === totalPages)
+  );
 
   await interaction.update({
-    embeds: [pages[newIndex]],
-    components: message.components
+    embeds: [newEmbed],
+    components: [row]
   });
 });
+
+function getHelpPages() {
+  return [
+    new EmbedBuilder()
+      .setTitle('🎮 Core Gameplay')
+      .setDescription('`!ping`, `!daily`, `!balance`, `!inventory`, `!use`, `!lootbox`...')
+      .setFooter({ text: 'Page 1 of 3' }),
+
+    new EmbedBuilder()
+      .setTitle('💰 Gambling Games')
+      .setDescription('`!flip heads 50`, `!slots 100`, `!gambleitem medal`, `!buyticket`...')
+      .setFooter({ text: 'Page 2 of 3' }),
+
+    new EmbedBuilder()
+      .setTitle('🛍️ Shops & Leaderboards')
+      .setDescription('`!shop`, `!buyitem dice`, `!topxp`, `!richest`, `!topcollectors`, `!rank`, `!leaderboard`...')
+      .setFooter({ text: 'Page 3 of 3' }),
+  ];
+}
 
 
 client.commands.set('snipe', {

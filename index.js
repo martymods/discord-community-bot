@@ -486,24 +486,32 @@ Gang Bonuses:
 
     collector.on('collect', async interaction => {
       if (!interaction.isButton()) return;
-    
+
       if (interaction.user.id !== message.author.id) {
         return interaction.reply({ content: 'Only you can use this help panel.', ephemeral: true });
       }
-    
-      try {
-        if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
-        else if (interaction.customId === 'next') page = (page + 1) % pages.length;
-    
-        await interaction.update({
-          embeds: [pages[page]],
-          components: [row]
-        });
-      } catch (err) {
-        console.error("❌ Help button error:", err);
-        return interaction.reply({ content: 'This help menu has expired. Please use `!help` again.', ephemeral: true });
+
+      if (interaction.customId === 'prev') {
+        page = (page - 1 + pages.length) % pages.length;
+      } else if (interaction.customId === 'next') {
+        page = (page + 1) % pages.length;
       }
+
+      await interaction.update({
+        embeds: [pages[page]],
+        components: [row]
+      });
     });
+
+    // ✅ Disable buttons when collector ends
+    collector.on('end', async () => {
+      const disabledRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('prev').setLabel('⏮️ Back').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('next').setLabel('⏭️ Next').setStyle(ButtonStyle.Primary).setDisabled(true)
+      );
+      await helpMessage.edit({ components: [disabledRow] }).catch(() => {});
+    });
+
     
     // ⏳ When collector ends, disable buttons
     collector.on('end', async () => {

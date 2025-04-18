@@ -1387,16 +1387,20 @@ if (hideout && hideout > Date.now()) {
   return message.reply(`🧢 That user is currently hiding in a safehouse. Wait until they resurface.`);
 }
 
-// Streak-based multiplier
+// 🎯 Reward Multiplier Logic
 const streak = crimeStreaks.get(target.id) || { success: 0, fail: 0 };
-let multiplier = 1 + Math.min(streak.success * 0.1, 0.5); // up to 1.5x
-
+const heat = heatMap.get(target.id) || { heat: 0 };
 const userInventory = await getInventory(target.id, message.guild.id);
-if (userInventory.has('skull')) {
-  multiplier += 0.25;
-}
+
+let multiplier = 1;
+multiplier += Math.min(streak.success * 0.1, 0.5);         // Streak bonus (up to 0.5)
+if (userInventory.has('skull')) multiplier += 0.25;        // Skull Ring bonus
+if (heat.heat >= 100) multiplier += 0.5;                   // Infamous
+else if (heat.heat >= 75) multiplier += 0.3;               // Hot
 
 const reward = Math.floor((Math.random() * 300 + 200) * multiplier);
+
+
 
     await addCash(message.author.id, message.guild.id, 100); // Optional: small refund to user for justice
     await removeCash(target.id, message.guild.id, reward);
@@ -1408,7 +1412,8 @@ const reward = Math.floor((Math.random() * 300 + 200) * multiplier);
         { name: "💥 Reward", value: `$${reward} has been taken from them.`, inline: true },
         { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." },
         { name: "💥 Reward", value: `$${reward} taken from them.\n🎯 Multiplier: x${multiplier.toFixed(2)}`, inline: true },
-        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." }
+        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." },
+        { name: "🔥 Heat Bonus", value: `${multiplier > 1 ? `${(multiplier * 100 - 100).toFixed(0)}% Increased` : "None"}`, inline: true }
       )
       .setColor("#ff5555")
       .setFooter({ text: "Bounty System Activated" })

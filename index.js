@@ -11,7 +11,7 @@ const survivalAchievements = new Set(); // userIds who survived theft with rare 
 const playerAchievements = new Map(); // userId => Set of achievementIds
 const pvpStats = new Map(); // userId => { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 }
 const crimeBadges = new Map(); // userId => { badge: "Name", icon: "🔥", expires: timestamp }
-
+const gangMap = new Map();
 
 
 require('dotenv').config();
@@ -1748,6 +1748,74 @@ client.commands.set('heat', {
     message.channel.send({ embeds: [embed] });
   }
 });
+
+// Gang definitions
+const gangs = {
+  voodoo: {
+    name: "Doodoo Lords",
+    icon: "🪬",
+    bonus: "+1m cooldown to robbery attempts against you",
+  },
+  steel: {
+    name: "Steel Wheels",
+    icon: "🚗",
+    bonus: "+15% XP and +10% cash from challenges",
+  },
+  lotus: {
+    name: "Red Flowers",
+    icon: "🌸",
+    bonus: "+25% PvP steal damage",
+  },
+  syndicate: {
+    name: "Digital Blue",
+    icon: "📈",
+    bonus: "+10% item profit",
+  },
+  whisper: {
+    name: "Whisper Cartel",
+    icon: "🧪",
+    bonus: "-50% heat gain",
+  },
+};
+
+// == !joingang Command ==
+client.commands.set("joingang", {
+  async execute(message, args) {
+    const choice = (args[0] || "").toLowerCase();
+    if (!gangs[choice]) {
+      const gangList = Object.entries(gangs)
+        .map(([key, g]) => `**${g.icon} ${g.name}** - ${g.bonus} → \`!joingang ${key}\``)
+        .join("\n");
+      return message.channel.send({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Choose Your Gang")
+            .setDescription(gangList)
+            .setColor("#aa00ff")
+        ]
+      });
+    }
+
+    const userId = message.author.id;
+    gangMap.set(userId, choice);
+    const gang = gangs[choice];
+
+    message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle(`${gang.icon} Joined ${gang.name}`)
+          .setDescription(`You are now a member of the **${gang.name}**. Bonus: ${gang.bonus}`)
+          .setColor("#ff4488")
+      ]
+    });
+  },
+});
+
+// == Helper Function ==
+function getGang(userId) {
+  const key = gangMap.get(userId);
+  return key ? gangs[key].icon + " " + gangs[key].name : "None";
+}
 
 
 // Run this every 5 minutes

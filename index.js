@@ -735,8 +735,6 @@ client.commands.set('leaderboard', {
   }
 });
 
-
-
 client.commands.set('inventory', {
   async execute(message) {
     const inventory = await getInventory(message.author.id, message.guild.id);
@@ -752,67 +750,72 @@ client.commands.set('inventory', {
 
     const { items: itemList } = require('./economy/items');
 
-    // Calculate total inventory value
-    const totalValue = itemList.reduce((sum, it) => {
-      const qty = inventory.get(it.id) || 0;
-      return sum + (qty * it.value);
-    }, 0);
+    // Sort by total value descending
+    const sortedItems = itemList
+      .filter(it => inventory.has(it.id))
+      .map(it => ({
+        ...it,
+        qty: inventory.get(it.id),
+        totalValue: inventory.get(it.id) * it.value
+      }))
+      .sort((a, b) => b.totalValue - a.totalValue);
 
-    // Group items by rarity
-    const rarityOrder = ["Legendary", "Epic", "Rare", "Uncommon", "Common"];
-    const groupedFields = [];
+    // Pagination setup
+    const pageSize = 6;
+    let pages = [];
+    for (let i = 0; i < sortedItems.length; i += pageSize) {
+      const current = sortedItems.slice(i, i + pageSize);
 
-    for (const rarity of rarityOrder) {
-      const items = itemList.filter(it => inventory.has(it.id) && it.rarity === rarity);
-      if (items.length) {
-        groupedFields.push({
-          name: `💠 ${rarity}`,
-          value: items.map(it => `${it.name} x${inventory.get(it.id)}`).join('\n'),
+      const fields = current.map(it => {
+        const key = `use_${it.id}_${message.author.id}`;
+        const used = global.useCounts?.get(key) || 0;
+        const usage = used > 0 ? `\n🧠 Used: ${used}x` : '';
+        return {
+          name: `${it.name} x${it.qty}`,
+          value: `${it.description || 'No description.'}${usage}`,
           inline: false
-        });
-      }
+        };
+      });
+
+      const totalValue = current.reduce((sum, it) => sum + it.totalValue, 0);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎒 ${message.author.username}'s Inventory`)
+        .setDescription(`💰 Page Value: **$${totalValue}** DreamworldPoints`)
+        .addFields(fields)
+        .setColor('#00ffaa')
+        .setThumbnail(message.author.displayAvatarURL())
+        .setFooter({ text: `Page ${pages.length + 1} of ${Math.ceil(sortedItems.length / pageSize)}` })
+        .setTimestamp();
+
+      pages.push(embed);
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle(`🎒 ${message.author.username}'s Inventory`)
-      .setDescription(`📦 Total Inventory Value: **$${totalValue} DreamworldPoints**`)
-      .addFields(groupedFields)
-      .setColor('#00ffaa')
-      .setThumbnail(message.author.displayAvatarURL())
-      .setFooter({ text: 'Use !use <item> to activate something.' })
-      .setTimestamp();
+    let pageIndex = 0;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('prev_inv').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary)
+    );
 
-    // Display most used item
-    const useEntries = Array.from(global.useCounts?.entries() || []).filter(([k]) => k.endsWith(message.author.id));
-    const mostUsed = useEntries.sort((a, b) => b[1] - a[1])[0];
+    const msg = await message.channel.send({ embeds: [pages[pageIndex]], components: [row] });
 
-    if (mostUsed) {
-      const itemId = mostUsed[0].split('_')[1];
-      const itemUsed = itemList.find(i => i.id === itemId);
-      if (itemUsed) {
-        embed.addFields({
-          name: "🔥 Most Used Item",
-          value: `${itemUsed.name} — Used ${mostUsed[1]}x`,
-          inline: false
-        });
-      }
-    }
+    const collector = msg.createMessageComponentCollector({ time: 60000 });
+    collector.on('collect', async i => {
+      if (i.user.id !== message.author.id) return i.reply({ content: 'Only you can navigate this inventory.', ephemeral: true });
 
-    // Send embed
-    const sent = await message.channel.send({ embeds: [embed] });
+      if (i.customId === 'next_inv') pageIndex = (pageIndex + 1) % pages.length;
+      else if (i.customId === 'prev_inv') pageIndex = (pageIndex - 1 + pages.length) % pages.length;
 
-    // If user has Common items, show sell button
-    const hasCommons = itemList.some(it => inventory.has(it.id) && it.rarity === 'Common');
-    if (hasCommons) {
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('sell_commons')
-          .setLabel('💸 Sell All Commons')
-          .setStyle(ButtonStyle.Secondary)
+      await i.update({ embeds: [pages[pageIndex]], components: [row] });
+    });
+
+    collector.on('end', async () => {
+      const disabledRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('prev_inv').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary).setDisabled(true)
       );
-
-      await message.channel.send({ components: [row] });
-    }
+      await msg.edit({ components: [disabledRow] }).catch(() => {});
+    });
   }
 });
 

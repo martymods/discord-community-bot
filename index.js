@@ -411,19 +411,26 @@ client.commands.set('help', {
         `)
         .setColor('#ff0055'),
 
-      new EmbedBuilder()
+        new EmbedBuilder()
         .setTitle('🗺️ Turf Wars & Gangs')
         .setDescription(`
-!map — View zone control  
-!fortify <zone> — Defend your turf  
-!raid <zone> — Attack enemy turf  
-
-Gang Bonuses:
-🦹 Mask Mob — Bonus from steals  
-💼 Syndicate — Fail refund protection  
-💣 Red Crew — 25% challenge payout boost  
-🎯 Hitmen — Bounty cut bonus
-        `)
+      !joingang <name> — Join a gang  
+      !ganginfo — View your current gang  
+      !map — View current zone control  
+      !fortify <zone> — Defend your turf  
+      !raid <zone> — Attack enemy turf  
+      
+      Gang Bonuses:
+      🎭 Heist — Bonus steal payouts  
+      💵 Bribe — Refund on failed crimes  
+      💣 Bounty — Bonus bounty rewards  
+      🏆 Challenge — Boosted duel earnings  
+      👨‍💻 Whisper — Reduces heat gain  
+      🙅‍♂️ Syndicate — Item sale profit bonus  
+      🚬 Blitz — Extra XP & cash from challenges  
+      👓 OnPoint — Robbery resistance  
+      ⚰🩸 Killers — More PvP steal damage  
+      `)
         .setColor('#ff7722'),
 
       new EmbedBuilder()

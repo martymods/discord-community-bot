@@ -494,12 +494,33 @@ client.login(process.env.DISCORD_TOKEN);
 
 client.commands.set('rank', {
   async execute(message) {
-    const user = await Levels.fetch(message.author.id, message.guild.id);
-    if (!user) return message.reply("You have no XP yet.");
+    const user = await Levels.fetch(message.author.id, message.guild.id, true);
+    if (!user) return message.reply("You have no XP yet. Start hustling!");
 
-    message.channel.send(`🧠 ${message.author.username}, you're level ${user.level} with ${user.xp} XP.`);
+    const currentXP = user.xp;
+    const currentLevel = user.level;
+    const nextLevelXP = Levels.xpFor(user.level + 1);
+    const prevLevelXP = Levels.xpFor(user.level);
+    const neededXP = nextLevelXP - prevLevelXP;
+    const progressXP = currentXP - prevLevelXP;
+    const percent = Math.floor((progressXP / neededXP) * 100);
+    const bar = "🟩".repeat(percent / 10) + "⬜".repeat(10 - percent / 10);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🧠 ${message.author.username}'s Rank`)
+      .setColor('#00ff88')
+      .setThumbnail(message.author.displayAvatarURL())
+      .addFields(
+        { name: "🎚️ Level", value: `${currentLevel}`, inline: true },
+        { name: "📈 XP", value: `${progressXP} / ${neededXP}`, inline: true },
+        { name: "🔋 Progress", value: `${bar} ${percent}%`, inline: false }
+      )
+      .setFooter({ text: 'Keep grinding to level up!' });
+
+    message.channel.send({ embeds: [embed] });
   }
 });
+
 
 client.commands.set('leaderboard', {
   async execute(message) {

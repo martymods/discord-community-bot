@@ -741,32 +741,78 @@ client.commands.set('inventory', {
   async execute(message) {
     const inventory = await getInventory(message.author.id, message.guild.id);
     if (!inventory || inventory.size === 0) {
-      return message.reply("Your bag is empty.");
+      const emptyEmbed = new EmbedBuilder()
+        .setTitle("🎒 Inventory")
+        .setDescription("Your bag is currently empty.")
+        .setColor("#999999")
+        .setFooter({ text: "Earn items through scavenging, shop, or gambling." })
+        .setTimestamp();
+      return message.channel.send({ embeds: [emptyEmbed] });
     }
 
     const { items: itemList } = require('./economy/items');
 
-    // Generate embed fields for owned items only
-    const fields = itemList
-      .filter(it => inventory.has(it.id))
-      .map(it => {
-        const qty = inventory.get(it.id);
-        return {
-          name: `${it.name} x${qty}`,
-          value: it.description || 'No description yet.',
-          inline: true
-        };
-      });
+    // Calculate total inventory value
+    const totalValue = itemList.reduce((sum, it) => {
+      const qty = inventory.get(it.id) || 0;
+      return sum + (qty * it.value);
+    }, 0);
+
+    // Group items by rarity
+    const rarityOrder = ["Legendary", "Epic", "Rare", "Uncommon", "Common"];
+    const groupedFields = [];
+
+    for (const rarity of rarityOrder) {
+      const items = itemList.filter(it => inventory.has(it.id) && it.rarity === rarity);
+      if (items.length) {
+        groupedFields.push({
+          name: `💠 ${rarity}`,
+          value: items.map(it => `${it.name} x${inventory.get(it.id)}`).join('\n'),
+          inline: false
+        });
+      }
+    }
 
     const embed = new EmbedBuilder()
       .setTitle(`🎒 ${message.author.username}'s Inventory`)
-      .addFields(fields)
+      .setDescription(`📦 Total Inventory Value: **$${totalValue} DreamworldPoints**`)
+      .addFields(groupedFields)
       .setColor('#00ffaa')
       .setThumbnail(message.author.displayAvatarURL())
       .setFooter({ text: 'Use !use <item> to activate something.' })
       .setTimestamp();
 
-    message.channel.send({ embeds: [embed] });
+    // Display most used item
+    const useEntries = Array.from(global.useCounts?.entries() || []).filter(([k]) => k.endsWith(message.author.id));
+    const mostUsed = useEntries.sort((a, b) => b[1] - a[1])[0];
+
+    if (mostUsed) {
+      const itemId = mostUsed[0].split('_')[1];
+      const itemUsed = itemList.find(i => i.id === itemId);
+      if (itemUsed) {
+        embed.addFields({
+          name: "🔥 Most Used Item",
+          value: `${itemUsed.name} — Used ${mostUsed[1]}x`,
+          inline: false
+        });
+      }
+    }
+
+    // Send embed
+    const sent = await message.channel.send({ embeds: [embed] });
+
+    // If user has Common items, show sell button
+    const hasCommons = itemList.some(it => inventory.has(it.id) && it.rarity === 'Common');
+    if (hasCommons) {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('sell_commons')
+          .setLabel('💸 Sell All Commons')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      await message.channel.send({ components: [row] });
+    }
   }
 });
 
@@ -1691,6 +1737,11 @@ client.commands.set('use', {
     const item = args[0]?.toLowerCase();
     const amount = parseInt(args[1]) || 1;
 
+    const key = `use_${item}_${userId}`;
+global.useCounts = global.useCounts || new Map();
+global.useCounts.set(key, (global.useCounts.get(key) || 0) + amount);
+
+
     if (!item) return message.reply("Usage: `!use <item> [amount]`");
 
     const inventory = await getInventory(userId, message.guild.id);
@@ -2081,6 +2132,28 @@ client.commands.set('map', {
     message.channel.send({ embeds: [embed] });
   }
 });
+
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return;
+
+  if (interaction.customId === 'sell_commons') {
+    const inventory = await getInventory(interaction.user.id, interaction.guildId);
+    const { items: itemList } = require('./economy/items');
+
+    let total = 0;
+    for (const it of itemList) {
+      if (inventory.has(it.id) && it.rarity === 'Common') {
+        const qty = inventory.get(it.id);
+        total += qty * it.value;
+        await removeItem(interaction.user.id, interaction.guildId, it.id, qty);
+      }
+    }
+
+    await addCash(interaction.user.id, interaction.guildId, total);
+    await interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
+  }
+});
+
 
 
 // Run this every 5 minutes

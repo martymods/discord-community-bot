@@ -1767,7 +1767,9 @@ client.commands.set('turf', {
 client.commands.set('raid', {
   async execute(message, args) {
     const zone = args.join(" ");
-    if (!turfZones.has(zone)) return message.reply("❌ That zone doesn't exist. Try: Downtown, Back Alley, Warehouse");
+    if (!turfZones.has(zone)) {
+      return message.reply("❌ That zone doesn't exist. Try: Downtown, Back Alley, Warehouse");
+    }
 
     const now = Date.now();
     const userId = message.author.id;
@@ -1780,19 +1782,42 @@ client.commands.set('raid', {
       return message.reply(`⏳ You must wait ${seconds}s before launching another raid.`);
     }
 
-    const data = turfZones.get(zone);
-    if (data.owner === userGang) return message.reply("⚠️ You already control this zone.");
+    const zoneData = turfZones.get(zone);
+    const defendingGang = zoneData.owner;
 
-    // Simulate Raid Result (can expand later)
-    const success = Math.random() < 0.5;
-    if (success) {
-      turfZones.set(zone, { owner: userGang, lastRaid: now });
-      message.channel.send(`🚩 **Raid Successful!** Your gang now controls **${zone}**.`);
-    } else {
-      message.channel.send(`💥 **Raid Failed!** Defenders held **${zone}**.`);
+    if (defendingGang === userGang) {
+      return message.reply("⚠️ You already control this zone.");
     }
 
-    turfRaidCooldowns.set(userId, now + 5 * 60 * 1000); // 5 minute cooldown
+    // 🎲 Raid Logic
+    const success = Math.random() < 0.5;
+    const result = success ? "Raid Successful" : "Raid Failed";
+
+    const embed = new EmbedBuilder()
+      .setTitle(success ? `🚩 ${result}` : "🛑 Raid Repelled!")
+      .setDescription(
+        success
+          ? `**<@${userId}>** and the **${getGangEmoji(userGang)} ${userGang}** took over **${zone}** from the **${getGangEmoji(defendingGang)} ${defendingGang}**!`
+          : `**<@${userId}>** led an attack on **${zone}**, but the **${getGangEmoji(defendingGang)} ${defendingGang}** stood strong and held the turf.`
+      )
+      .addFields(
+        { name: "📍 Zone", value: zone, inline: true },
+        { name: "🔁 Cooldown", value: "5 minutes", inline: true },
+        { name: "🎭 Attacker", value: `${getGangEmoji(userGang)} ${userGang}`, inline: true },
+        { name: "🛡️ Defender", value: `${getGangEmoji(defendingGang)} ${defendingGang}`, inline: true }
+      )
+      .setColor(success ? "#33cc33" : "#ff4444")
+      .setThumbnail(message.author.displayAvatarURL())
+      .setFooter({ text: success ? "Turf Captured" : "Defense Successful" })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+
+    if (success) {
+      turfZones.set(zone, { owner: userGang, lastRaid: now });
+    }
+
+    turfRaidCooldowns.set(userId, now + 5 * 60 * 1000); // 5-min cooldown
   }
 });
 

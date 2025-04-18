@@ -12,6 +12,14 @@ const playerAchievements = new Map(); // userId => Set of achievementIds
 const pvpStats = new Map(); // userId => { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 }
 const crimeBadges = new Map(); // userId => { badge: "Name", icon: "🔥", expires: timestamp }
 const gangMap = new Map();
+// 🌍 Turf Zones
+const turfZones = new Map(); // { zoneId: { owner: 'heist', lastRaid: timestamp } }
+const turfRaidCooldowns = new Map(); // { userId: timestamp }
+
+// Initial Turf Setup
+turfZones.set("Downtown", { owner: "heist", lastRaid: 0 });
+turfZones.set("Back Alley", { owner: "bribe", lastRaid: 0 });
+turfZones.set("Warehouse", { owner: "bounty", lastRaid: 0 });
 
 
 require('dotenv').config();
@@ -52,6 +60,17 @@ function setCrimeBadge(userId, name, icon, durationMs = 3 * 24 * 60 * 60 * 1000)
     expires: Date.now() + durationMs,
   });
 }
+
+function getGangEmoji(gangId) {
+  const gangEmojis = {
+    heist: "🎭",
+    bribe: "💵",
+    bounty: "💣",
+    challenge: "🏆"
+  };
+  return gangEmojis[gangId] || "❓";
+}
+
 
 // after this line 👇
 const app = require('./keep_alive');
@@ -1725,6 +1744,55 @@ client.commands.set('ganginfo', {
       .setTimestamp();
 
     message.channel.send({ embeds: [embed] });
+  }
+});
+
+client.commands.set('turf', {
+  execute(message) {
+    const lines = [];
+    for (const [zone, data] of turfZones.entries()) {
+      lines.push(`🏙️ **${zone}** — Controlled by: **${getGangEmoji(data.owner)} ${data.owner}**`);
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("🌆 Current Turf Control")
+      .setDescription(lines.join("\n"))
+      .setColor('#ffaa00')
+      .setFooter({ text: "Use !raid <zone> to attack." });
+
+    message.channel.send({ embeds: [embed] });
+  }
+});
+
+client.commands.set('raid', {
+  async execute(message, args) {
+    const zone = args.join(" ");
+    if (!turfZones.has(zone)) return message.reply("❌ That zone doesn't exist. Try: Downtown, Back Alley, Warehouse");
+
+    const now = Date.now();
+    const userId = message.author.id;
+    const userGang = gangMap.get(userId);
+    if (!userGang) return message.reply("❌ You must be in a gang to initiate a raid.");
+
+    const cooldown = turfRaidCooldowns.get(userId) || 0;
+    if (now < cooldown) {
+      const seconds = Math.ceil((cooldown - now) / 1000);
+      return message.reply(`⏳ You must wait ${seconds}s before launching another raid.`);
+    }
+
+    const data = turfZones.get(zone);
+    if (data.owner === userGang) return message.reply("⚠️ You already control this zone.");
+
+    // Simulate Raid Result (can expand later)
+    const success = Math.random() < 0.5;
+    if (success) {
+      turfZones.set(zone, { owner: userGang, lastRaid: now });
+      message.channel.send(`🚩 **Raid Successful!** Your gang now controls **${zone}**.`);
+    } else {
+      message.channel.send(`💥 **Raid Failed!** Defenders held **${zone}**.`);
+    }
+
+    turfRaidCooldowns.set(userId, now + 5 * 60 * 1000); // 5 minute cooldown
   }
 });
 

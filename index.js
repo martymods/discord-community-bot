@@ -345,18 +345,18 @@ client.commands.set('help', {
       new EmbedBuilder()
         .setTitle('🎮 Core Gameplay')
         .setDescription(`
-!ping — Test the Slave  
-!balance — Check DreamworldPoints  
+!ping — Test the bot is alive  
+!balance — Check your DreamworldPoints  
 !daily — Claim daily rewards (streaks)  
-!inventory — See your item bag  
-!use <item> — Use gem, dice, skull, etc.  
-!shop — View daily shop  
-!buyitem <item> — Buy shop item  
+!inventory — View your item stash  
+!use <item> [amount] — Use gem, dice, skull, etc.  
+> Example: \`!use gem 5\`  
+!shop — View today's shop  
+!buyitem <item> — Buy from shop  
 > Example: \`!buyitem dice\`  
 !gambleitem <item> — 40% chance to double  
-> Example: \`!gambleitem medal\`
-!lurk — Gain slow XP and maybe trigger drama  
-!scavenge — Find loot or trigger random chaos 
+!lurk — Gain slow XP (drama may trigger)  
+!scavenge — Search for XP or items
         `)
         .setColor('#00ffaa'),
 
@@ -365,7 +365,7 @@ client.commands.set('help', {
         .setDescription(`
 !flip heads|tails <amount>  
 > Example: \`!flip heads 50\`  
-!slots <amount> — Try your luck  
+!slots <amount> — Fully animated slots  
 > Example: \`!slots 100\`
         `)
         .setColor('#ffaa00'),
@@ -374,10 +374,10 @@ client.commands.set('help', {
         .setTitle('🎟️ Lottery System')
         .setDescription(`
 !buyticket <amount> <number(optional)>  
-> Example: \`!buyticket 5 333\`  
-!mytickets — See your tickets  
-!lasttickets — Recent ticket buyers  
-!lotteryinfo — Jackpot status
+> Example: \`!buyticket 5 777\`  
+!mytickets — View your tickets  
+!lasttickets — Recent buyers  
+!lotteryinfo — Pool status
         `)
         .setColor('#ff00aa'),
 
@@ -385,53 +385,69 @@ client.commands.set('help', {
         .setTitle('📊 XP & Leaderboards')
         .setDescription(`
 !rank — Your XP and level  
-!leaderboard — Top players  
-!topxp — Highest XP  
-!richest — Top cash holders  
-!topcollectors — Item hoarders
+!leaderboard — Top XP players  
+!topxp — Highest XP holders  
+!richest — Top DreamworldPoint holders  
+!topcollectors — Inventory hoarders  
+!achievements — View unlocked achievements
         `)
         .setColor('#aa00ff'),
 
       new EmbedBuilder()
-        .setTitle('⚔️ PvP & Crime System')
+        .setTitle('⚔️ Battle & Crime System')
         .setDescription(`
-!steal @user — Try robbing someone  
-> Example: \`!steal @rival\`  
-!crime — Solo heist attempt  
-!wanted @user — Check someone's status  
-!bounty @user — Place bounty on wanted player  
-!hideout — Enter safehouse (5 min PvP shield)
+!steal @user — Attempt a robbery  
+!crime — Solo heist  
+!bounty @user — Place a bounty  
+!hideout — Enter a safehouse  
+!wanted @user — Check status  
+!challenge @user <amount> — Duel another player  
+!accept <userId> — Accept a duel  
 
-🎒 Item Powers:
-!use disguise — Clear your wanted level  
-!use lease — Extend hideout time  
-!use skull — Reduce steal cooldown
+🎒 Notable Items:
+!use disguise — Clear wanted level  
+!use lease — Extend hideout  
+!use skull — Reduce cooldowns
         `)
         .setColor('#ff0055'),
 
       new EmbedBuilder()
-        .setTitle('🏀 Betting System')
+        .setTitle('🗺️ Turf Wars & Gangs')
         .setDescription(`
-!nbagames — Today’s NBA games  
+!map — View zone control  
+!fortify <zone> — Defend your turf  
+!raid <zone> — Attack enemy turf  
+
+Gang Bonuses:
+🦹 Mask Mob — Bonus from steals  
+💼 Syndicate — Fail refund protection  
+💣 Red Crew — 25% challenge payout boost  
+🎯 Hitmen — Bounty cut bonus
+        `)
+        .setColor('#ff7722'),
+
+      new EmbedBuilder()
+        .setTitle('🏀 NBA Betting System')
+        .setDescription(`
+!nbagames — Today's NBA games  
 !nbabet <gameId> <team> <amount>  
 > Example: \`!nbabet 1001 LAL 200\`  
-!resolvebet <gameId> <winner> — (Admin only)  
-> Example: \`!resolvebet 1001 LAL\`  
+!resolvebet <gameId> <winner>  
 !mybets — Your bet history  
-!topbettors — Top DreamToken earners  
-!jackpot — View current jackpot
+!topbettors — Top earners  
+!jackpot — View jackpot pool
         `)
         .setColor('#ffaa44'),
 
       new EmbedBuilder()
-        .setTitle('🛍️ Real Items & Submissions')
+        .setTitle('🛍️ Real Items & Music')
         .setDescription(`
-!realshop — View real items for sale  
-!buyreal <itemId> — Redeem real item  
+!realshop — View real-world rewards  
+!buyreal <itemId> — Redeem item  
 > Example: \`!buyreal ps5clear\`
 
-!submitmusic — Show payment instructions  
-!mysubmission <link> — Submit track  
+!submitmusic — Payment instructions  
+!mysubmission <link> — Submit your track  
 > Example: \`!mysubmission https://link\`
         `)
         .setColor('#00ddff'),
@@ -439,17 +455,17 @@ client.commands.set('help', {
       new EmbedBuilder()
         .setTitle('📈 Stock Tools & Misc')
         .setDescription(`
-!snipe — View all sniper tickers  
-!track <ticker> — Start tracking  
-!sniperlog — View alert log  
-!nominate <ticker> — Suggest a sniper  
-!rotate — Manual sniper refresh  
-!banktotal — Show total game wealth
+!snipe — View sniper tickers  
+!track <ticker> — Start watching  
+!sniperlog — View logs  
+!nominate <ticker> — Suggest sniper  
+!rotate — Refresh rotation  
+!banktotal — View total game wealth
 
 !roast @user — Light insult  
 > Example: \`!roast @jeffbezos\`
         `)
-        .setFooter({ text: 'More coming soon... 🌀' })
+        .setFooter({ text: 'More features dropping soon... 🌀' })
         .setColor('#cccccc'),
     ];
 

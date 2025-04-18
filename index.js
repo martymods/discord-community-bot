@@ -8,6 +8,9 @@ const crimeStreaks = new Map(); // userId → { success: n, fail: n }
 const heatMap = new Map(); // userId → { heat: 0–100, lastActivity: timestamp }
 const pvpTasks = new Map(); // userId => { crimes: 0, lastReset: Date }
 const survivalAchievements = new Set(); // userIds who survived theft with rare items
+const playerAchievements = new Map(); // userId => Set of achievementIds
+const pvpStats = new Map(); // userId => { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 }
+
 
 require('dotenv').config();
 
@@ -21,6 +24,23 @@ function getHeatRank(heat) {
   if (heat >= 75) return "🔥 Hot";
   if (heat >= 40) return "🟡 Warm";
   return "🔴 Cold";
+}
+
+function unlockAchievement(userId, name, icon, message, channel) {
+  const userAchieves = playerAchievements.get(userId) || new Set();
+  if (userAchieves.has(name)) return;
+
+  userAchieves.add(name);
+  playerAchievements.set(userId, userAchieves);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${icon} Real Achievement Unlocked!`)
+    .setDescription(`**${name}**\n${message}`)
+    .setColor('#ffd700')
+    .setFooter({ text: 'Real Achievements System' })
+    .setTimestamp();
+
+  channel.send({ content: `<@${userId}>`, embeds: [embed] });
 }
 
 // after this line 👇
@@ -1246,6 +1266,19 @@ client.commands.set('steal', {
       await removeCash(target.id, message.guild.id, finalSteal);
       await addCash(userId, message.guild.id, finalSteal);
 
+      const stats = pvpStats.get(userId) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
+stats.pvpWins++;
+pvpStats.set(userId, stats);
+
+if (stats.pvpWins === 1) {
+  unlockAchievement(userId, "First Blood", "🥷", "Your first successful robbery.", message.channel);
+}
+
+if (stats.pvpWins === 10) {
+  unlockAchievement(userId, "Street Terror", "🦍", "10 successful PvP actions. You are feared.", message.channel);
+}
+
+
       // Reset fail streak
       wantedMap.set(userId, { fails: 0, watched: false });
 
@@ -1259,6 +1292,7 @@ client.commands.set('steal', {
     } else {
       const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));
       await removeCash(userId, message.guild.id, lost);
+      
 
       // Track failures
       const state = wantedMap.get(userId) || { fails: 0, watched: false };
@@ -1448,6 +1482,14 @@ client.commands.set('bounty', {
 
     // Optional justice refund
     await addCash(message.author.id, message.guild.id, 100);
+    const stats = pvpStats.get(message.author.id) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
+stats.bounties++;
+pvpStats.set(message.author.id, stats);
+
+if (stats.bounties === 5) {
+  unlockAchievement(message.author.id, "5 Bounties Placed", "💣", "You’ve placed 5 bounties. Ruthless.", message.channel);
+}
+
     await removeCash(target.id, message.guild.id, reward);
 
     const bountyEmbed = new EmbedBuilder()
@@ -1529,6 +1571,14 @@ client.commands.set('use', {
       case 'disguise':
         await removeItem(message.author.id, message.guild.id, item);
         hideoutMap.set(message.author.id, Date.now() + 5 * 60 * 1000);
+        const stats = pvpStats.get(message.author.id) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
+stats.hideouts++;
+pvpStats.set(message.author.id, stats);
+
+if (stats.hideouts === 10) {
+  unlockAchievement(message.author.id, "Shadow Lurker", "🕵️", "Used the hideout 10 times to stay unseen.", message.channel);
+}
+
         return message.reply("🕵️ You slipped on a disguise. You’re off the radar for 5 minutes.");
 
       case 'lease':

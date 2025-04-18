@@ -1319,9 +1319,29 @@ if (badge && badge.expires > Date.now()) {
 
       // Track failures
       const state = wantedMap.get(userId) || { fails: 0, watched: false };
+      // 🧯 Burnout Badge
+if (state.fails >= 5) {
+  crimeBadges.set(userId, {
+    badge: "Burnout",
+    icon: "🧯",
+    expires: Date.now() + 24 * 60 * 60 * 1000 // 24h
+  });
+}
+
       state.fails += 1;
       if (state.fails >= 3) state.watched = true;
       wantedMap.set(userId, state);
+
+      
+      // 🐀 Snitch Badge - fail 3+ times while being watched
+if (state.fails >= 3 && state.watched) {
+  crimeBadges.set(userId, {
+    badge: "Snitch",
+    icon: "🐀",
+    expires: Date.now() + 24 * 60 * 60 * 1000 // lasts 24 hours
+  });
+}
+
 
       // 🎯 Survival achievement !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (targetInventory.has('skull') && !survivalAchievements.has(target.id)) {

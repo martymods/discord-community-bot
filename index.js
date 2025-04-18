@@ -792,9 +792,13 @@ client.commands.set('inventory', {
     }
 
     let pageIndex = 0;
+
+    // Create navigation + sell buttons
+    const hasCommons = sortedItems.some(it => it.rarity === 'Common');
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('prev_inv').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary),
+      ...(hasCommons ? [new ButtonBuilder().setCustomId('sell_commons').setLabel('💸 Sell All Commons').setStyle(ButtonStyle.Success)] : [])
     );
 
     const msg = await message.channel.send({ embeds: [pages[pageIndex]], components: [row] });
@@ -803,8 +807,23 @@ client.commands.set('inventory', {
     collector.on('collect', async i => {
       if (i.user.id !== message.author.id) return i.reply({ content: 'Only you can navigate this inventory.', ephemeral: true });
 
-      if (i.customId === 'next_inv') pageIndex = (pageIndex + 1) % pages.length;
-      else if (i.customId === 'prev_inv') pageIndex = (pageIndex - 1 + pages.length) % pages.length;
+      if (i.customId === 'next_inv') {
+        pageIndex = (pageIndex + 1) % pages.length;
+      } else if (i.customId === 'prev_inv') {
+        pageIndex = (pageIndex - 1 + pages.length) % pages.length;
+      } else if (i.customId === 'sell_commons') {
+        const commons = sortedItems.filter(it => it.rarity === 'Common' && it.qty > 0);
+        let total = 0;
+
+        for (const item of commons) {
+          total += item.qty * item.value;
+          await removeItem(message.author.id, message.guild.id, item.id, item.qty);
+        }
+
+        await addCash(message.author.id, message.guild.id, total);
+        await i.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
+        return;
+      }
 
       await i.update({ embeds: [pages[pageIndex]], components: [row] });
     });
@@ -812,13 +831,13 @@ client.commands.set('inventory', {
     collector.on('end', async () => {
       const disabledRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('prev_inv').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary).setDisabled(true)
+        new ButtonBuilder().setCustomId('next_inv').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        ...(hasCommons ? [new ButtonBuilder().setCustomId('sell_commons').setLabel('💸 Sell All Commons').setStyle(ButtonStyle.Success).setDisabled(true)] : [])
       );
       await msg.edit({ components: [disabledRow] }).catch(() => {});
     });
   }
 });
-
 
 
 client.commands.set('shop', {

@@ -458,6 +458,35 @@ setInterval(() => {
   
     const randomXP = Math.floor(Math.random() * 10) + 5;
     await Levels.appendXp(message.author.id, message.guild.id, randomXP);
+
+    const user = await Levels.fetch(message.author.id, message.guild.id, true);
+if (user) {
+  const oldLevel = user.level;
+  const newXP = user.xp + randomXP;
+  const newLevel = Levels.xpForLevel(newXP);
+
+  if (newLevel > oldLevel) {
+    const nextXP = Levels.xpFor(user.level + 1);
+    const prevXP = Levels.xpFor(user.level);
+    const percent = Math.floor(((newXP - prevXP) / (nextXP - prevXP)) * 100);
+    const bar = "🟩".repeat(percent / 10) + "⬜".repeat(10 - percent / 10);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🌟 Level Up!")
+      .setDescription(`**<@${message.author.id}> just reached Level ${newLevel}!**`)
+      .addFields(
+        { name: "🧠 XP Progress", value: `${bar} ${percent}%`, inline: false },
+        { name: "🎚️ New Level", value: `${newLevel}`, inline: true }
+      )
+      .setThumbnail(message.author.displayAvatarURL())
+      .setColor('#00ff88')
+      .setFooter({ text: "Keep grinding..." })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+}
+
   
     if (client.commands.has(command)) {
       console.log(`✅ Running command: ${command}`);

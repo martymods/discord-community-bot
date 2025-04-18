@@ -10,6 +10,8 @@ const pvpTasks = new Map(); // userId => { crimes: 0, lastReset: Date }
 const survivalAchievements = new Set(); // userIds who survived theft with rare items
 const playerAchievements = new Map(); // userId => Set of achievementIds
 const pvpStats = new Map(); // userId => { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 }
+const crimeBadges = new Map(); // userId => { badge: "Name", icon: "🔥", expires: timestamp }
+
 
 
 require('dotenv').config();
@@ -41,6 +43,14 @@ function unlockAchievement(userId, name, icon, message, channel) {
     .setTimestamp();
 
   channel.send({ content: `<@${userId}>`, embeds: [embed] });
+}
+
+function setCrimeBadge(userId, name, icon, durationMs = 3 * 24 * 60 * 60 * 1000) {
+  crimeBadges.set(userId, {
+    badge: name,
+    icon,
+    expires: Date.now() + durationMs,
+  });
 }
 
 // after this line 👇
@@ -876,16 +886,24 @@ client.commands.set('nbagames', {
 });
 
 
+// ✅ Updated !challenge Command with Crime Badge Footer
 client.commands.set('challenge', {
   async execute(message, args) {
     const opponent = message.mentions.users.first();
     const amount = parseInt(args[1]);
-
     if (!opponent || isNaN(amount)) return message.reply("Usage: `!challenge @user 100`");
 
-    message.channel.send(createChallenge(message, opponent.id, amount));
+    const challengeEmbed = createChallenge(message, opponent.id, amount);
+
+    const badge = crimeBadges.get(message.author.id);
+    if (badge && badge.expires > Date.now()) {
+      challengeEmbed.setFooter({ text: `${badge.icon} ${badge.badge}`, iconURL: message.author.displayAvatarURL() });
+    }
+
+    message.channel.send({ embeds: [challengeEmbed] });
   }
 });
+
 
 client.commands.set('accept', {
   async execute(message, args) {
@@ -1289,6 +1307,11 @@ if (stats.pvpWins === 10) {
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
         .setFooter({ text: 'Crime Success' })
         .setTimestamp();
+        const badge = crimeBadges.get(userId);
+if (badge && badge.expires > Date.now()) {
+  alertEmbed.setFooter({ text: `${badge.icon} ${badge.badge}`, iconURL: message.author.displayAvatarURL() });
+}
+
     } else {
       const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));
       await removeCash(userId, message.guild.id, lost);
@@ -1300,7 +1323,7 @@ if (stats.pvpWins === 10) {
       if (state.fails >= 3) state.watched = true;
       wantedMap.set(userId, state);
 
-      // 🎯 Survival achievement
+      // 🎯 Survival achievement !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (targetInventory.has('skull') && !survivalAchievements.has(target.id)) {
         survivalAchievements.add(target.id);
         const survivalEmbed = new EmbedBuilder()
@@ -1311,6 +1334,19 @@ if (stats.pvpWins === 10) {
           .setTimestamp();
         message.channel.send({ embeds: [survivalEmbed] });
       }
+
+      // Track survivals while being watched
+const targetState = wantedMap.get(target.id);
+if (targetState?.watched) {
+  const stats = pvpStats.get(target.id) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
+  stats.survived++;
+  pvpStats.set(target.id, stats);
+
+  if (stats.survived === 5) {
+    unlockAchievement(target.id, "Untouchable", "🛡️", "Survived 5 robbery attempts while being watched.", message.channel);
+  }
+}
+
 
       alertEmbed = new EmbedBuilder()
         .setTitle("🚨 Failed Robbery!")
@@ -1483,36 +1519,43 @@ client.commands.set('bounty', {
     // Optional justice refund
     await addCash(message.author.id, message.guild.id, 100);
     const stats = pvpStats.get(message.author.id) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
-stats.bounties++;
-pvpStats.set(message.author.id, stats);
+    stats.bounties++;
+    pvpStats.set(message.author.id, stats);
 
-if (stats.bounties === 5) {
-  unlockAchievement(message.author.id, "5 Bounties Placed", "💣", "You’ve placed 5 bounties. Ruthless.", message.channel);
+    if (stats.bounties === 5) {
+    unlockAchievement(message.author.id, "5 Bounties Placed", "💣", "You’ve placed 5 bounties. Ruthless.", message.channel);
 }
 
-    await removeCash(target.id, message.guild.id, reward);
+await removeCash(target.id, message.guild.id, reward);
 
-    const bountyEmbed = new EmbedBuilder()
-      .setTitle("🎯 Bounty Placed!")
-      .setDescription(`**<@${message.author.id}>** has placed a bounty on **<@${target.id}>**!`)
-      .addFields(
-        { name: "💥 Total Deducted", value: `$${reward}`, inline: true },
-        { name: "🔥 Heat Rank", value: getHeatRank(heat.heat), inline: true },
-        { name: "🎯 Multiplier Breakdown", value: `
+const bountyEmbed = new EmbedBuilder()
+  .setTitle("🎯 Bounty Placed!")
+  .setDescription(`**<@${message.author.id}>** has placed a bounty on **<@${target.id}>**!`)
+  .addFields(
+    { name: "💥 Total Deducted", value: `$${reward}`, inline: true },
+    { name: "🔥 Heat Rank", value: getHeatRank(heat.heat), inline: true },
+    {
+      name: "🎯 Multiplier Breakdown",
+      value: `
 • Crime Streak: \`+${Math.min(streak.success * 10, 50)}%\`
 • Skull Ring: ${userInventory.has('skull') ? '`+25%`' : '`None`'}
-• Heat Bonus: ${heat.heat >= 100 ? '`+50%`' : heat.heat >= 75 ? '`+30%`' : '`None`'}
-        `.trim() }
-      )
-      .setFooter({ text: "Bounty System Activated" })
-      .setColor("#ff5555")
-      .setTimestamp();
+• Heat Bonus: ${heat.heat >= 100 ? '`+50%`' : heat.heat >= 75 ? '`+30%`' : '`None`'}`.trim()
+    }
+  )
+  .setColor("#ff5555")
+  .setTimestamp();
 
-    message.channel.send({ embeds: [bountyEmbed] });
+const badge = crimeBadges.get(message.author.id);
+if (badge && badge.expires > Date.now()) {
+  bountyEmbed.setFooter({ text: `${badge.icon} ${badge.badge}`, iconURL: message.author.displayAvatarURL() });
+} else {
+  bountyEmbed.setFooter({ text: "Bounty System Activated" });
+}
 
-    // Reset watched status
-    wantedMap.set(target.id, { fails: 0, watched: false });
-  }
+message.channel.send({ embeds: [bountyEmbed] });
+
+wantedMap.set(target.id, { fails: 0, watched: false });
+}
 });
 
 

@@ -5,12 +5,20 @@ const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
 const hideoutMap = new Map(); // userId → timestamp when hideout expires
 const crimeStreaks = new Map(); // userId → { success: n, fail: n }
+const heatMap = new Map(); // userId → { heat: 0–100, lastActivity: timestamp }
 
 require('dotenv').config();
 
 // Helper: Convert XP to Level
 function getLevelFromXP(xp) {
   return Math.floor(0.1 * Math.sqrt(xp));
+}
+
+function getHeatRank(heat) {
+  if (heat >= 100) return "☠️ Infamous";
+  if (heat >= 75) return "🔥 Hot";
+  if (heat >= 40) return "🟡 Warm";
+  return "🔴 Cold";
 }
 
 // after this line 👇
@@ -1227,6 +1235,7 @@ if (hideout && hideout > Date.now()) {
         .setTitle("💸 Heist Successful!")
         .setDescription(`**<@${userId}>** stole **$${stolen}** from **<@${target.id}>**!`)
         .setColor("#00ff88")
+        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
         .setFooter({ text: 'Crime Success' })
         .setTimestamp();
     } else {
@@ -1244,6 +1253,7 @@ if (hideout && hideout > Date.now()) {
         .setDescription(`**<@${userId}>** got caught trying to rob **<@${target.id}>** and lost **$${lost}**.`)
         .setColor("#ff4444")
         .addFields({ name: "Wanted Level", value: state.watched ? "🚨 Watched" : `❌ Failed attempts: ${state.fails}` })
+        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
         .setFooter({ text: 'Crime Failure' })
         .setTimestamp();
     }
@@ -1271,6 +1281,13 @@ if (success) {
 }
 
 crimeStreaks.set(userId, streak);
+
+// Increase heat
+const heat = heatMap.get(userId) || { heat: 0, lastActivity: now };
+heat.heat = Math.min(heat.heat + (success ? 15 : 5), 100);
+heat.lastActivity = now;
+heatMap.set(userId, heat);
+
 
 
     message.channel.send({ embeds: [alertEmbed] });
@@ -1551,6 +1568,21 @@ client.commands.set('scavenge', {
   }
 });
 
+client.commands.set('heat', {
+  execute(message) {
+    const data = heatMap.get(message.author.id) || { heat: 0 };
+    const rank = getHeatRank(data.heat);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🔥 Your Heat Rank")
+      .setDescription(`You are currently marked as: **${rank}**\nHeat Score: ${data.heat}/100`)
+      .setColor('#ff4444')
+      .setFooter({ text: "Crime reputation affects all PvP rewards..." });
+
+    message.channel.send({ embeds: [embed] });
+  }
+});
+
 
 // Run this every 5 minutes
 setInterval(() => {
@@ -1577,6 +1609,17 @@ setInterval(() => {
     if (end <= now) hideoutMap.delete(id);
   }
 }, 60 * 1000);
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of heatMap) {
+    if (now - data.lastActivity >= 10 * 60 * 1000) { // 10 minutes of no activity
+      data.heat = Math.max(0, data.heat - 10);
+      heatMap.set(userId, data);
+    }
+  }
+}, 5 * 60 * 1000); // Check every 5 mins
+
 
 // Chaos event every hour
 setInterval(() => {

@@ -256,21 +256,66 @@ client.commands.set('flip', {
   }
 });
 
-
 client.commands.set('slots', {
-  async execute(message, args) {
-    const amount = parseInt(args[0]);
-    if (isNaN(amount) || amount <= 0) return message.reply("Usage: `!slots amount`");
+  async execute(message) {
+    const userId = message.author.id;
+    const bet = 100;
 
-    const balance = await getBalance(message.author.id, message.guild.id);
-    if (balance < amount) return message.reply("Insufficient funds.");
+    const balance = await getBalance(userId, message.guild.id);
+    if (balance < bet) return message.reply("🪙 You need at least $100 to play the slots.");
 
-    await games.slots(message, amount, balance,
-      async amt => {
-        if (amt > 0) return await addCash(message.author.id, message.guild.id, amt);
-        else return await removeCash(message.author.id, message.guild.id, Math.abs(amt));
-      }
-    );
+    await removeCash(userId, message.guild.id, bet);
+
+    const symbols = ["🍒", "🍋", "💎", "🔔", "7️⃣"];
+    const roll = () => [
+      symbols[Math.floor(Math.random() * symbols.length)],
+      symbols[Math.floor(Math.random() * symbols.length)],
+      symbols[Math.floor(Math.random() * symbols.length)]
+    ];
+
+    const embed = new EmbedBuilder()
+      .setTitle("🎰 Spinning the Slots...")
+      .setDescription("🎲 🎲 🎲")
+      .setColor("#cccccc")
+      .setFooter({ text: "Rolling..." });
+
+    const msg = await message.channel.send({ embeds: [embed] });
+
+    // Animation Frames
+    const spin1 = roll();
+    const spin2 = roll();
+    const spin3 = roll();
+
+    await new Promise(r => setTimeout(r, 700));
+    embed.setDescription(`${spin1[0]} ❔ ❔`);
+    await msg.edit({ embeds: [embed] });
+
+    await new Promise(r => setTimeout(r, 700));
+    embed.setDescription(`${spin1[0]} ${spin2[1]} ❔`);
+    await msg.edit({ embeds: [embed] });
+
+    await new Promise(r => setTimeout(r, 700));
+    const final = spin3;
+    embed.setDescription(`${final[0]} ${final[1]} ${final[2]}`);
+
+    const win = final[0] === final[1] && final[1] === final[2];
+    const xp = win ? 30 : 10;
+    const reward = win ? bet * 5 : 0;
+
+    if (win) {
+      await addCash(userId, message.guild.id, reward);
+      await addXP(userId, message.guild.id, xp);
+      embed.setTitle("🎉 JACKPOT WINNER!");
+      embed.setColor("#00ff88");
+      embed.setFooter({ text: `+ $${reward} | +${xp} XP` });
+    } else {
+      await addXP(userId, message.guild.id, xp);
+      embed.setTitle("😢 Better Luck Next Time");
+      embed.setColor("#ff4444");
+      embed.setFooter({ text: `-${bet} | +${xp} XP` });
+    }
+
+    await msg.edit({ embeds: [embed] });
   }
 });
 

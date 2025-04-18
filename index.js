@@ -4,6 +4,8 @@ const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
 const hideoutMap = new Map(); // userId → timestamp when hideout expires
+const crimeStreaks = new Map(); // userId → { success: n, fail: n }
+
 require('dotenv').config();
 
 
@@ -1241,6 +1243,31 @@ if (hideout && hideout > Date.now()) {
         .setTimestamp();
     }
 
+    // Track crime streak
+const streak = crimeStreaks.get(userId) || { success: 0, fail: 0 };
+
+if (success) {
+  streak.success++;
+  streak.fail = 0;
+
+  if (streak.success === 3) {
+    await addCash(userId, message.guild.id, 150); // Bonus
+    message.channel.send(`🔥 **Crime Spree Bonus**: You gained a $150 bonus for 3 successful robberies in a row!`);
+  }
+
+} else {
+  streak.fail++;
+  streak.success = 0;
+
+  if (streak.fail === 3) {
+    wantedMap.set(userId, { watched: true, fails: 3 });
+    message.channel.send(`🚨 **You're now being watched by authorities!** One more fail and a bounty might hit your head.`);
+  }
+}
+
+crimeStreaks.set(userId, streak);
+
+
     message.channel.send({ embeds: [alertEmbed] });
     stealCooldowns.set(userId, now + 5 * 60 * 1000); // 5-min cooldown
   }
@@ -1338,7 +1365,17 @@ if (hideout && hideout > Date.now()) {
   return message.reply(`🧢 That user is currently hiding in a safehouse. Wait until they resurface.`);
 }
 
-    const reward = Math.floor(Math.random() * 300) + 200; // $200 - $500
+// Streak-based multiplier
+const streak = crimeStreaks.get(target.id) || { success: 0, fail: 0 };
+let multiplier = 1 + Math.min(streak.success * 0.1, 0.5); // up to 1.5x
+
+const userInventory = await getInventory(target.id, message.guild.id);
+if (userInventory.has('skull')) {
+  multiplier += 0.25;
+}
+
+const reward = Math.floor((Math.random() * 300 + 200) * multiplier);
+
     await addCash(message.author.id, message.guild.id, 100); // Optional: small refund to user for justice
     await removeCash(target.id, message.guild.id, reward);
 
@@ -1347,6 +1384,8 @@ if (hideout && hideout > Date.now()) {
       .setDescription(`**<@${message.author.id}>** has placed a bounty on **<@${target.id}>**!`)
       .addFields(
         { name: "💥 Reward", value: `$${reward} has been taken from them.`, inline: true },
+        { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." },
+        { name: "💥 Reward", value: `$${reward} taken from them.\n🎯 Multiplier: x${multiplier.toFixed(2)}`, inline: true },
         { name: "🧨 Reason", value: "Too many failed crimes. Marked as a threat." }
       )
       .setColor("#ff5555")

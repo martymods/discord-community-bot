@@ -471,11 +471,21 @@ setInterval(() => {
     
   
     // Random Item Drop
-    const drop = getRandomItem();
-    if (drop) {
-      await addItem(message.author.id, message.guild.id, drop.id);
-      message.channel.send(`🪂 <@${message.author.id}> found ${drop.name} (${drop.rarity}) and added it to their inventory!`);
+    const itemDropCooldowns = global.itemDropCooldowns || new Map();
+    global.itemDropCooldowns = itemDropCooldowns;
+    
+    const lastDrop = itemDropCooldowns.get(message.author.id) || 0;
+    const now = Date.now();
+    
+    if (now - lastDrop > 5 * 60 * 1000) { // 5 minute cooldown
+      const drop = getRandomItem();
+      if (drop) {
+        await addItem(message.author.id, message.guild.id, drop.id);
+        message.channel.send(`🪂 <@${message.author.id}> found ${drop.name} (${drop.rarity}) and added it to their inventory!`);
+        itemDropCooldowns.set(message.author.id, now);
+      }
     }
+    
   });
 
 client.login(process.env.DISCORD_TOKEN);

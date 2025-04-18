@@ -1569,61 +1569,88 @@ client.commands.set('hideout', {
 
 client.commands.set('use', {
   async execute(message, args) {
+    const userId = message.author.id;
     const item = args[0]?.toLowerCase();
-    if (!item) return message.reply("Usage: `!use <item_name>`");
+    const amount = parseInt(args[1]) || 1;
 
-    const inventory = await getInventory(message.author.id, message.guild.id);
-    if (!inventory.has(item) || inventory.get(item) <= 0) {
-      return message.reply("You don't have that item.");
+    if (!item) return message.reply("Usage: `!use <item> [amount]`");
+
+    const inventory = await getInventory(userId, message.guild.id);
+    if (!inventory.has(item)) return message.reply("❌ You don’t own that item.");
+
+    const currentCount = inventory.get(item);
+    if (currentCount < amount) return message.reply(`❌ You only have ${currentCount} ${item}(s).`);
+
+    await removeItem(userId, message.guild.id, item, amount);
+
+    const emojiMap = {
+      gem: '💎',
+      medal: '🎖️',
+      dice: '🎲',
+      skull: '💀',
+      disguise: '🕵️',
+      lease: '🏠',
+    };
+    const emoji = emojiMap[item] || '🔸';
+
+    // Animation
+    const useMsg = await message.channel.send(`Consuming ${amount} ${item}(s)...`);
+    const steps = Math.min(amount, 10);
+    for (let i = 1; i <= steps; i++) {
+      await new Promise(res => setTimeout(res, 200));
+      await useMsg.edit(emoji.repeat(i));
     }
+
+    let resultText = "✅ You used your items.";
 
     switch (item) {
       case 'gem':
-        await removeItem(message.author.id, message.guild.id, item);
-        await addCash(message.author.id, message.guild.id, 100);
-        return message.reply("💎 Used a Gem! Gained $100 DreamworldPoints.");
+        await addCash(userId, message.guild.id, 100 * amount);
+        resultText = `💸 You used ${amount} Gem(s) and gained $${amount * 100} DreamworldPoints.`;
+        break;
 
       case 'medal':
-        await removeItem(message.author.id, message.guild.id, item);
-        await addCash(message.author.id, message.guild.id, 50);
-        return message.reply("🎖️ Used a Medal! Gained $50 DreamworldPoints.");
+        await addCash(userId, message.guild.id, 50 * amount);
+        resultText = `🎖️ You used ${amount} Medal(s) and gained $${amount * 50} DreamworldPoints.`;
+        break;
 
       case 'dice':
-        const xpGain = Math.floor(Math.random() * 25) + 5;
-        await removeItem(message.author.id, message.guild.id, item);
-        await Levels.appendXp(message.author.id, message.guild.id, xpGain);
-        return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
-
-      case 'disguise':
-        await removeItem(message.author.id, message.guild.id, item);
-        hideoutMap.set(message.author.id, Date.now() + 5 * 60 * 1000);
-        const stats = pvpStats.get(message.author.id) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
-stats.hideouts++;
-pvpStats.set(message.author.id, stats);
-
-if (stats.hideouts === 10) {
-  unlockAchievement(message.author.id, "Shadow Lurker", "🕵️", "Used the hideout 10 times to stay unseen.", message.channel);
-}
-
-        return message.reply("🕵️ You slipped on a disguise. You’re off the radar for 5 minutes.");
-
-      case 'lease':
-        await removeItem(message.author.id, message.guild.id, item);
-        hideoutMap.set(message.author.id, Date.now() + 10 * 60 * 1000);
-        return message.reply("🏡 You extended your safehouse lease. You’re hidden for 10 minutes.");
+        const totalXP = Array.from({ length: amount }, () => Math.floor(Math.random() * 20 + 10)).reduce((a, b) => a + b, 0);
+        await Levels.appendXp(userId, message.guild.id, totalXP);
+        resultText = `🎲 You rolled ${amount} Dice and gained ${totalXP} XP.`;
+        break;
 
       case 'skull':
-        await removeItem(message.author.id, message.guild.id, item);
-        const currentCooldown = stealCooldowns.get(message.author.id) || 0;
-        const reduced = currentCooldown - 2 * 60 * 1000;
-        stealCooldowns.set(message.author.id, Math.max(Date.now(), reduced));
-        return message.reply("💀 Used Skull Ring. Your crime cooldown was reduced by 2 minutes!");
+        const oldCooldown = stealCooldowns.get(userId) || 0;
+        stealCooldowns.set(userId, Math.max(Date.now(), oldCooldown - 2 * 60 * 1000 * amount));
+        resultText = `💀 You used ${amount} Skull Ring(s). Crime cooldown reduced by ${2 * amount} minutes.`;
+        break;
+
+      case 'disguise':
+        wantedMap.set(userId, { fails: 0, watched: false });
+        hideoutMap.set(userId, Date.now() + 5 * 60 * 1000);
+        const stats = pvpStats.get(userId) || { bounties: 0, pvpWins: 0, hideouts: 0, survived: 0 };
+        stats.hideouts++;
+        pvpStats.set(userId, stats);
+        if (stats.hideouts === 10) {
+          unlockAchievement(userId, "Shadow Lurker", "🕵️", "Used the hideout 10 times to stay unseen.", message.channel);
+        }
+        resultText = "🕵️ You used a Disguise Kit. You’re hidden from PvP for 5 minutes.";
+        break;
+
+      case 'lease':
+        hideoutMap.set(userId, Date.now() + 10 * 60 * 1000);
+        resultText = "🏡 You extended your safehouse lease. You’re hidden for 10 minutes.";
+        break;
 
       default:
-        return message.reply("That item has no use... yet.");
+        resultText = "⚠️ That item doesn’t have a use yet...";
     }
+
+    await useMsg.edit(resultText);
   }
 });
+
 
 client.commands.set('lurk', {
   async execute(message) {

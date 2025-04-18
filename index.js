@@ -1352,7 +1352,8 @@ setInterval(() => {
 }, 14400 * 60 * 1000);
 
 
-cron.schedule('0 12 * * *', () => {
+cron.schedule('0 16 * * *', () => { // 12 PM ET is 16:00 UTC
+  console.log("⏰ Running daily NBA predictions...");
   runDailyPredictions(client);
 });
 

@@ -241,6 +241,8 @@ client.commands.set('help', {
 > Example: \`!buyitem dice\`  
 !gambleitem <item> — 40% chance to double  
 > Example: \`!gambleitem medal\`
+!lurk — Gain slow XP and maybe trigger drama  
+!scavenge — Find loot or trigger random chaos 
         `)
         .setColor('#00ffaa'),
 
@@ -1401,6 +1403,78 @@ client.commands.set('use', {
       default:
         return message.reply("That item has no use... yet.");
     }
+  }
+});
+
+client.commands.set('lurk', {
+  async execute(message) {
+    const gainedXP = Math.floor(Math.random() * 10) + 1;
+    await Levels.appendXp(message.author.id, message.guild.id, gainedXP);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🕶️ You’re Lurking in the Shadows...")
+      .setDescription(`You kept a low profile and gained **${gainedXP} XP**.`)
+      .setThumbnail(message.author.displayAvatarURL())
+      .setColor('#5555ff')
+      .setFooter({ text: "No one noticed... or did they?" });
+
+    message.channel.send({ embeds: [embed] });
+
+    // Optional: 5% chance to trigger a drama event or callout
+    if (Math.random() < 0.05) {
+      const dramaEmbed = new EmbedBuilder()
+        .setTitle("👀 Uh oh...")
+        .setDescription(`<@${message.author.id}> thought they could lurk... but got noticed.`)
+        .setColor('#ff4444')
+        .setFooter({ text: 'Stay invisible, or pay the price.' });
+
+      message.channel.send({ embeds: [dramaEmbed] });
+    }
+  }
+});
+
+client.commands.set('scavenge', {
+  async execute(message) {
+    const roll = Math.random();
+    let embed;
+
+    if (roll < 0.6) {
+      const cashFound = Math.floor(Math.random() * 150) + 50;
+      await addCash(message.author.id, message.guild.id, cashFound);
+      embed = new EmbedBuilder()
+        .setTitle("🔍 You Scavenged the Streets...")
+        .setDescription(`Found **$${cashFound}** in loose change and drops.`)
+        .setColor('#00cc88')
+        .setThumbnail(message.author.displayAvatarURL())
+        .setFooter({ text: 'Urban survival pays off... sometimes.' });
+
+    } else if (roll < 0.85) {
+      const item = getRandomItem();
+      if (item) {
+        await addItem(message.author.id, message.guild.id, item.id);
+        embed = new EmbedBuilder()
+          .setTitle("🎁 Street Find!")
+          .setDescription(`You found a **${item.name}** while digging through crates.`)
+          .setColor('#ffaa00')
+          .setThumbnail(message.author.displayAvatarURL());
+      } else {
+        embed = new EmbedBuilder()
+          .setTitle("📦 Empty Crate")
+          .setDescription("Nothing but rats and dust.")
+          .setColor('#999999');
+      }
+    } else {
+      const loss = Math.floor(Math.random() * 100) + 20;
+      await removeCash(message.author.id, message.guild.id, loss);
+      embed = new EmbedBuilder()
+        .setTitle("🚓 Caught by Security!")
+        .setDescription(`Lost **$${loss}** paying a fine for trespassing.`)
+        .setColor('#ff3333')
+        .setThumbnail('https://media.giphy.com/media/l4FGGafcOHmrlQxG0/giphy.gif')
+        .setFooter({ text: "Better luck next time." });
+    }
+
+    message.channel.send({ embeds: [embed] });
   }
 });
 

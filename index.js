@@ -60,6 +60,7 @@ const { scanAllSnipers } = require('./economy/flowIntel');
 const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
+const { triggerChaosEvent } = require('./economy/chaosEvents');
 
 
 let todaySnipes = [];
@@ -1386,6 +1387,19 @@ client.commands.set('use', {
   }
 });
 
+client.commands.set('chaos', {
+  execute(message) {
+    if (!message.member.permissions.has('ADMINISTRATOR')) {
+      return message.reply("You don't have permission to trigger chaos events.");
+    }
+
+    const { triggerChaosEvent } = require('./economy/chaosEvents');
+    triggerChaosEvent(client);
+    message.reply("☄️ Chaos event manually triggered.");
+  }
+});
+
+
 // Run this every 5 minutes
 setInterval(() => {
   for (const t of todaySnipes) {
@@ -1411,6 +1425,10 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
+// Chaos event every hour
+setInterval(() => {
+  triggerChaosEvent(client);
+}, 60 * 60 * 1000); // every hour
 
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);

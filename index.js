@@ -1176,9 +1176,10 @@ client.on('interactionCreate', async interaction => {
   }
 
   // Only allow the original user to navigate
-  if (interaction.user.id !== message.interaction?.user?.id && interaction.user.id !== user.id) {
+  if (interaction.user.id !== user.id) {
     return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
   }
+  
 
   await interaction.update({
     embeds: [pages[newIndex]],

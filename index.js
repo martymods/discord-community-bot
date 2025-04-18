@@ -60,7 +60,7 @@ const { scanAllSnipers } = require('./economy/flowIntel');
 const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
-const { triggerChaosEvent } = require('./economy/chaosEvents');
+const { startRandomChaos } = require('./economy/chaosEvents');
 
 
 let todaySnipes = [];
@@ -1393,8 +1393,8 @@ client.commands.set('chaos', {
       return message.reply("You don't have permission to trigger chaos events.");
     }
 
-    const { triggerChaosEvent } = require('./economy/chaosEvents');
-    triggerChaosEvent(client);
+    const chaosChannel = message.channel;
+    startRandomChaos(client, chaosChannel); // ✅ this is the correct function
     message.reply("☄️ Chaos event manually triggered.");
   }
 });
@@ -1406,7 +1406,7 @@ setInterval(() => {
     scanTicker(client, t);
     scanOptionsFlow(client, t);
   }
-}, 5 * 60 * 1000);
+}, 14400 * 60 * 1000);
 
 
 cron.schedule('0 12 * * *', () => {
@@ -1416,7 +1416,7 @@ cron.schedule('0 12 * * *', () => {
 
 setInterval(() => {
   scanAllSnipers(client);
-}, 1000 * 60 * 5); // Every 5 minutes
+}, 144000 * 60 * 5); // Every 5 minutes
 
 setInterval(() => {
   const now = Date.now();

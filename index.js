@@ -8,6 +8,10 @@ const crimeStreaks = new Map(); // userId → { success: n, fail: n }
 
 require('dotenv').config();
 
+// Helper: Convert XP to Level
+function getLevelFromXP(xp) {
+  return Math.floor(0.1 * Math.sqrt(xp));
+}
 
 // after this line 👇
 const app = require('./keep_alive');
@@ -465,7 +469,8 @@ setInterval(() => {
 if (user) {
   const oldLevel = user.level;
   const newXP = user.xp + randomXP;
-  const newLevel = Levels.xpForLevel(newXP);
+  const newLevel = Math.floor(0.1 * Math.sqrt(newXP));
+
 
   if (newLevel > oldLevel) {
     const nextXP = Levels.xpFor(user.level + 1);

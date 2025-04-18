@@ -517,43 +517,6 @@ client.commands.set('inventory', {
 });
 
 
-client.commands.set('use', {
-  async execute(message, args) {
-    const item = args[0]?.toLowerCase();
-    if (!item) return message.reply("Usage: `!use item_name`");
-
-    const { addCash } = require('./economy/currency');
-
-    switch(item) {
-      case 'gem':
-        await removeItem(message.author.id, message.guild.id, item);
-        await addCash(message.author.id, message.guild.id, 100);
-        return message.reply("💎 Used a Gem! Gained $100 DreamworldPoints.");
-      case 'medal':
-        await removeItem(message.author.id, message.guild.id, item);
-        await addCash(message.author.id, message.guild.id, 50);
-        return message.reply("🎖️ Used a Medal! Gained $50 DreamworldPoints.");
-      case 'dice':
-        const xpGain = Math.floor(Math.random() * 25) + 5;
-        const Levels = require('discord-xp');
-        await removeItem(message.author.id, message.guild.id, item);
-        await Levels.appendXp(message.author.id, message.guild.id, xpGain);
-        return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
-        case 'disguise':
-  wantedMap.set(message.author.id, { fails: 0, watched: false });
-  await removeItem(message.author.id, message.guild.id, item);
-  return message.reply("🎭 Disguise Kit activated! You’re now off the radar.");
-case 'lease':
-  const now = Date.now();
-  hideoutMap.set(message.author.id, now + 10 * 60 * 1000); // 10 min
-  await removeItem(message.author.id, message.guild.id, item);
-  return message.reply("🏠 You activated an Extended Lease! You’ll remain safe for 10 minutes.");
-      default:
-        return message.reply("Unknown item.");
-    }
-  }
-});
-
 
 client.commands.set('shop', {
   execute(message) {
@@ -1332,70 +1295,50 @@ client.commands.set('hideout', {
 client.commands.set('use', {
   async execute(message, args) {
     const item = args[0]?.toLowerCase();
-    if (!item) return message.reply("Usage: `!use item_name`");
+    if (!item) return message.reply("Usage: `!use <item_name>`");
 
-    const { addCash } = require('./economy/currency');
-    const userId = message.author.id;
-    const guildId = message.guild.id;
+    const inventory = await getInventory(message.author.id, message.guild.id);
+    if (!inventory.has(item) || inventory.get(item) <= 0) {
+      return message.reply("You don't have that item.");
+    }
 
-    const used = await removeItem(userId, guildId, item);
-    if (!used) return message.reply(`You don't have any **${item}** to use.`);
-
-    switch(item) {
+    switch (item) {
       case 'gem':
-        await addCash(userId, guildId, 100);
+        await removeItem(message.author.id, message.guild.id, item);
+        await addCash(message.author.id, message.guild.id, 100);
         return message.reply("💎 Used a Gem! Gained $100 DreamworldPoints.");
 
       case 'medal':
-        await addCash(userId, guildId, 50);
+        await removeItem(message.author.id, message.guild.id, item);
+        await addCash(message.author.id, message.guild.id, 50);
         return message.reply("🎖️ Used a Medal! Gained $50 DreamworldPoints.");
 
       case 'dice':
         const xpGain = Math.floor(Math.random() * 25) + 5;
-        const Levels = require('discord-xp');
-        await Levels.appendXp(userId, guildId, xpGain);
+        await removeItem(message.author.id, message.guild.id, item);
+        await Levels.appendXp(message.author.id, message.guild.id, xpGain);
         return message.reply(`🎲 Used a Dice! Gained ${xpGain} XP.`);
 
       case 'disguise':
-        if (wantedMap.has(userId)) {
-          wantedMap.set(userId, { fails: 0, watched: false });
-          return message.reply("🎭 You used a Disguise Kit and slipped off the radar. You're no longer being watched.");
-        } else {
-          return message.reply("🎭 You're not being watched... no need to use a disguise.");
-        }
+        await removeItem(message.author.id, message.guild.id, item);
+        hideoutMap.set(message.author.id, Date.now() + 5 * 60 * 1000);
+        return message.reply("🕵️ You slipped on a disguise. You’re off the radar for 5 minutes.");
 
       case 'lease':
-        const current = hideoutMap.get(userId) || 0;
-        hideoutMap.set(userId, Math.max(Date.now(), current) + 10 * 60 * 1000);
-        return message.reply("🏠 You used an Extended Lease. Your hideout is secured for 10 more minutes.");
+        await removeItem(message.author.id, message.guild.id, item);
+        hideoutMap.set(message.author.id, Date.now() + 10 * 60 * 1000);
+        return message.reply("🏡 You extended your safehouse lease. You’re hidden for 10 minutes.");
 
       case 'skull':
-        const now = Date.now();
-        const cd = stealCooldowns.get(userId) || 0;
-        if (cd > now) {
-          const reduced = now + (cd - now) / 2;
-          stealCooldowns.set(userId, reduced);
-          const seconds = Math.ceil((reduced - now) / 1000);
-          return message.reply(`💀 Used a Skull Ring. Your steal cooldown is now reduced. You can try again in **${seconds}s**.`);
-        } else {
-          return message.reply("💀 You're not on cooldown. No need to use this right now.");
-        }
+        await removeItem(message.author.id, message.guild.id, item);
+        const currentCooldown = stealCooldowns.get(message.author.id) || 0;
+        const reduced = currentCooldown - 2 * 60 * 1000;
+        stealCooldowns.set(message.author.id, Math.max(Date.now(), reduced));
+        return message.reply("💀 Used Skull Ring. Your crime cooldown was reduced by 2 minutes!");
 
       default:
-        return message.reply("❌ Unknown or unusable item.");
+        return message.reply("That item has no use... yet.");
     }
-  }
-});
-
-client.commands.set('chaos', {
-  execute(message) {
-    if (!message.member.permissions.has('ADMINISTRATOR')) {
-      return message.reply("You don't have permission to trigger chaos events.");
-    }
-
-    const chaosChannel = message.channel;
-    startRandomChaos(client, chaosChannel); // ✅ this is the correct function
-    message.reply("☄️ Chaos event manually triggered.");
   }
 });
 

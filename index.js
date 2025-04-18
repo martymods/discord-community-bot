@@ -1215,6 +1215,14 @@ if (hideout && hideout > Date.now()) {
     }
 
     const targetBalance = await getBalance(target.id, message.guild.id);
+    const targetInventory = await getInventory(target.id, message.guild.id);
+
+// 💨 Auto-escape with Smoke Bomb
+if (targetInventory.has('smoke')) {
+  await removeItem(target.id, message.guild.id, 'smoke');
+  return message.reply(`💨 **<@${target.id}>** threw a **Smoke Bomb** and escaped your robbery attempt!`);
+}
+
     const yourBalance = await getBalance(message.author.id, message.guild.id);
     if (targetBalance < 100) return message.reply("They're too broke to steal from.");
 
@@ -1225,7 +1233,16 @@ if (hideout && hideout > Date.now()) {
 
     if (success) {
       const stolen = Math.floor(targetBalance * (Math.random() * 0.2 + 0.1)); // 10–30%
-      await removeCash(target.id, message.guild.id, stolen);
+      let finalSteal = stolen;
+      if (targetInventory.has('vest')) {
+        finalSteal = Math.floor(stolen * 0.5); // Reduces by 50%
+        await removeItem(target.id, message.guild.id, 'vest');
+        message.channel.send(`🛡️ **<@${target.id}>'s** Reflective Vest absorbed half the damage!`);
+      }
+      
+      await removeCash(target.id, message.guild.id, finalSteal);
+      await addCash(userId, message.guild.id, finalSteal);
+      
       await addCash(userId, message.guild.id, stolen);
 
       // Reset fail streak
@@ -1233,7 +1250,7 @@ if (hideout && hideout > Date.now()) {
 
       alertEmbed = new EmbedBuilder()
         .setTitle("💸 Heist Successful!")
-        .setDescription(`**<@${userId}>** stole **$${stolen}** from **<@${target.id}>**!`)
+        .setDescription(`**<@${userId}>** stole **$${finalSteal}** from **<@${target.id}>**!`)
         .setColor("#00ff88")
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
         .setFooter({ text: 'Crime Success' })

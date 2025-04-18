@@ -306,12 +306,14 @@ client.commands.set('slots', {
 
     if (win) {
       await addCash(userId, message.guild.id, reward);
-      await addXP(userId, message.guild.id, xp);
+      await Levels.appendXp(userId, message.guild.id, xp);
+
       embed.setTitle("🎉 JACKPOT WINNER!");
       embed.setColor("#00ff88");
       embed.setFooter({ text: `+ $${reward} | +${xp} XP` });
     } else {
-      await addXP(userId, message.guild.id, xp);
+      await Levels.appendXp(userId, message.guild.id, xp);
+
       embed.setTitle("😢 Better Luck Next Time");
       embed.setColor("#ff4444");
       embed.setFooter({ text: `-${bet} | +${xp} XP` });
@@ -1797,7 +1799,7 @@ client.commands.set('scavenge', {
     const xp = Math.floor(Math.random() * 30) + 20;   // 20–50 XP
 
     await addCash(userId, message.guild.id, cash);
-    await addXP(userId, message.guild.id, xp);
+    await Levels.appendXp(userId, message.guild.id, xp);
 
     scavengeCooldowns.set(userId, now + 10 * 60 * 1000);
 

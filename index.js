@@ -484,15 +484,19 @@ Gang Bonuses:
       time: 120000,
     });
 
-    collector.on('collect', interaction => {
-      if (interaction.user.id !== message.author.id)
+    collector.on('collect', async interaction => {
+      if (interaction.user.id !== message.author.id) {
         return interaction.reply({ content: 'Only you can navigate your help panel.', ephemeral: true });
-
+      }
+    
+      await interaction.deferUpdate(); // Prevent "interaction failed"
+    
       if (interaction.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
       else if (interaction.customId === 'next') page = (page + 1) % pages.length;
-
-      interaction.update({ embeds: [pages[page]], components: [row] });
+    
+      await interaction.editReply({ embeds: [pages[page]], components: [row] });
     });
+    
   }
 });
 

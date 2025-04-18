@@ -1,4 +1,6 @@
 const items = [
+    { id: 'vest', name: '🧥 Reflective Vest', value: 300, rarity: 'Rare', levelRequired: 4, chance: 0.08 },
+    { id: 'smoke', name: '💨 Smoke Bomb', value: 150, rarity: 'Uncommon', levelRequired: 2, chance: 0.12 },
     { name: '💎 Gem', id: 'gem', value: 100, rarity: 'Common', levelRequired: 0, chance: 0.3 },
     { name: '🎖️ Medal', id: 'medal', value: 50, rarity: 'Common', levelRequired: 0, chance: 0.2 },
     { name: '🎲 Dice', id: 'dice', value: 25, rarity: 'Rare', levelRequired: 0, chance: 0.1 },

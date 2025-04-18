@@ -739,12 +739,34 @@ client.commands.set('leaderboard', {
 
 client.commands.set('inventory', {
   async execute(message) {
-    const items = await getInventory(message.author.id, message.guild.id);
+    const inventory = await getInventory(message.author.id, message.guild.id);
+    if (!inventory || inventory.size === 0) {
+      return message.reply("Your bag is empty.");
+    }
 
-    if (!items || items.size === 0) return message.reply("Your bag is empty.");
+    const { items: itemList } = require('./economy/items');
 
-    const itemList = [...items.entries()].map(([item, qty]) => `${item} x${qty}`).join('\n');
-    message.reply(`🎒 Your Inventory:\n${itemList}`);
+    // Generate embed fields for owned items only
+    const fields = itemList
+      .filter(it => inventory.has(it.id))
+      .map(it => {
+        const qty = inventory.get(it.id);
+        return {
+          name: `${it.name} x${qty}`,
+          value: it.description || 'No description yet.',
+          inline: true
+        };
+      });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🎒 ${message.author.username}'s Inventory`)
+      .addFields(fields)
+      .setColor('#00ffaa')
+      .setThumbnail(message.author.displayAvatarURL())
+      .setFooter({ text: 'Use !use <item> to activate something.' })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
   }
 });
 

@@ -1818,6 +1818,12 @@ global.useCounts.set(key, (global.useCounts.get(key) || 0) + amount);
     let resultText = "✅ You used your items.";
 
     switch (item) {
+      case 'vest':
+        resultText = `🛡️ You equipped a Reflective Vest. It'll block the next robbery attempt.`;
+        // No immediate effect — it's consumed automatically in the steal command
+        break;
+      
+
       case 'gem':
         await addCash(userId, message.guild.id, 100 * amount);
         resultText = `💸 You used ${amount} Gem(s) and gained $${amount * 100} DreamworldPoints.`;

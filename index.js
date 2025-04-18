@@ -822,11 +822,34 @@ client.commands.set('inventory', {
 
 
 client.commands.set('shop', {
-  execute(message) {
-    if (!rotatingShop.length) return message.reply("Shop is empty today... try again later.");
+  async execute(message) {
+    if (!rotatingShop.length) {
+      return message.reply("Shop is empty today... try again later.");
+    }
 
-    const shopList = rotatingShop.map(item => `${item.name} - $${item.value} (Requires Level ${item.levelRequired}) → Command: !buyitem ${item.id}`).join('\n');
-    message.reply(`🛒 Dreamworld Shop:\n${shopList}`);
+    const embeds = [];
+    const rows = [];
+
+    for (const item of rotatingShop) {
+      const embed = new EmbedBuilder()
+        .setTitle(`${item.name}`)
+        .setDescription(`${item.description || 'No description.'}\n💵 Cost: $${item.value}\n🎚️ Requires Level ${item.levelRequired}`)
+        .setColor('#ffaa00');
+
+      embeds.push(embed);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`buy_${item.id}`)
+          .setLabel(`🛒 Buy ${item.name}`)
+          .setStyle(ButtonStyle.Success)
+      );
+      rows.push(row);
+    }
+
+    for (let i = 0; i < embeds.length; i++) {
+      await message.channel.send({ embeds: [embeds[i]], components: [rows[i]] });
+    }
   }
 });
 

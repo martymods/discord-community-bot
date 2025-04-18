@@ -15,6 +15,8 @@ const gangMap = new Map();
 // 🌍 Turf Zones
 const turfZones = new Map(); // { zoneId: { owner: 'heist', lastRaid: timestamp } }
 const turfRaidCooldowns = new Map(); // { userId: timestamp }
+// 🛡️ Fortification Tracker
+const turfFortifications = new Map(); // zone => fortification level (0–3)
 
 // Initial Turf Setup
 turfZones.set("Downtown", { owner: "heist", lastRaid: 0 });
@@ -1818,6 +1820,75 @@ client.commands.set('raid', {
     }
 
     turfRaidCooldowns.set(userId, now + 5 * 60 * 1000); // 5-min cooldown
+  }
+});
+
+client.commands.set('fortify', {
+  async execute(message, args) {
+    const userId = message.author.id;
+    const gang = gangMap.get(userId);
+    if (!gang) return message.reply("❌ You must be in a gang to fortify turf.");
+
+    const ownedZones = [...turfZones.entries()].filter(([_, zone]) => zone.owner === gang);
+    if (ownedZones.length === 0) {
+      return message.reply("❌ Your gang doesn't own any turf to fortify.");
+    }
+
+    const zone = ownedZones[0][0]; // Pick the first owned turf
+    const level = turfFortifications.get(zone) || 0;
+    if (level >= 3) {
+      return message.reply(`🏰 **${zone}** is already fully fortified.`);
+    }
+
+    const newLevel = level + 1;
+    turfFortifications.set(zone, newLevel);
+
+    const emojis = ["🔰", "🛡️", "🏰"];
+    const embed = new EmbedBuilder()
+      .setTitle("🔧 Turf Fortified!")
+      .setDescription(`**<@${userId}>** has fortified **${zone}**.\nFortification Level: ${emojis[newLevel - 1]} (${newLevel}/3)`)
+      .setColor("#0088ff")
+      .setFooter({ text: `${gang} stronghold reinforced.` })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+});
+
+const timeAgo = (timestamp) => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  if (diff < 60 * 1000) return "just now";
+  const mins = Math.floor(diff / (60 * 1000));
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (days >= 1) return `${days} day${days > 1 ? "s" : ""} ago`;
+  if (hours >= 1) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  return `${mins} minute${mins > 1 ? "s" : ""} ago`;
+};
+
+client.commands.set('map', {
+  async execute(message) {
+    const emojis = ["🔰", "🛡️", "🏰"];
+    const embed = new EmbedBuilder()
+      .setTitle("🗺️ Turf Map")
+      .setDescription("Current status of all gang-controlled zones.")
+      .setColor("#ffaa00")
+      .setFooter({ text: "Use !raid <zone> to challenge a turf." })
+      .setTimestamp();
+
+    for (const [zone, data] of turfZones.entries()) {
+      const fort = turfFortifications.get(zone) || 0;
+      const emoji = emojis[fort - 1] || "❌";
+      const last = data.lastRaid ? timeAgo(data.lastRaid) : "Never";
+      embed.addFields({
+        name: `🏙️ ${zone}`,
+        value: `👑 Owner: ${data.owner}\n🛡️ Fort: ${emoji} (${fort}/3)\n⏱️ Last Raid: ${last}`,
+        inline: false
+      });
+    }
+
+    message.channel.send({ embeds: [embed] });
   }
 });
 

@@ -1476,7 +1476,18 @@ client.on('interactionCreate', async interaction => {
       profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
       profile.stashUsed++;
 
-      return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+// Update market embed live
+const updatedBal = await getBalance(user.id, interaction.guildId);
+const updatedEmbed = generateMarketEmbed(user, profile, updatedBal);
+
+const channel = interaction.channel;
+const msg = await channel.messages.fetch(profile.lastMarketMessageId).catch(() => null);
+if (msg) {
+  await msg.edit({ embeds: [updatedEmbed] });
+}
+
+return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+
     }
 
     if (customId.startsWith('sell_drug_')) {
@@ -1487,7 +1498,17 @@ client.on('interactionCreate', async interaction => {
       profile.inventory[drugId]--;
       profile.stashUsed--;
 
+      const updatedBal = await getBalance(user.id, interaction.guildId);
+      const updatedEmbed = generateMarketEmbed(user, profile, updatedBal);
+      
+      const channel = interaction.channel;
+      const msg = await channel.messages.fetch(profile.lastMarketMessageId).catch(() => null);
+      if (msg) {
+        await msg.edit({ embeds: [updatedEmbed] });
+      }
+      
       return interaction.editReply(`💰 Sold 1 ${drugId} for $${price}`);
+      
     }
   }
 });

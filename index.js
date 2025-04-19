@@ -1387,7 +1387,6 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isButton()) return;
   const { message, user, customId } = interaction;
-
   const profile = dealerProfiles.get(user.id);
 
   // 📘 Help Menu Navigation
@@ -1419,7 +1418,7 @@ client.on('interactionCreate', async interaction => {
   }
 
   // 🛒 Shop Buy Button
-  if (customId.startsWith('buy_')) {
+  if (customId.startsWith('buy_') && !customId.startsWith('buy_drug_')) {
     const itemId = customId.replace('buy_', '');
     const item = rotatingShop.find(i => i.id === itemId);
 
@@ -1458,37 +1457,41 @@ client.on('interactionCreate', async interaction => {
   }
 
   // 💊 Drug Dealer Buttons (buy_drug_[id], sell_drug_[id])
-  if (profile && customId.startsWith('buy_drug_')) {
-    const drugId = customId.split('buy_drug_')[1];
+  if (profile && (customId.startsWith('buy_drug_') || customId.startsWith('sell_drug_'))) {
+    const drugId = customId.split('_')[2];
+    if (!profile.prices[drugId]) {
+      return interaction.reply({ content: '❌ Drug not found.', ephemeral: true });
+    }
+
     await interaction.deferReply({ ephemeral: true });
 
-    const price = profile.prices[drugId];
-    const balance = await getBalance(user.id, interaction.guildId);
+    if (customId.startsWith('buy_drug_')) {
+      const price = profile.prices[drugId];
+      const balance = await getBalance(user.id, interaction.guildId);
 
-    if (balance < price) return interaction.editReply("💸 You're too broke to buy.");
-    if (profile.stashUsed >= profile.stashCap) return interaction.editReply("📦 Stash is full!");
+      if (balance < price) return interaction.editReply("💸 You're too broke to buy.");
+      if (profile.stashUsed >= profile.stashCap) return interaction.editReply("📦 Stash is full!");
 
-    await removeCash(user.id, interaction.guildId, price);
-    profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
-    profile.stashUsed++;
+      await removeCash(user.id, interaction.guildId, price);
+      profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
+      profile.stashUsed++;
 
-    return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
-  }
+      return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+    }
 
-  if (profile && customId.startsWith('sell_drug_')) {
-    const drugId = customId.split('sell_drug_')[1];
-    await interaction.deferReply({ ephemeral: true });
+    if (customId.startsWith('sell_drug_')) {
+      if ((profile.inventory[drugId] || 0) <= 0) return interaction.editReply("❌ You don't have any to sell.");
 
-    if ((profile.inventory[drugId] || 0) <= 0) return interaction.editReply("❌ You don't have any to sell.");
+      const price = profile.prices[drugId];
+      await addCash(user.id, interaction.guildId, price);
+      profile.inventory[drugId]--;
+      profile.stashUsed--;
 
-    const price = profile.prices[drugId];
-    await addCash(user.id, interaction.guildId, price);
-    profile.inventory[drugId]--;
-    profile.stashUsed--;
-
-    return interaction.editReply(`💰 Sold 1 ${drugId} for $${price}`);
+      return interaction.editReply(`💰 Sold 1 ${drugId} for $${price}`);
+    }
   }
 });
+
 
 function getHelpPages() {
   return [

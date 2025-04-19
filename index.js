@@ -1389,7 +1389,7 @@ client.on('interactionCreate', async interaction => {
 
   const { message, user, customId } = interaction;
 
-  // Handle Help Menu Navigation
+  // 🧠 Help Menu Navigation
   if (message?.embeds?.length && (customId === 'help_next' || customId === 'help_back')) {
     const originalUserId = message.interaction?.user?.id || user.id;
     if (interaction.user.id !== originalUserId) {
@@ -1398,7 +1398,7 @@ client.on('interactionCreate', async interaction => {
 
     const currentEmbed = message.embeds[0];
     const footerText = currentEmbed.footer?.text;
-    const match = footerText?.match(/Page (\\d+) of (\\d+)/);
+    const match = footerText?.match(/Page (\d+) of (\d+)/);
     if (!match) return;
 
     let currentPage = parseInt(match[1]);
@@ -1420,7 +1420,7 @@ client.on('interactionCreate', async interaction => {
     return interaction.update({ embeds: [newEmbed], components: [row] });
   }
 
-  // Handle Sell All Commons Button
+  // 🧹 Sell All Common Items
   if (customId === 'sell_commons') {
     const inventory = await getInventory(interaction.user.id, interaction.guildId);
     const { items: itemList } = require('./economy/items');
@@ -1438,36 +1438,68 @@ client.on('interactionCreate', async interaction => {
     return interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
   }
 
-  // Handle Shop Buy Buttons
+  // 🛒 Shop Buy Button
   if (customId.startsWith('buy_')) {
     const itemId = customId.replace('buy_', '');
-  
-    const item = rotatingShop.find(i => i.id === itemId); // ✅ FIXED: use rotatingShop
-  
+    const item = rotatingShop.find(i => i.id === itemId); // ✅ using rotatingShop correctly
+
     if (!item) {
       return interaction.reply({ content: '❌ This item doesn’t exist in today’s shop.', ephemeral: true });
     }
-  
-
-    if (!item) {
-      return interaction.reply({ content: '❌ This item doesn’t exist in the shop.', ephemeral: true });
-    }
 
     const balance = await getBalance(interaction.user.id, interaction.guildId);
-    const cost = item.value; // ✅ use item.value instead of item.price
+    const cost = item.value;
 
     if (balance < cost) {
       return interaction.reply({ content: `🚫 You need $${cost} to buy ${item.name}.`, ephemeral: true });
     }
-    
+
     await removeCash(interaction.user.id, interaction.guildId, cost);
     await addItem(interaction.user.id, interaction.guildId, itemId, 1);
-    
+
     return interaction.reply({
       content: `✅ You bought **${item.name}** for $${cost} DreamworldPoints.`,
       ephemeral: true
     });
-    
+  }
+
+  // 💊 Drug Dealer Buttons (Buy/Sell)
+  const profile = dealerProfiles.get(interaction.user.id);
+  const drugId = 'weed'; // Default — can be dynamic later
+
+  if (profile) {
+    if (customId === 'buy_drug') {
+      await interaction.deferReply({ ephemeral: true });
+
+      const price = profile.prices[drugId];
+      const balance = await getBalance(interaction.user.id, interaction.guildId);
+
+      if (balance < price) {
+        return interaction.editReply("You're too broke to buy.");
+      }
+      if (profile.stashUsed >= profile.stashCap) {
+        return interaction.editReply("Stash is full!");
+      }
+
+      await removeCash(interaction.user.id, interaction.guildId, price);
+      profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
+      profile.stashUsed++;
+      return interaction.editReply(`Bought 1 ${drugId} for $${price}`);
+    }
+
+    if (customId === 'sell_drug') {
+      await interaction.deferReply({ ephemeral: true });
+
+      if ((profile.inventory[drugId] || 0) <= 0) {
+        return interaction.editReply("You don't have any to sell.");
+      }
+
+      const price = profile.prices[drugId];
+      await addCash(interaction.user.id, interaction.guildId, price);
+      profile.inventory[drugId]--;
+      profile.stashUsed--;
+      return interaction.editReply(`Sold 1 ${drugId} for $${price}`);
+    }
   }
 });
 
@@ -2433,49 +2465,6 @@ client.commands.set('dealer', {
     message.channel.send({ embeds: [embed], components: [row] });
   }
 });
-
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isButton()) return;
-
-  const profile = dealerProfiles.get(interaction.user.id);
-  if (!profile) return;
-
-  const drugId = 'weed'; // You can modify this to let user choose later
-
-  if (interaction.customId === 'buy_drug') {
-    await interaction.deferReply({ ephemeral: true }); // prevent 3s timeout
-
-    const price = profile.prices[drugId];
-    const balance = await getBalance(interaction.user.id, interaction.guildId);
-
-    if (balance < price) {
-      return interaction.editReply("You're too broke to buy.");
-    }
-    if (profile.stashUsed >= profile.stashCap) {
-      return interaction.editReply("Stash is full!");
-    }
-
-    await removeCash(interaction.user.id, interaction.guildId, price);
-    profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
-    profile.stashUsed++;
-    return interaction.editReply(`Bought 1 ${drugId} for $${price}`);
-  }
-
-  if (interaction.customId === 'sell_drug') {
-    await interaction.deferReply({ ephemeral: true }); // prevent timeout
-
-    if ((profile.inventory[drugId] || 0) <= 0) {
-      return interaction.editReply("You don't have any to sell.");
-    }
-
-    const price = profile.prices[drugId];
-    await addCash(interaction.user.id, interaction.guildId, price);
-    profile.inventory[drugId]--;
-    profile.stashUsed--;
-    return interaction.editReply(`Sold 1 ${drugId} for $${price}`);
-  }
-});
-
 
 // Run this every 5 minutes
 setInterval(() => {

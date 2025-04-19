@@ -1378,17 +1378,20 @@ client.on('interactionCreate', async interaction => {
     }
 
     const balance = await getBalance(interaction.user.id, interaction.guildId);
-    if (balance < item.price) {
-      return interaction.reply({ content: `🚫 You need $${item.price} to buy ${item.name}.`, ephemeral: true });
+    const cost = item.value; // ✅ use item.value instead of item.price
+
+    if (balance < cost) {
+      return interaction.reply({ content: `🚫 You need $${cost} to buy ${item.name}.`, ephemeral: true });
     }
-
-    await removeCash(interaction.user.id, interaction.guildId, item.price);
+    
+    await removeCash(interaction.user.id, interaction.guildId, cost);
     await addItem(interaction.user.id, interaction.guildId, itemId, 1);
-
+    
     return interaction.reply({
-      content: `✅ You bought **${item.name}** for $${item.price} DreamworldPoints.`,
+      content: `✅ You bought **${item.name}** for $${cost} DreamworldPoints.`,
       ephemeral: true
     });
+    
   }
 });
 

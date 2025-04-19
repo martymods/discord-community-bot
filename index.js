@@ -21,6 +21,9 @@ const scavengeCooldowns = new Map(); // userId → timestamp
 const winStreaks = new Map(); // userId → { streak: Number, lastWinTime: timestamp }
 const fireBuffs = new Map(); // userId → { xpBoost: Number, expiresAt: timestamp }
 const lootboxCooldowns = new Map(); // userId → timestamp
+const itemComboTracker = new Map(); // userId → [last3Items]
+const comboBuffs = new Map(); // userId → { expiresAt, bonuses }
+
 
 
 // Initial Turf Setup
@@ -219,7 +222,16 @@ client.commands.set('lootbox', {
       return message.reply(`⏳ You can open another lootbox in ${mins} minute(s).`);
     }
 
-    const item = getRandomItem();
+    let item = getRandomItem();
+    const buff = comboBuffs.get(userId);
+    if (buff && buff.expiresAt > Date.now() && buff.bonuses.rareDropBoost) {
+      if (Math.random() < 0.25) {
+        const { items } = require('./economy/items');
+        const rareItems = items.filter(i => i.rarity === 'Rare' || i.rarity === 'Epic');
+        item = rareItems[Math.floor(Math.random() * rareItems.length)];
+      }
+    }
+
     if (!item) return message.reply("You opened a lootbox... but it was empty 💨");
 
     await addItem(userId, message.guild.id, item.id);
@@ -382,7 +394,8 @@ client.commands.set('slots', {
     const reward = win ? bet * 5 : 0;
 
     let bonusXp = xp;
-    const fire = fireBuffs.get(userId);
+    const fire = fireBuffs.get(userId) || comboBuffs.get(userId);
+
     if (fire && fire.expiresAt > Date.now()) {
       bonusXp = Math.floor(xp * fire.xpBoost);
     }
@@ -1752,14 +1765,20 @@ client.commands.set('crime', {
     ];
 
     const chosen = crimes[Math.floor(Math.random() * crimes.length)];
-    const success = Math.random() < 0.55;
+
+    let successChance = 0.55;
+    const combo = comboBuffs.get(userId);
+    if (combo && combo.expiresAt > Date.now() && combo.bonuses.crimeBonus) {
+      successChance += 0.15;
+    }
+    const success = Math.random() < successChance;
 
     let resultText = '';
     let color = '';
     const amount = Math.floor(Math.random() * 150) + 50;
 
     let bonusXp = 10;
-    const fire = fireBuffs.get(userId);
+    const fire = fireBuffs.get(userId) || combo;
     if (fire && fire.expiresAt > Date.now()) {
       bonusXp = Math.floor(bonusXp * fire.xpBoost);
     }
@@ -1926,6 +1945,36 @@ global.useCounts.set(key, (global.useCounts.get(key) || 0) + amount);
     if (currentCount < amount) return message.reply(`❌ You only have ${currentCount} ${item}(s).`);
 
     await removeItem(userId, message.guild.id, item, amount);
+    // Track Combo Usage Sequence
+let combo = itemComboTracker.get(userId) || [];
+combo.push(item);
+if (combo.length > 3) combo = combo.slice(-3);
+itemComboTracker.set(userId, combo);
+
+// Check for special combo: Gem → Dice → Skull
+if (combo.join(',') === 'gem,dice,skull') {
+  comboBuffs.set(userId, {
+    expiresAt: Date.now() + 15 * 60 * 1000, // 15 min buff
+    bonuses: {
+      xpBoost: 1.5,
+      rareDropBoost: true,
+      crimeBonus: true
+    }
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle("🧬 Combo Activated: Greedy Gambler")
+    .setDescription("You've triggered a powerful chain! For the next 15 minutes:\n- 🧠 XP Boost x1.5\n- 🎲 Better odds on crime\n- 💎 Rare item drop chance increased")
+    .setColor("#ff55ff")
+    .setFooter({ text: "Greedy Gambler Activated" })
+    .setTimestamp();
+
+  message.channel.send({ content: `<@${userId}>`, embeds: [embed] });
+
+  // Reset combo so it doesn’t stack again immediately
+  itemComboTracker.set(userId, []);
+}
+
 
     const emojiMap = {
       gem: '💎',

@@ -133,6 +133,7 @@ const { startRandomChaos } = require('./economy/chaosEvents');
 const { shopItems } = require('./economy/shop');
 
 
+
 let todaySnipes = [];
 
 const welcomeMessages = [
@@ -1364,7 +1365,7 @@ client.on('interactionCreate', async interaction => {
   // Handle Shop Buy Buttons
   if (customId.startsWith('buy_')) {
     const itemId = customId.replace('buy_', '');
-    const { shopItems } = require('./economy/shop');
+
     const item = shopItems[itemId];
 
     if (!item) {

@@ -2460,6 +2460,27 @@ client.commands.set('dealer', {
   }
 });
 
+function generateMarketEmbed(user, profile, balance) {
+  const embed = new EmbedBuilder()
+    .setTitle(`💊 Street Market — ${user.username}`)
+    .setDescription(`💰 **$${balance}** DreamworldPoints\n📦 Stash: **${profile.stashUsed}/${profile.stashCap}**`)
+    .setColor('#ff55ff')
+    .setFooter({ text: 'Prices update every 1 minute automatically' })
+    .setTimestamp();
+
+  for (const d of drugs) {
+    const price = profile.prices[d.id];
+    const qty = profile.inventory[d.id] || 0;
+    embed.addFields({
+      name: `${d.name} — $${price}`,
+      value: `You own: **${qty}**`,
+      inline: true
+    });
+  }
+
+  return embed;
+}
+
 // Run this every 5 minutes
 setInterval(() => {
   for (const t of todaySnipes) {

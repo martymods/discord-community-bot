@@ -130,7 +130,7 @@ const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
 const { startRandomChaos } = require('./economy/chaosEvents');
-const { shopItems } = require('./economy/shop');
+
 
 
 

@@ -162,9 +162,6 @@ const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
 const { startRandomChaos } = require('./economy/chaosEvents');
-// Phase 1: !dealer core logic
-
-const { getBalance } = require('./economy/currency');
 
 
 

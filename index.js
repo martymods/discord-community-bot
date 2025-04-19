@@ -1311,51 +1311,78 @@ client.on('interactionCreate', async interaction => {
 
   const { message, user, customId } = interaction;
 
-  if (!message.embeds.length) return;
+  // Handle Help Menu Navigation
+  if (message?.embeds?.length && (customId === 'help_next' || customId === 'help_back')) {
+    const originalUserId = message.interaction?.user?.id || user.id;
+    if (interaction.user.id !== originalUserId) {
+      return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
+    }
 
-  // Only allow the user who triggered the original help command
-  const originalUserId = message.interaction?.user?.id || user.id;
-  if (interaction.user.id !== originalUserId) {
-    return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
+    const currentEmbed = message.embeds[0];
+    const footerText = currentEmbed.footer?.text;
+    const match = footerText?.match(/Page (\\d+) of (\\d+)/);
+    if (!match) return;
+
+    let currentPage = parseInt(match[1]);
+    const totalPages = parseInt(match[2]);
+
+    if (customId === 'help_next') currentPage++;
+    else if (customId === 'help_back') currentPage--;
+
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+    const helpPages = getHelpPages();
+    const newEmbed = helpPages[currentPage - 1];
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('help_back').setLabel('⏮️ Back').setStyle(ButtonStyle.Primary).setDisabled(currentPage === 1),
+      new ButtonBuilder().setCustomId('help_next').setLabel('⏭️ Next').setStyle(ButtonStyle.Primary).setDisabled(currentPage === totalPages)
+    );
+
+    return interaction.update({ embeds: [newEmbed], components: [row] });
   }
 
-  // Determine the current page number from embed footer
-  const currentEmbed = message.embeds[0];
-  const footerText = currentEmbed.footer?.text;
-  const match = footerText?.match(/Page (\d+) of (\d+)/);
+  // Handle Sell All Commons Button
+  if (customId === 'sell_commons') {
+    const inventory = await getInventory(interaction.user.id, interaction.guildId);
+    const { items: itemList } = require('./economy/items');
 
-  if (!match) return;
+    let total = 0;
+    for (const it of itemList) {
+      if (inventory.has(it.id) && it.rarity === 'Common') {
+        const qty = inventory.get(it.id);
+        total += qty * it.value;
+        await removeItem(interaction.user.id, interaction.guildId, it.id, qty);
+      }
+    }
 
-  let currentPage = parseInt(match[1]);
-  const totalPages = parseInt(match[2]);
+    await addCash(interaction.user.id, interaction.guildId, total);
+    return interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
+  }
 
-  if (customId === 'help_next') currentPage++;
-  else if (customId === 'help_back') currentPage--;
+  // Handle Shop Buy Buttons
+  if (customId.startsWith('buy_')) {
+    const itemId = customId.replace('buy_', '');
+    const { shopItems } = require('./economy/shop');
+    const item = shopItems[itemId];
 
-  // Clamp the page index
-  currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    if (!item) {
+      return interaction.reply({ content: '❌ This item doesn’t exist in the shop.', ephemeral: true });
+    }
 
-  // Rebuild the embed for the new page
-  const helpPages = getHelpPages(); // ⬅️ You must define this helper (see below)
-  const newEmbed = helpPages[currentPage - 1];
+    const balance = await getBalance(interaction.user.id, interaction.guildId);
+    if (balance < item.price) {
+      return interaction.reply({ content: `🚫 You need $${item.price} to buy ${item.name}.`, ephemeral: true });
+    }
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('help_back')
-      .setLabel('⏮️ Back')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(currentPage === 1),
-    new ButtonBuilder()
-      .setCustomId('help_next')
-      .setLabel('⏭️ Next')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(currentPage === totalPages)
-  );
+    await removeCash(interaction.user.id, interaction.guildId, item.price);
+    await addItem(interaction.user.id, interaction.guildId, itemId, 1);
 
-  await interaction.update({
-    embeds: [newEmbed],
-    components: [row]
-  });
+    return interaction.reply({
+      content: `✅ You bought **${item.name}** for $${item.price} DreamworldPoints.`,
+      ephemeral: true
+    });
+  }
 });
 
 function getHelpPages() {
@@ -2211,28 +2238,6 @@ client.commands.set('map', {
     message.channel.send({ embeds: [embed] });
   }
 });
-
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isButton()) return;
-
-  if (interaction.customId === 'sell_commons') {
-    const inventory = await getInventory(interaction.user.id, interaction.guildId);
-    const { items: itemList } = require('./economy/items');
-
-    let total = 0;
-    for (const it of itemList) {
-      if (inventory.has(it.id) && it.rarity === 'Common') {
-        const qty = inventory.get(it.id);
-        total += qty * it.value;
-        await removeItem(interaction.user.id, interaction.guildId, it.id, qty);
-      }
-    }
-
-    await addCash(interaction.user.id, interaction.guildId, total);
-    await interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
-  }
-});
-
 
 
 // Run this every 5 minutes

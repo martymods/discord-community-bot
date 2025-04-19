@@ -1476,7 +1476,18 @@ client.on('interactionCreate', async interaction => {
       profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
       profile.stashUsed++;
 
-      return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+// Update market embed live
+const updatedBal = await getBalance(user.id, interaction.guildId);
+const updatedEmbed = generateMarketEmbed(user, profile, updatedBal);
+
+const channel = interaction.channel;
+const msg = await channel.messages.fetch(profile.lastMarketMessageId).catch(() => null);
+if (msg) {
+  await msg.edit({ embeds: [updatedEmbed] });
+}
+
+return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+
     }
 
     if (customId.startsWith('sell_drug_')) {
@@ -1487,7 +1498,17 @@ client.on('interactionCreate', async interaction => {
       profile.inventory[drugId]--;
       profile.stashUsed--;
 
+      const updatedBal = await getBalance(user.id, interaction.guildId);
+      const updatedEmbed = generateMarketEmbed(user, profile, updatedBal);
+      
+      const channel = interaction.channel;
+      const msg = await channel.messages.fetch(profile.lastMarketMessageId).catch(() => null);
+      if (msg) {
+        await msg.edit({ embeds: [updatedEmbed] });
+      }
+      
       return interaction.editReply(`💰 Sold 1 ${drugId} for $${price}`);
+      
     }
   }
 });
@@ -2415,7 +2436,8 @@ client.commands.set('dealer', {
         inventory: {},
         prices: generatePrices(),
         lastPriceUpdate: Date.now(),
-        lastEventTime: 0
+        lastEventTime: 0,
+        lastMarketMessageId: null // 🆕 Save the last sent market embed
       });
     }
 
@@ -2428,23 +2450,7 @@ client.commands.set('dealer', {
     }
 
     const bal = await getBalance(userId, guildId);
-
-    const embed = new EmbedBuilder()
-      .setTitle(`💊 Street Market — ${message.author.username}`)
-      .setDescription(`💰 **$${bal}** DreamworldPoints\n📦 Stash: **${profile.stashUsed}/${profile.stashCap}**`)
-      .setColor('#ff55ff')
-      .setFooter({ text: 'Prices update every 1 minute automatically' })
-      .setTimestamp();
-
-    for (const d of drugs) {
-      const price = profile.prices[d.id];
-      const qty = profile.inventory[d.id] || 0;
-      embed.addFields({
-        name: `${d.name} — $${price}`,
-        value: `You own: **${qty}**`,
-        inline: true
-      });
-    }
+    const embed = generateMarketEmbed(message.author, profile, bal);
 
     // Dynamically build rows of buttons for all drugs
     const allRows = [];
@@ -2469,10 +2475,32 @@ client.commands.set('dealer', {
       allRows.push(row);
     }
 
-    message.channel.send({ embeds: [embed], components: allRows });
+    // Send the message and track the message ID for live updates
+    const sent = await message.channel.send({ embeds: [embed], components: allRows });
+    profile.lastMarketMessageId = sent.id;
   }
 });
 
+function generateMarketEmbed(user, profile, balance) {
+  const embed = new EmbedBuilder()
+    .setTitle(`💊 Street Market — ${user.username}`)
+    .setDescription(`💰 **$${balance}** DreamworldPoints\n📦 Stash: **${profile.stashUsed}/${profile.stashCap}**`)
+    .setColor('#ff55ff')
+    .setFooter({ text: 'Prices update every 1 minute automatically' })
+    .setTimestamp();
+
+  for (const d of drugs) {
+    const price = profile.prices[d.id];
+    const qty = profile.inventory[d.id] || 0;
+    embed.addFields({
+      name: `${d.name} — $${price}`,
+      value: `You own: **${qty}**`,
+      inline: true
+    });
+  }
+
+  return embed;
+}
 
 // Run this every 5 minutes
 setInterval(() => {

@@ -249,14 +249,42 @@ client.commands.set('flip', {
     const balance = await getBalance(message.author.id, message.guild.id);
     if (balance < amount) return message.reply("You're too broke for that bet.");
 
-    await games.flip(message, choice, amount,
-      async amt => {
-        if (amt > 0) return await addCash(message.author.id, message.guild.id, amt);
-        else return await removeCash(message.author.id, message.guild.id, Math.abs(amt));
-      }
-    );
+    await removeCash(message.author.id, message.guild.id, amount);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🪙 Flipping the Coin...")
+      .setDescription("Spinning...")
+      .setColor("#cccccc")
+      .setFooter({ text: "Good luck..." });
+
+    const msg = await message.channel.send({ embeds: [embed] });
+
+    // Animate flip
+    const frames = ["🪙", "🔄", "🪙", "🔁", "🪙", "🔄", "🪙"];
+    for (const frame of frames) {
+      await new Promise(r => setTimeout(r, 500));
+      embed.setDescription(frame);
+      await msg.edit({ embeds: [embed] });
+    }
+
+    const result = Math.random() < 0.5 ? 'heads' : 'tails';
+    const won = result === choice;
+
+    const xp = won ? 15 : 5;
+    const winnings = won ? amount * 2 : 0;
+
+    if (won) await addCash(message.author.id, message.guild.id, winnings);
+    await Levels.appendXp(message.author.id, message.guild.id, xp);
+
+    embed.setTitle(won ? "🎉 You Won the Coin Flip!" : "😢 You Lost the Flip")
+      .setDescription(`The coin landed on **${result.toUpperCase()}**`)
+      .setColor(won ? "#00ff88" : "#ff5555")
+      .setFooter({ text: `${won ? `+ $${winnings}` : `- $${amount}`} | +${xp} XP` });
+
+    await msg.edit({ embeds: [embed] });
   }
 });
+
 
 client.commands.set('slots', {
   async execute(message) {

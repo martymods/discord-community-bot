@@ -1365,8 +1365,13 @@ client.on('interactionCreate', async interaction => {
   // Handle Shop Buy Buttons
   if (customId.startsWith('buy_')) {
     const itemId = customId.replace('buy_', '');
-
-    const item = shopItems[itemId];
+  
+    const item = rotatingShop.find(i => i.id === itemId); // ✅ FIXED: use rotatingShop
+  
+    if (!item) {
+      return interaction.reply({ content: '❌ This item doesn’t exist in today’s shop.', ephemeral: true });
+    }
+  
 
     if (!item) {
       return interaction.reply({ content: '❌ This item doesn’t exist in the shop.', ephemeral: true });

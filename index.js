@@ -18,6 +18,7 @@ const turfRaidCooldowns = new Map(); // { userId: timestamp }
 // 🛡️ Fortification Tracker
 const turfFortifications = new Map(); // zone => fortification level (0–3)
 const scavengeCooldowns = new Map(); // userId → timestamp
+const winStreaks = new Map(); // userId → { streak: Number, lastWinTime: timestamp }
 
 
 // Initial Turf Setup
@@ -39,6 +40,21 @@ function getHeatRank(heat) {
   if (heat >= 40) return "🟡 Warm";
   return "🔴 Cold";
 }
+
+function updateWinStreak(userId, didWin) {
+  const streak = winStreaks.get(userId) || { streak: 0, lastWinTime: 0 };
+  const now = Date.now();
+
+  if (didWin) {
+    const newStreak = now - streak.lastWinTime > 10 * 60 * 1000 ? 1 : streak.streak + 1; // reset after 10 mins
+    winStreaks.set(userId, { streak: newStreak, lastWinTime: now });
+    return newStreak;
+  } else {
+    winStreaks.set(userId, { streak: 0, lastWinTime: 0 });
+    return 0;
+  }
+}
+
 
 function unlockAchievement(userId, name, icon, message, channel) {
   const userAchieves = playerAchievements.get(userId) || new Set();
@@ -260,7 +276,12 @@ client.commands.set('flip', {
       .setFooter({ text: "Good luck..." });
 
     const msg = await message.channel.send({ embeds: [embed] });
+    const streak = updateWinStreak(message.author.id, won);
 
+    if (streak >= 3) {
+      embed.addFields({ name: "🔥 Hot Streak!", value: `You're on a ${streak}-win streak! Keep it going! 🥵`, inline: false });
+    }
+    
     // Animate flip
     const frames = ["🪙", "🔄", "🪙", "🔁", "🪙", "🔄", "🪙"];
     for (const frame of frames) {
@@ -312,7 +333,12 @@ client.commands.set('slots', {
       .setFooter({ text: "Rolling..." });
 
     const msg = await message.channel.send({ embeds: [embed] });
+    const streak = updateWinStreak(userId, win);
 
+    if (streak >= 3) {
+      embed.addFields({ name: "🔥 On Fire!", value: `You're on a ${streak}-win streak! 🔥 Bonus luck is coming...`, inline: false });
+    }
+    
     // Animation Frames
     const spin1 = roll();
     const spin2 = roll();
@@ -1713,7 +1739,13 @@ client.commands.set('crime', {
       resultText = `🚨 You got caught trying **${chosen}** and lost **$${Math.floor(amount / 2)}**!`;
       color = '#ff3333';
     }
+    
+    const streak = updateWinStreak(userId, success);
 
+    if (success && streak >= 3) {
+      embed.addFields({ name: "🔥 Heat Check!", value: `You've pulled off ${streak} heists in a row. Risk = Reward.`, inline: false });
+    }
+    
     const embed = new EmbedBuilder()
       .setTitle(success ? '💰 Crime Success!' : '🚨 Crime Failed!')
       .setDescription(resultText)

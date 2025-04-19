@@ -164,7 +164,6 @@ const TokenModel = require('./economy/bettingStatsModel');
 const { startRandomChaos } = require('./economy/chaosEvents');
 
 
-
 let todaySnipes = [];
 
 // Drug definitions
@@ -2426,10 +2425,50 @@ client.commands.set('dealer', {
     }
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('dealer_dummy').setLabel('💸 Buy/Sell coming soon').setStyle(ButtonStyle.Secondary).setDisabled(true)
+      new ButtonBuilder().setCustomId('buy_drug').setLabel('🛒 Buy').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('sell_drug').setLabel('💰 Sell').setStyle(ButtonStyle.Primary)
     );
+    
 
     message.channel.send({ embeds: [embed], components: [row] });
+  }
+});
+
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return;
+
+  const profile = dealerProfiles.get(interaction.user.id);
+  if (!profile) return;
+
+  const drugId = 'weed'; // You can modify this to let user choose later
+
+  if (interaction.customId === 'buy_drug') {
+    const price = profile.prices[drugId];
+    const balance = await getBalance(interaction.user.id, interaction.guildId);
+
+    if (balance < price) {
+      return interaction.reply({ content: "You're too broke to buy.", ephemeral: true });
+    }
+    if (profile.stashUsed >= profile.stashCap) {
+      return interaction.reply({ content: "Stash is full!", ephemeral: true });
+    }
+
+    await removeCash(interaction.user.id, interaction.guildId, price);
+    profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
+    profile.stashUsed++;
+    return interaction.reply({ content: `Bought 1 ${drugId} for $${price}`, ephemeral: true });
+  }
+
+  if (interaction.customId === 'sell_drug') {
+    if ((profile.inventory[drugId] || 0) <= 0) {
+      return interaction.reply({ content: "You don't have any to sell.", ephemeral: true });
+    }
+
+    const price = profile.prices[drugId];
+    await addCash(interaction.user.id, interaction.guildId, price);
+    profile.inventory[drugId]--;
+    profile.stashUsed--;
+    return interaction.reply({ content: `Sold 1 ${drugId} for $${price}`, ephemeral: true });
   }
 });
 

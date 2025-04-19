@@ -1386,13 +1386,14 @@ client.on('messageCreate', async (message) => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isButton()) return;
-
   const { message, user, customId } = interaction;
 
-  // 🧠 Help Menu Navigation
+  const profile = dealerProfiles.get(user.id);
+
+  // 📘 Help Menu Navigation
   if (message?.embeds?.length && (customId === 'help_next' || customId === 'help_back')) {
     const originalUserId = message.interaction?.user?.id || user.id;
-    if (interaction.user.id !== originalUserId) {
+    if (user.id !== originalUserId) {
       return interaction.reply({ content: 'Only you can navigate this help menu.', ephemeral: true });
     }
 
@@ -1403,11 +1404,8 @@ client.on('interactionCreate', async interaction => {
 
     let currentPage = parseInt(match[1]);
     const totalPages = parseInt(match[2]);
-
     if (customId === 'help_next') currentPage++;
-    else if (customId === 'help_back') currentPage--;
-
-    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    else currentPage--;
 
     const helpPages = getHelpPages();
     const newEmbed = helpPages[currentPage - 1];
@@ -1420,86 +1418,75 @@ client.on('interactionCreate', async interaction => {
     return interaction.update({ embeds: [newEmbed], components: [row] });
   }
 
-  // 🧹 Sell All Common Items
-  if (customId === 'sell_commons') {
-    const inventory = await getInventory(interaction.user.id, interaction.guildId);
-    const { items: itemList } = require('./economy/items');
-
-    let total = 0;
-    for (const it of itemList) {
-      if (inventory.has(it.id) && it.rarity === 'Common') {
-        const qty = inventory.get(it.id);
-        total += qty * it.value;
-        await removeItem(interaction.user.id, interaction.guildId, it.id, qty);
-      }
-    }
-
-    await addCash(interaction.user.id, interaction.guildId, total);
-    return interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
-  }
-
   // 🛒 Shop Buy Button
   if (customId.startsWith('buy_')) {
     const itemId = customId.replace('buy_', '');
-    const item = rotatingShop.find(i => i.id === itemId); // ✅ using rotatingShop correctly
+    const item = rotatingShop.find(i => i.id === itemId);
 
-    if (!item) {
-      return interaction.reply({ content: '❌ This item doesn’t exist in today’s shop.', ephemeral: true });
+    if (!item) return interaction.reply({ content: '❌ This item isn’t in today’s shop.', ephemeral: true });
+
+    const balance = await getBalance(user.id, interaction.guildId);
+    if (balance < item.value) {
+      return interaction.reply({ content: `🚫 You need $${item.value} to buy ${item.name}.`, ephemeral: true });
     }
 
-    const balance = await getBalance(interaction.user.id, interaction.guildId);
-    const cost = item.value;
-
-    if (balance < cost) {
-      return interaction.reply({ content: `🚫 You need $${cost} to buy ${item.name}.`, ephemeral: true });
-    }
-
-    await removeCash(interaction.user.id, interaction.guildId, cost);
-    await addItem(interaction.user.id, interaction.guildId, itemId, 1);
+    await removeCash(user.id, interaction.guildId, item.value);
+    await addItem(user.id, interaction.guildId, itemId, 1);
 
     return interaction.reply({
-      content: `✅ You bought **${item.name}** for $${cost} DreamworldPoints.`,
+      content: `✅ You bought **${item.name}** for $${item.value} DreamworldPoints.`,
       ephemeral: true
     });
   }
 
-  // 💊 Drug Dealer Buttons (Buy/Sell)
-  const profile = dealerProfiles.get(interaction.user.id);
-  const drugId = 'weed'; // Default — can be dynamic later
+  // 🧹 Sell All Common Items
+  if (customId === 'sell_commons') {
+    const inventory = await getInventory(user.id, interaction.guildId);
+    const { items: itemList } = require('./economy/items');
+    let total = 0;
 
-  if (profile) {
-    if (customId === 'buy_drug') {
-      await interaction.deferReply({ ephemeral: true });
-
-      const price = profile.prices[drugId];
-      const balance = await getBalance(interaction.user.id, interaction.guildId);
-
-      if (balance < price) {
-        return interaction.editReply("You're too broke to buy.");
+    for (const it of itemList) {
+      if (inventory.has(it.id) && it.rarity === 'Common') {
+        const qty = inventory.get(it.id);
+        total += qty * it.value;
+        await removeItem(user.id, interaction.guildId, it.id, qty);
       }
-      if (profile.stashUsed >= profile.stashCap) {
-        return interaction.editReply("Stash is full!");
-      }
-
-      await removeCash(interaction.user.id, interaction.guildId, price);
-      profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
-      profile.stashUsed++;
-      return interaction.editReply(`Bought 1 ${drugId} for $${price}`);
     }
 
-    if (customId === 'sell_drug') {
-      await interaction.deferReply({ ephemeral: true });
+    await addCash(user.id, interaction.guildId, total);
+    return interaction.reply({ content: `💸 You sold all Common items for $${total} DreamworldPoints.`, ephemeral: true });
+  }
 
-      if ((profile.inventory[drugId] || 0) <= 0) {
-        return interaction.editReply("You don't have any to sell.");
-      }
+  // 💊 Drug Dealer Buttons (buy_drug_[id], sell_drug_[id])
+  if (profile && customId.startsWith('buy_drug_')) {
+    const drugId = customId.split('buy_drug_')[1];
+    await interaction.deferReply({ ephemeral: true });
 
-      const price = profile.prices[drugId];
-      await addCash(interaction.user.id, interaction.guildId, price);
-      profile.inventory[drugId]--;
-      profile.stashUsed--;
-      return interaction.editReply(`Sold 1 ${drugId} for $${price}`);
-    }
+    const price = profile.prices[drugId];
+    const balance = await getBalance(user.id, interaction.guildId);
+
+    if (balance < price) return interaction.editReply("💸 You're too broke to buy.");
+    if (profile.stashUsed >= profile.stashCap) return interaction.editReply("📦 Stash is full!");
+
+    await removeCash(user.id, interaction.guildId, price);
+    profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
+    profile.stashUsed++;
+
+    return interaction.editReply(`🛒 Bought 1 ${drugId} for $${price}`);
+  }
+
+  if (profile && customId.startsWith('sell_drug_')) {
+    const drugId = customId.split('sell_drug_')[1];
+    await interaction.deferReply({ ephemeral: true });
+
+    if ((profile.inventory[drugId] || 0) <= 0) return interaction.editReply("❌ You don't have any to sell.");
+
+    const price = profile.prices[drugId];
+    await addCash(user.id, interaction.guildId, price);
+    profile.inventory[drugId]--;
+    profile.stashUsed--;
+
+    return interaction.editReply(`💰 Sold 1 ${drugId} for $${price}`);
   }
 });
 
@@ -2432,7 +2419,7 @@ client.commands.set('dealer', {
     const profile = dealerProfiles.get(userId);
     const now = Date.now();
 
-    if (now - profile.lastPriceUpdate > 20000) {
+    if (now - profile.lastPriceUpdate > 60000) { // ⏳ Refresh every 1 minute
       profile.prices = generatePrices();
       profile.lastPriceUpdate = now;
     }
@@ -2443,7 +2430,7 @@ client.commands.set('dealer', {
       .setTitle(`💊 Street Market — ${message.author.username}`)
       .setDescription(`💰 **$${bal}** DreamworldPoints\n📦 Stash: **${profile.stashUsed}/${profile.stashCap}**`)
       .setColor('#ff55ff')
-      .setFooter({ text: 'Prices change every 20 seconds' })
+      .setFooter({ text: 'Prices update every 1 minute automatically' })
       .setTimestamp();
 
     for (const d of drugs) {
@@ -2456,15 +2443,33 @@ client.commands.set('dealer', {
       });
     }
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('buy_drug').setLabel('🛒 Buy').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('sell_drug').setLabel('💰 Sell').setStyle(ButtonStyle.Primary)
-    );
-    
+    // Dynamically build rows of buttons for all drugs
+    const allRows = [];
+    for (let i = 0; i < drugs.length; i += 2) {
+      const row = new ActionRowBuilder();
 
-    message.channel.send({ embeds: [embed], components: [row] });
+      for (let j = i; j < i + 2 && j < drugs.length; j++) {
+        const d = drugs[j];
+
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`buy_drug_${d.id}`)
+            .setLabel(`🛒 Buy ${d.name.replace(/[^a-zA-Z]/g, '')}`)
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`sell_drug_${d.id}`)
+            .setLabel(`💰 Sell ${d.name.replace(/[^a-zA-Z]/g, '')}`)
+            .setStyle(ButtonStyle.Secondary)
+        );
+      }
+
+      allRows.push(row);
+    }
+
+    message.channel.send({ embeds: [embed], components: allRows });
   }
 });
+
 
 // Run this every 5 minutes
 setInterval(() => {

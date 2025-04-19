@@ -133,6 +133,7 @@ const client = new Client({
 });
 
 global.client = client; // So Stripe/Paypal access your client
+global.dealerProfiles = global.dealerProfiles || new Map();
 
 const { Currency, getBalance, addCash, removeCash } = require('./economy/currency');
 const games = require('./economy/games');
@@ -161,11 +162,22 @@ const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
 const { startRandomChaos } = require('./economy/chaosEvents');
-
+// Phase 1: !dealer core logic
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { getBalance } = require('./economy/currency');
 
 
 
 let todaySnipes = [];
+
+// Drug definitions
+const drugs = [
+  { id: 'weed', name: '🌿 Weed', base: 150, volatility: 50 },
+  { id: 'meth', name: '💎 Meth', base: 1300, volatility: 600 },
+  { id: 'acid', name: '🌀 Acid', base: 800, volatility: 300 },
+  { id: 'heroin', name: '🩸 Heroin', base: 1800, volatility: 700 },
+  { id: 'shrooms', name: '🍄 Shrooms', base: 400, volatility: 150 }
+];
 
 const welcomeMessages = [
   "👋 Welcome to the party, <@USER>!",
@@ -2198,6 +2210,15 @@ client.commands.set("joingang", {
   },
 });
 
+function generatePrices() {
+  const prices = {};
+  for (const d of drugs) {
+    prices[d.id] = d.base + Math.floor(Math.random() * (d.volatility * 2 + 1)) - d.volatility;
+  }
+  return prices;
+}
+
+
 // == Helper Function ==
 function getGang(userId) {
   const key = gangMap.get(userId);
@@ -2360,6 +2381,58 @@ client.commands.set('map', {
     }
 
     message.channel.send({ embeds: [embed] });
+  }
+});
+
+client.commands.set('dealer', {
+  async execute(message) {
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    if (!dealerProfiles.has(userId)) {
+      dealerProfiles.set(userId, {
+        cash: 0,
+        stashUsed: 0,
+        stashCap: 20,
+        inventory: {},
+        prices: generatePrices(),
+        lastPriceUpdate: Date.now(),
+        lastEventTime: 0
+      });
+    }
+
+    const profile = dealerProfiles.get(userId);
+    const now = Date.now();
+
+    if (now - profile.lastPriceUpdate > 20000) {
+      profile.prices = generatePrices();
+      profile.lastPriceUpdate = now;
+    }
+
+    const bal = await getBalance(userId, guildId);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`💊 Street Market — ${message.author.username}`)
+      .setDescription(`💰 **$${bal}** DreamworldPoints\n📦 Stash: **${profile.stashUsed}/${profile.stashCap}**`)
+      .setColor('#ff55ff')
+      .setFooter({ text: 'Prices change every 20 seconds' })
+      .setTimestamp();
+
+    for (const d of drugs) {
+      const price = profile.prices[d.id];
+      const qty = profile.inventory[d.id] || 0;
+      embed.addFields({
+        name: `${d.name} — $${price}`,
+        value: `You own: **${qty}**`,
+        inline: true
+      });
+    }
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('dealer_dummy').setLabel('💸 Buy/Sell coming soon').setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+
+    message.channel.send({ embeds: [embed], components: [row] });
   }
 });
 

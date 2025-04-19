@@ -19,6 +19,8 @@ const turfRaidCooldowns = new Map(); // { userId: timestamp }
 const turfFortifications = new Map(); // zone => fortification level (0–3)
 const scavengeCooldowns = new Map(); // userId → timestamp
 const winStreaks = new Map(); // userId → { streak: Number, lastWinTime: timestamp }
+const fireBuffs = new Map(); // userId → { xpBoost: Number, expiresAt: timestamp }
+const lootboxCooldowns = new Map(); // userId → timestamp
 
 
 // Initial Turf Setup
@@ -46,11 +48,21 @@ function updateWinStreak(userId, didWin) {
   const now = Date.now();
 
   if (didWin) {
-    const newStreak = now - streak.lastWinTime > 10 * 60 * 1000 ? 1 : streak.streak + 1; // reset after 10 mins
+    const newStreak = now - streak.lastWinTime > 10 * 60 * 1000 ? 1 : streak.streak + 1;
     winStreaks.set(userId, { streak: newStreak, lastWinTime: now });
+
+    // 🔥 Trigger buff at 3 or more
+    if (newStreak === 3 || newStreak === 5 || newStreak === 10) {
+      fireBuffs.set(userId, {
+        xpBoost: newStreak >= 10 ? 2 : newStreak >= 5 ? 1.75 : 1.5,
+        expiresAt: now + 10 * 60 * 1000 // lasts 10 mins
+      });
+    }
+
     return newStreak;
   } else {
     winStreaks.set(userId, { streak: 0, lastWinTime: 0 });
+    fireBuffs.delete(userId); // lose buff
     return 0;
   }
 }
@@ -198,19 +210,30 @@ client.commands.set('ping', {
 
 client.commands.set('lootbox', {
   async execute(message) {
+    const userId = message.author.id;
+    const now = Date.now();
+    const lastUsed = lootboxCooldowns.get(userId) || 0;
+
+    if (now - lastUsed < 30 * 60 * 1000) {
+      const mins = Math.ceil((30 * 60 * 1000 - (now - lastUsed)) / 60000);
+      return message.reply(`⏳ You can open another lootbox in ${mins} minute(s).`);
+    }
+
     const item = getRandomItem();
     if (!item) return message.reply("You opened a lootbox... but it was empty 💨");
 
-    await addItem(message.author.id, message.guild.id, item.id);
+    await addItem(userId, message.guild.id, item.id);
+    lootboxCooldowns.set(userId, now);
 
-    if(item.rarity === 'Legendary'){
+    if (item.rarity === 'Legendary') {
       const channel = message.guild.systemChannel || message.channel;
-      channel.send(`💥 LEGENDARY DROP 💥\n<@${message.author.id}> just pulled a ${item.name} from a Lootbox! Respect.`);
+      channel.send(`💥 LEGENDARY DROP 💥\n<@${userId}> just pulled a ${item.name} from a Lootbox! Respect.`);
     } else {
       message.reply(`🎁 You opened a lootbox and found ${item.name} (${item.rarity})!`);
     }
   }
 });
+
 
 
 client.commands.set('balance', {
@@ -276,13 +299,7 @@ client.commands.set('flip', {
       .setFooter({ text: "Good luck..." });
 
     const msg = await message.channel.send({ embeds: [embed] });
-    const streak = updateWinStreak(message.author.id, won);
 
-    if (streak >= 3) {
-      embed.addFields({ name: "🔥 Hot Streak!", value: `You're on a ${streak}-win streak! Keep it going! 🥵`, inline: false });
-    }
-    
-    // Animate flip
     const frames = ["🪙", "🔄", "🪙", "🔁", "🪙", "🔄", "🪙"];
     for (const frame of frames) {
       await new Promise(r => setTimeout(r, 500));
@@ -296,18 +313,28 @@ client.commands.set('flip', {
     const xp = won ? 15 : 5;
     const winnings = won ? amount * 2 : 0;
 
+    let bonusXp = xp;
+    const fire = fireBuffs.get(message.author.id);
+    if (fire && fire.expiresAt > Date.now()) {
+      bonusXp = Math.floor(xp * fire.xpBoost);
+    }
+
     if (won) await addCash(message.author.id, message.guild.id, winnings);
-    await Levels.appendXp(message.author.id, message.guild.id, xp);
+    await Levels.appendXp(message.author.id, message.guild.id, bonusXp);
+
+    const streak = updateWinStreak(message.author.id, won);
+    if (streak >= 3 && won) {
+      embed.addFields({ name: "🔥 Hot Streak!", value: `You're on a ${streak}-win streak! Keep it going! 🥵`, inline: false });
+    }
 
     embed.setTitle(won ? "🎉 You Won the Coin Flip!" : "😢 You Lost the Flip")
       .setDescription(`The coin landed on **${result.toUpperCase()}**`)
       .setColor(won ? "#00ff88" : "#ff5555")
-      .setFooter({ text: `${won ? `+ $${winnings}` : `- $${amount}`} | +${xp} XP` });
+      .setFooter({ text: `${won ? `+ $${winnings}` : `- $${amount}`} | +${bonusXp} XP` });
 
     await msg.edit({ embeds: [embed] });
   }
 });
-
 
 client.commands.set('slots', {
   async execute(message) {
@@ -333,13 +360,7 @@ client.commands.set('slots', {
       .setFooter({ text: "Rolling..." });
 
     const msg = await message.channel.send({ embeds: [embed] });
-    const streak = updateWinStreak(userId, win);
 
-    if (streak >= 3) {
-      embed.addFields({ name: "🔥 On Fire!", value: `You're on a ${streak}-win streak! 🔥 Bonus luck is coming...`, inline: false });
-    }
-    
-    // Animation Frames
     const spin1 = roll();
     const spin2 = roll();
     const spin3 = roll();
@@ -360,25 +381,33 @@ client.commands.set('slots', {
     const xp = win ? 30 : 10;
     const reward = win ? bet * 5 : 0;
 
+    let bonusXp = xp;
+    const fire = fireBuffs.get(userId);
+    if (fire && fire.expiresAt > Date.now()) {
+      bonusXp = Math.floor(xp * fire.xpBoost);
+    }
+
+    const streak = updateWinStreak(userId, win);
+    if (streak >= 3 && win) {
+      embed.addFields({ name: "🔥 On Fire!", value: `You're on a ${streak}-win streak! 🔥 Bonus luck is coming...`, inline: false });
+    }
+
     if (win) {
       await addCash(userId, message.guild.id, reward);
-      await Levels.appendXp(userId, message.guild.id, xp);
-
+      await Levels.appendXp(userId, message.guild.id, bonusXp);
       embed.setTitle("🎉 JACKPOT WINNER!");
       embed.setColor("#00ff88");
-      embed.setFooter({ text: `+ $${reward} | +${xp} XP` });
+      embed.setFooter({ text: `+ $${reward} | +${bonusXp} XP` });
     } else {
-      await Levels.appendXp(userId, message.guild.id, xp);
-
+      await Levels.appendXp(userId, message.guild.id, bonusXp);
       embed.setTitle("😢 Better Luck Next Time");
       embed.setColor("#ff4444");
-      embed.setFooter({ text: `-${bet} | +${xp} XP` });
+      embed.setFooter({ text: `-${bet} | +${bonusXp} XP` });
     }
 
     await msg.edit({ embeds: [embed] });
   }
 });
-
 
 client.commands.set('roast', {
   execute(message) {
@@ -1729,23 +1758,23 @@ client.commands.set('crime', {
     let color = '';
     const amount = Math.floor(Math.random() * 150) + 50;
 
+    let bonusXp = 10;
+    const fire = fireBuffs.get(userId);
+    if (fire && fire.expiresAt > Date.now()) {
+      bonusXp = Math.floor(bonusXp * fire.xpBoost);
+    }
+
     if (success) {
       await addCash(userId, message.guild.id, amount);
-      await Levels.appendXp(userId, message.guild.id, 10);
-      resultText = `✅ You pulled off **${chosen}** and got away with **$${amount}** + 10 XP!`;
+      await Levels.appendXp(userId, message.guild.id, bonusXp);
+      resultText = `✅ You pulled off **${chosen}** and got away with **$${amount}** + ${bonusXp} XP!`;
       color = '#00ff88';
     } else {
       await removeCash(userId, message.guild.id, Math.floor(amount / 2));
       resultText = `🚨 You got caught trying **${chosen}** and lost **$${Math.floor(amount / 2)}**!`;
       color = '#ff3333';
     }
-    
-    const streak = updateWinStreak(userId, success);
 
-    if (success && streak >= 3) {
-      embed.addFields({ name: "🔥 Heat Check!", value: `You've pulled off ${streak} heists in a row. Risk = Reward.`, inline: false });
-    }
-    
     const embed = new EmbedBuilder()
       .setTitle(success ? '💰 Crime Success!' : '🚨 Crime Failed!')
       .setDescription(resultText)
@@ -1753,8 +1782,12 @@ client.commands.set('crime', {
       .setColor(color)
       .setTimestamp();
 
-    message.channel.send({ embeds: [embed] });
+    const streak = updateWinStreak(userId, success);
+    if (success && streak >= 3) {
+      embed.addFields({ name: "🔥 Heat Check!", value: `You've pulled off ${streak} heists in a row. Risk = Reward.`, inline: false });
+    }
 
+    message.channel.send({ embeds: [embed] });
     stealCooldowns.set(userId, now + 10 * 60 * 1000); // 10 minute cooldown
   }
 });

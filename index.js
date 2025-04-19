@@ -2443,32 +2443,36 @@ client.on('interactionCreate', async interaction => {
   const drugId = 'weed'; // You can modify this to let user choose later
 
   if (interaction.customId === 'buy_drug') {
+    await interaction.deferReply({ ephemeral: true }); // prevent 3s timeout
+
     const price = profile.prices[drugId];
     const balance = await getBalance(interaction.user.id, interaction.guildId);
 
     if (balance < price) {
-      return interaction.reply({ content: "You're too broke to buy.", ephemeral: true });
+      return interaction.editReply("You're too broke to buy.");
     }
     if (profile.stashUsed >= profile.stashCap) {
-      return interaction.reply({ content: "Stash is full!", ephemeral: true });
+      return interaction.editReply("Stash is full!");
     }
 
     await removeCash(interaction.user.id, interaction.guildId, price);
     profile.inventory[drugId] = (profile.inventory[drugId] || 0) + 1;
     profile.stashUsed++;
-    return interaction.reply({ content: `Bought 1 ${drugId} for $${price}`, ephemeral: true });
+    return interaction.editReply(`Bought 1 ${drugId} for $${price}`);
   }
 
   if (interaction.customId === 'sell_drug') {
+    await interaction.deferReply({ ephemeral: true }); // prevent timeout
+
     if ((profile.inventory[drugId] || 0) <= 0) {
-      return interaction.reply({ content: "You don't have any to sell.", ephemeral: true });
+      return interaction.editReply("You don't have any to sell.");
     }
 
     const price = profile.prices[drugId];
     await addCash(interaction.user.id, interaction.guildId, price);
     profile.inventory[drugId]--;
     profile.stashUsed--;
-    return interaction.reply({ content: `Sold 1 ${drugId} for $${price}`, ephemeral: true });
+    return interaction.editReply(`Sold 1 ${drugId} for $${price}`);
   }
 });
 

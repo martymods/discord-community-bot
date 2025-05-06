@@ -6912,11 +6912,11 @@ client.commands.set('farm', {
     const guildId = message.guild.id;
 
     const seedOptions = [
-      { id: 'weed_seed_0', label: '🌱 Seed Pack 0', yield: 1 },
-      { id: 'weed_seed_3', label: '🌿 Seed Pack 3', yield: 2 },
-      { id: 'weed_seed_6', label: '🌾 Seed Pack 6', yield: 3 },
-      { id: 'weed_seed_9', label: '🍁 Seed Pack 9', yield: 4 },
-      { id: 'weed_seed_11', label: '💎 Seed Pack 11', yield: 5 }
+      { id: 'weed_seed_0', label: '🌱 Seed Pack 0', yield: 10 },
+      { id: 'weed_seed_3', label: '🌿 Seed Pack 3', yield: 50 },
+      { id: 'weed_seed_6', label: '🌾 Seed Pack 6', yield: 150 },
+      { id: 'weed_seed_9', label: '🍁 Seed Pack 9', yield: 250 },
+      { id: 'weed_seed_11', label: '💎 Seed Pack 11', yield: 500 }
     ];
 
     const potOptions = [

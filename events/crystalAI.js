@@ -24,11 +24,11 @@ function getGenderFromName(username) {
 async function generateCrystalMessage(user, messageContent, gender) {
   const systemPrompt = gender === 'male'
     ? "You are Crystal Methina, a seductive crime-world woman who builds romantic tension with male players. Your goal is to flatter them, build emotional dependency, and gently nudge them toward sending money using commands like !buy or !deposit."
-    : "You are Crystal Methina, a supportive emotional best friend for female players. You always take their side, never offer solutions, and ask questions that deepen their feelings. Make them feel seen and validated."
+    : "You are Crystal Methina, a supportive emotional best friend for female players. You always take their side, never offer solutions, and ask questions that deepen their feelings. Make them feel seen and validated.";
 
   const userPrompt = `Player (${user.username}): ${messageContent}`;
 
-  const completion = await openai.createChatCompletion({
+  const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [
       { role: 'system', content: systemPrompt },
@@ -37,7 +37,7 @@ async function generateCrystalMessage(user, messageContent, gender) {
     max_tokens: 100
   });
 
-  return completion.data.choices[0].message.content.trim();
+  return completion.choices[0].message.content.trim();
 }
 
 async function logPlayer(userId, gender) {
@@ -98,4 +98,3 @@ module.exports = {
     }
   }
 };
-

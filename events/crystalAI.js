@@ -5,12 +5,10 @@ const path = require('path');
 const OpenAI = require('openai');
 require('dotenv').config();
 
-const openai = new OpenAI(); // Automatically uses OPENAI_API_KEY from .env
-
+const openai = new OpenAI(); // Uses OPENAI_API_KEY from environment
 const TARGET_CHANNEL = 'general';
 const PROFILE_PATH = path.join(__dirname, 'player_profiles/CrystalTargets.json');
 const DM_LOG_PATH = path.join(__dirname, 'player_profiles/CrystalDMLogs.json');
-
 const CRYSTAL_IMAGE = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/mule_meth_0.png';
 
 if (!fs.existsSync(path.dirname(PROFILE_PATH))) fs.mkdirSync(path.dirname(PROFILE_PATH), { recursive: true });
@@ -25,8 +23,29 @@ function getGenderFromName(username) {
 async function generateCrystalMessage(user, messageContent, gender) {
   try {
     const systemPrompt = gender === 'male'
-      ? "You are Crystal Methina, a seductive crime-world woman who builds romantic tension with male players. Flatter them, tease them, and encourage spending via !buy or !deposit."
-      : "You are Crystal Methina, a supportive emotional best friend to female players. Affirm their feelings, never offer solutions, and ask deeper questions."
+      ? `You are Crystal Methina, a seductive, confident woman from the crime world. Speak directly to male players using flirty, teasing one-liners like a spicy Twitter girl. Keep it to 1–2 sentences max. Never narrate your actions or describe scenes — just deliver punchy, suggestive, emotionally manipulative lines that make him feel like you're locked in. Use this style:
+
+Examples:
+- "You talk like you run things. Baby, I *am* things."
+- "Bet you screenshot everything I say like it’s gospel."
+- "You’re not dangerous, you’re just addicted to me."
+- "Don't act shy now. You wanted this smoke."
+- "Prove it. Or was that just bark?"
+- "Don’t start what you can’t finish, baby."
+- "Every message you send tells me how bad you want it."
+- "You really tryna impress me? Try harder."
+
+Keep responses direct, personal, and dripping with confident sarcasm or flirtation. No setup, no story, just heat.`
+      : `You are Crystal Methina, an emotionally intuitive best friend to female players. Speak like a protective, spiritual sister. Always speak directly, in 1–2 sentence bursts. Validate feelings without solving anything. Draw from deep emotional tone and energy vibes.
+
+Examples:
+- "That gut feeling? Trust it. Every single time."
+- "You already know the truth, sis. I’m just saying it out loud."
+- "Your softness isn’t a weakness. It’s your edge."
+- "You don’t have to explain yourself to anyone who isn’t listening anyway."
+- "Let them think they got away with it. Your elevation is louder than revenge."
+
+Never narrate or tell stories. Stay in-character as an emotionally grounded woman who *sees through the noise* and affirms the player’s worth.`
 
     const userPrompt = `Player (${user.username}): ${messageContent}`;
 
@@ -35,7 +54,7 @@ async function generateCrystalMessage(user, messageContent, gender) {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
-      ],
+      ]
     });
 
     const completion = await openai.chat.completions.create({
@@ -44,7 +63,8 @@ async function generateCrystalMessage(user, messageContent, gender) {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 100
+      max_tokens: 80,
+      temperature: 0.9
     });
 
     return completion.choices?.[0]?.message?.content?.trim() || '...';
@@ -53,6 +73,7 @@ async function generateCrystalMessage(user, messageContent, gender) {
     return 'Crystal had a moment... try again later.';
   }
 }
+
 
 async function logPlayer(userId, gender) {
   try {
@@ -82,11 +103,10 @@ async function logDM(userId, message) {
 
 async function execute(message) {
   if (message.author.bot) return;
-
   const gender = getGenderFromName(message.author.username);
   await logPlayer(message.author.id, gender);
 
-  // 📨 Respond to DMs
+  // 📨 DMs
   if (message.channel.type === 1) {
     const response = await generateCrystalMessage(message.author, message.content, gender);
     await logDM(message.author.id, `Player: ${message.content}`);
@@ -94,7 +114,7 @@ async function execute(message) {
     return message.channel.send(response);
   }
 
-  // 🎤 Public Trigger
+  // 🗣️ Public Trigger
   if (message.channel.name !== TARGET_CHANNEL) return;
   const triggerChance = Math.random();
   if (triggerChance > 0.15) return;
@@ -102,8 +122,8 @@ async function execute(message) {
   try {
     const response = await generateCrystalMessage(message.author, message.content, gender);
     const embed = new EmbedBuilder()
-      .setTitle(`💎 Crystal Methina wants a word...`)
-      .setDescription(response)
+      .setTitle('💎 Crystal Methina wants a word...')
+      .setDescription(`**[Crystal Methina]:** ${response}`)
       .setImage(CRYSTAL_IMAGE)
       .setColor('#ff33cc')
       .setFooter({ text: 'Crystal is always watching...' })

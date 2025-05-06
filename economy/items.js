@@ -6,7 +6,7 @@ const items = [
   value: 50,
   price: 250,
   rarity: 'Common',
-  description: 'Basic seed, 1 yield',
+  description: 'Basic seed, 10 yield',
   stock: 10,
   usable: false
 },
@@ -16,7 +16,7 @@ const items = [
   value: 100,
   price: 500,
   rarity: 'Uncommon',
-  description: 'Medium seed, 2 yield',
+  description: 'Medium seed, 50 yield',
   stock: 8,
   usable: false
 },
@@ -26,7 +26,7 @@ const items = [
   value: 200,
   price: 705,
   rarity: 'Rare',
-  description: 'Good seed, 3 yield',
+  description: 'Good seed, 150 yield',
   stock: 6,
   usable: false
 },
@@ -36,7 +36,7 @@ const items = [
   value: 250,
   price: 100,
   rarity: 'Epic',
-  description: 'Strong seed, 4 yield',
+  description: 'Strong seed, 250 yield',
   stock: 4,
   usable: false
 },
@@ -46,7 +46,7 @@ const items = [
   value: 400,
   price: 1500,
   rarity: 'Legendary',
-  description: 'Best seed, 5 yield',
+  description: 'Best seed, 500 yield',
   stock: 2,
   usable: false
 },

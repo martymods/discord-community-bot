@@ -1,30 +1,36 @@
-const { QueryType, Player } = require('discord-player');
-const { joinVoiceChannel } = require('@discordjs/voice');
-const player = new Player();
+const { Player } = require('discord-player');
 
 module.exports = {
   name: 'play',
-  description: 'Play a song from YouTube or Spotify in a voice channel.',
-  async execute(message, args) {
-    const query = args.join(' ');
-    if (!query) return message.reply('Please provide a song name or link.');
+  description: 'Play a song from YouTube or Spotify',
+  async execute(interaction) {
+    const client = interaction.client;
 
-    const voiceChannel = message.member.voice.channel;
-    if (!voiceChannel) return message.reply('You must be in a voice channel.');
+    const player = new Player(client);
+    client.player = player; // optionally store on client for reuse
 
-    const queue = player.createQueue(message.guild.id);
-    await queue.connect(voiceChannel);
+    const query = interaction.options.getString('query');
 
-    const searchResult = await player.search(query, {
-      requestedBy: message.author,
-      searchEngine: QueryType.AUTO
+    const res = await player.search(query, {
+      requestedBy: interaction.user,
     });
 
-    if (!searchResult.tracks.length) return message.reply('No results found.');
+    if (!res.tracks.length)
+      return interaction.reply({ content: '❌ No results found.', ephemeral: true });
 
-    queue.addTrack(searchResult.tracks[0]);
+    const queue = await player.createQueue(interaction.guild, {
+      metadata: interaction.channel,
+    });
+
+    try {
+      if (!queue.connection) await queue.connect(interaction.member.voice.channel);
+    } catch {
+      player.deleteQueue(interaction.guild.id);
+      return interaction.reply({ content: '❌ Could not join your voice channel!', ephemeral: true });
+    }
+
+    await interaction.reply({ content: `⏱️ Loading track...`, ephemeral: true });
+    queue.addTrack(res.tracks[0]);
     if (!queue.playing) await queue.play();
-
-    return message.channel.send(`🎶 Now playing: **${searchResult.tracks[0].title}**`);
-  }
+  },
 };

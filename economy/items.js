@@ -2,7 +2,7 @@ const items = [
 // 🌱 Farming Items — Seeds
 {
   id: 'weed_seed_0',
-  name: 'Bush Weed',
+  name: '🌱 Bush Weed',
   value: 50,
   price: 250,
   rarity: 'Common',
@@ -12,7 +12,7 @@ const items = [
 },
 {
   id: 'weed_seed_3',
-  name: 'Mango Kush',
+  name: '🌱 Mango Kush',
   value: 100,
   price: 500,
   rarity: 'Uncommon',
@@ -22,7 +22,7 @@ const items = [
 },
 {
   id: 'weed_seed_6',
-  name: 'Purple',
+  name: '🌱 Purple',
   value: 200,
   price: 705,
   rarity: 'Rare',
@@ -32,7 +32,7 @@ const items = [
 },
 {
   id: 'weed_seed_9',
-  name: 'Amnesia',
+  name: '🌱 Amnesia',
   value: 250,
   price: 100,
   rarity: 'Epic',
@@ -42,7 +42,7 @@ const items = [
 },
 {
   id: 'weed_seed_11',
-  name: 'Passion Fashion',
+  name: '🌱 Passion Fashion',
   value: 400,
   price: 1500,
   rarity: 'Legendary',
@@ -54,7 +54,7 @@ const items = [
 // 🪴 Pots
 {
   id: 'weed_pot_0',
-  name: 'Cheap Pot',
+  name: '🏺 Cheap Pot',
   value: 1,
   price: 30,
   rarity: 'Common',
@@ -64,7 +64,7 @@ const items = [
 },
 {
   id: 'weed_pot_1',
-  name: 'Standard Pot',
+  name: '🏺 Standard Pot',
   value: 2,
   price: 75,
   rarity: 'Uncommon',
@@ -74,7 +74,7 @@ const items = [
 },
 {
   id: 'weed_pot_2',
-  name: 'Premium Pot',
+  name: '🏺 Premium Pot',
   value: 3,
   price: 120,
   rarity: 'Rare',
@@ -86,7 +86,7 @@ const items = [
 // 💧 Water
 {
   id: 'water_0',
-  name: 'Water Bottle',
+  name: '💧 Water Bottle',
   value: 1,
   price: 5,
   rarity: 'Common',
@@ -96,7 +96,7 @@ const items = [
 },
 {
   id: 'water_1',
-  name: '24x Water Pack',
+  name: '💧 24x Water Pack',
   value: 24,
   price: 90,
   rarity: 'Uncommon',
@@ -106,7 +106,7 @@ const items = [
 },
 {
   id: 'water_2',
-  name: '60x Water Pack',
+  name: '💧 60x Water Pack',
   value: 60,
   price: 200,
   rarity: 'Rare',
@@ -118,7 +118,7 @@ const items = [
 // 🌾 Fertilizer
 {
   id: 'weed_fert_0',
-  name: 'Fertilizer Booster',
+  name: '💩 Fertilizer Booster',
   value: 1,
   price: 20,
   rarity: 'Common',
@@ -128,7 +128,7 @@ const items = [
 },
 {
   id: 'weed_fert_1',
-  name: 'Fertilizer Hydro',
+  name: '💩 Fertilizer Hydro',
   value: 2,
   price: 50,
   rarity: 'Uncommon',
@@ -138,7 +138,7 @@ const items = [
 },
 {
   id: 'weed_fert_2',
-  name: 'Fertilizer Nitro',
+  name: '💩 Fertilizer Nitro',
   value: 3,
   price: 100,
   rarity: 'Rare',
@@ -148,7 +148,7 @@ const items = [
 },
 {
   id: 'weed_fert_3',
-  name: 'Fertilizer Titanium',
+  name: '💩 Fertilizer Titanium',
   value: 4,
   price: 150,
   rarity: 'Epic',
@@ -160,7 +160,7 @@ const items = [
          // DOG TREATS
     {
       id: 'treat_def',
-      name: 'Defense Treat',
+      name: '🍖 Defense Treat',
       rarity: 'Common',
       description: 'Boosts your dog\'s 🛡️ DEF stat.',
       price: 200,
@@ -171,7 +171,7 @@ const items = [
     },
     {
       id: 'treat_pow',
-      name: 'Power Treat',
+      name: '🍖 Power Treat',
       rarity: 'Uncommon',
       description: 'Boosts your dog\'s 💪 POW stat.',
       price: 300,
@@ -182,7 +182,7 @@ const items = [
     },
     {
       id: 'treat_dex',
-      name: 'Dex Treat',
+      name: '🍖 Dex Treat',
       rarity: 'Rare',
       description: 'Boosts your dog\'s 🎯 DEX stat.',
       price: 400,
@@ -193,7 +193,7 @@ const items = [
     },
     {
       id: 'treat_mind',
-      name: 'Mind Treat',
+      name: '🍖 Mind Treat',
       rarity: 'Epic',
       description: 'Boosts your dog\'s 🧠 MIND stat.',
       price: 500,

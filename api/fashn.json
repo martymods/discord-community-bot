@@ -1,0 +1,84 @@
+{
+    "items": [
+      {
+        "slug": "gucci-logo-jacket",
+        "name": "Golf Bag",
+        "brand": "Louis Vuitton",
+        "price_usd": 269000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-golf-bag--M13925_PM1_Side%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/gucci/black-logo-bomber-jacket/11113471"
+      },
+      {
+        "slug": "balenciaga-speed-sneakers",
+        "name": "Keepall Bandoulière 50",
+        "brand": "Louis Vuitton",
+        "price_usd": 28200,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-keepall-bandouliere-50--M13926_PM1_Side%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/balenciaga/black-speed-20-sneakers/11674531"
+      },
+      {
+        "slug": "prada-nylon-bag",
+        "name": "Vagabond Hobo",
+        "brand": "Louis Vuitton",
+        "price_usd": 32000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-vagabond-hobo--M14018_PM1_Side%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/prada/black-re-nylon-shoulder-bag/11528452"
+      },
+      {
+        "slug": "rick-owens-cargo",
+        "name": "LV Crush Monogram Beanie",
+        "brand": "Louis Vuitton",
+        "price_usd": 5200,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-lv-crush-monogram-beanie--M96252_PM2_Front%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/rick-owens/black-geth-cargo-pants/11483213"
+      },
+      {
+        "slug": "burberry-trench",
+        "name": "Damier Tied Up Silk Bandana",
+        "brand": "Louis Vuitton",
+        "price_usd": 3200,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-damier-tied-up-silk-bandana--M96195_PM2_Front%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/burberry/beige-kensington-trench-coat/11732984"
+      },
+      {
+        "slug": "amiri-trucker-hat",
+        "name": "Keepall Cargo Bandoulière 50",
+        "brand": "Louis Vuitton",
+        "price_usd": 50000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-keepall-cargo-bandouliere-50--M13992_PM1_Worn%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/amiri/black-and-white-mx1-trucker-cap/11740152"
+      },
+      {
+        "slug": "diesel-1dr-bag",
+        "name": "Keepall Bandoulière 50",
+        "brand": "Louis Vuitton",
+        "price_usd": 36000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-keepall-bandouliere-50--N00161_PM1_Side%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/women/product/diesel/black-1dr-shoulder-bag/11952124"
+      },
+      {
+        "slug": "off-white-tshirt",
+        "name": "LV Rider Boot",
+        "brand": "Louis Vuitton",
+        "price_usd": 19500,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-lv-rider-boot--BSRU3UGCMA_PM2_Front%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/off-white/black-logo-t-shirt/11783297"
+      },
+      {
+        "slug": "loewesweatshirt",
+        "name": "Danube",
+        "brand": "Louis Vuitton",
+        "price_usd": 29000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-danube--M14013_PM2_Front%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/loewe/black-anagram-hoodie/11948210"
+      },
+      {
+        "slug": "balmain-jeans",
+        "name": "Book Messenger",
+        "brand": "Louis Vuitton",
+        "price_usd": 35000,
+        "image_url": "https://us.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-book-messenger--N00158_PM1_Side%20view.png?wid=1090&hei=1090",
+        "try_on_url": "https://www.ssense.com/en-us/men/product/balmain/black-biker-jeans/11654873"
+      }
+    ]
+  }

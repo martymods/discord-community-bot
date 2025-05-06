@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const OpenAI = require('openai');
 require('dotenv').config();
+const { EmbedBuilder } = require('discord.js');
 
 const openai = new OpenAI(); // ✅ new SDK automatically uses OPENAI_API_KEY from env
 
@@ -103,10 +104,15 @@ async function execute(message) {
 
   try {
     const response = await generateCrystalMessage(message.author, message.content, gender);
-    await message.channel.send({
-      content: `**@Crystal**: ${response}`,
-      allowedMentions: { parse: [] }
-    });
+    const embed = new EmbedBuilder()
+      .setTitle('💎 Crystal Methina Appears...')
+      .setDescription(response)
+      .setColor('#ff33cc')
+      .setThumbnail('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/mule_meth_0.png')
+      .setFooter({ text: 'Crystal is always watching...' })
+      .setTimestamp();
+
+    await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
   } catch (err) {
     console.error('❌ Crystal Public Chat Error:', err);
   }

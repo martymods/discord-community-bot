@@ -1414,14 +1414,18 @@ setInterval(() => {
   client.on('messageCreate', async (message) => {
     
     if (message.author.bot) return;
-    
+
   // 💬 Crystal AI trigger
   const lowered = message.content.toLowerCase();
   if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includes('spine')) {
     try {
-      const response = await generateCrystalMessage(message.author, message.content, 'gptrole'); // replace 'gptrole' if needed
+      const username = message.author.username.toLowerCase();
+      const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
+        .some(n => username.includes(n)) ? 'female' : 'male';
+
+      const response = await generateCrystalMessage(message.author, message.content, gender);
       await message.channel.send({
-        content: `💎CrystalAI: ${response}`,
+        content: `💎 **CrystalAI**: ${response}`,
         allowedMentions: { parse: [] }
       });
     } catch (err) {

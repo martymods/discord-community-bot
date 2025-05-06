@@ -87,6 +87,7 @@ const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
 const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
+const { generateCarmenMessage } = require('./events/npc/carmenAI');
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -1415,6 +1416,8 @@ setInterval(() => {
     
     if (message.author.bot) return;
 
+    
+
 // 💬 Crystal AI trigger
 const lowered = message.content.toLowerCase();
 if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includes('spine')) {
@@ -1441,6 +1444,28 @@ if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includ
 
   } catch (err) {
     console.error("❌ CrystalAI error:", err);
+  }
+}
+
+// 💬 Carmen AI trigger
+if (lowered.includes('carmen') || lowered.includes('deLeon')) {
+  try {
+    const username = message.author.username.toLowerCase();
+    const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
+      .some(n => username.includes(n)) ? 'female' : 'male';
+
+    const response = await generateCarmenMessage(message.author, message.content, gender);
+    const embed = new EmbedBuilder()
+      .setTitle('💅 Carmen DeLeon has something to say...')
+      .setDescription(`**[Carmen DeLeon]:** ${response}`)
+      .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png')
+      .setColor('#ff66b2')
+      .setFooter({ text: 'Carmen doesn’t play nice...' })
+      .setTimestamp();
+
+    await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+  } catch (err) {
+    console.error('❌ CarmenAI error:', err);
   }
 }
 

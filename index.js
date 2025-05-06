@@ -85,7 +85,6 @@ const buyCommand = require('./commands/buyCommand');
 const myOrdersCommand = require('./commands/myOrdersCommand');
 const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
-client.commands.set('crystal', crystalAI);
 const { generateCrystalMessage } = require('./events/npc/crystalAI');
 const playCommand = require('./commands/play.js');
 
@@ -7209,7 +7208,7 @@ client.commands.set('withdraw', require('./commands/withdraw'));
 client.on('messageCreate', require('./events/crystalAI').execute);
 client.on('messageCreate', crystalAI.execute);
 client.commands.set('play', require('./commands/play.js'));
-
+client.commands.set('crystal', crystalAI);
 
 // ✅ Automatically trigger mule if player is overstocked
 async function maybeSpawnMule(client, userId, guildId, channel) {

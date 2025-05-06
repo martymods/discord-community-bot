@@ -72,37 +72,40 @@ async function logDM(userId, message) {
   }
 }
 
+async function execute(message) {
+  if (message.author.bot) return;
+
+  const gender = getGenderFromName(message.author.username);
+  await logPlayer(message.author.id, gender);
+
+  // 📨 Respond to DMs
+  if (message.channel.type === 1) {
+    const response = await generateCrystalMessage(message.author, message.content, gender);
+    await logDM(message.author.id, `Player: ${message.content}`);
+    await logDM(message.author.id, `Crystal: ${response}`);
+    return message.channel.send(response);
+  }
+
+  // 🎤 Respond in public
+  if (message.channel.name !== TARGET_CHANNEL) return;
+  const triggerChance = Math.random();
+  if (triggerChance > 0.15) return;
+
+  try {
+    const response = await generateCrystalMessage(message.author, message.content, gender);
+    await message.channel.send({
+      content: `**@Crystal**: ${response}`,
+      allowedMentions: { parse: [] }
+    });
+  } catch (err) {
+    console.error('❌ Crystal Public Chat Error:', err);
+  }
+}
+
 module.exports = {
   name: 'crystalAI',
   once: false,
   event: Events.MessageCreate,
-  async execute(message) {
-    if (message.author.bot) return;
-
-    const gender = getGenderFromName(message.author.username);
-    await logPlayer(message.author.id, gender);
-
-    // 📨 Respond to DMs
-    if (message.channel.type === 1) {
-      const response = await generateCrystalMessage(message.author, message.content, gender);
-      await logDM(message.author.id, `Player: ${message.content}`);
-      await logDM(message.author.id, `Crystal: ${response}`);
-      return message.channel.send(response);
-    }
-
-    // 🎤 Respond in public
-    if (message.channel.name !== TARGET_CHANNEL) return;
-    const triggerChance = Math.random();
-    if (triggerChance > 0.15) return;
-
-    try {
-      const response = await generateCrystalMessage(message.author, message.content, gender);
-      await message.channel.send({
-        content: `**@Crystal**: ${response}`,
-        allowedMentions: { parse: [] }
-      });
-    } catch (err) {
-      console.error('❌ Crystal Public Chat Error:', err);
-    }
-  }
+  execute,
+  generateCrystalMessage // ✅ Now exported properly
 };

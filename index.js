@@ -85,7 +85,7 @@ const buyCommand = require('./commands/buyCommand');
 const myOrdersCommand = require('./commands/myOrdersCommand');
 const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
-const { generateCrystalMessage } = require('./events/npc/crystalAI');
+const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
 
 

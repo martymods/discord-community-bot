@@ -5,7 +5,8 @@ const path = require('path');
 const OpenAI = require('openai');
 require('dotenv').config();
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI(); // ✅ new SDK automatically uses OPENAI_API_KEY from env
+
 
 const TARGET_CHANNEL = 'general';
 const PROFILE_PATH = path.join(__dirname, 'player_profiles/CrystalTargets.json');

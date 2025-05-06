@@ -2,12 +2,12 @@
 const { Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 require('dotenv').config();
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
 const TARGET_CHANNEL = 'general';
 const PROFILE_PATH = path.join(__dirname, 'player_profiles/CrystalTargets.json');

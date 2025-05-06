@@ -1,21 +1,19 @@
 // 📦 events/crystalAI.js
-const { Events } = require('discord.js');
+const { Events, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const OpenAI = require('openai');
 require('dotenv').config();
-const { EmbedBuilder } = require('discord.js');
 
-const openai = new OpenAI(); // ✅ new SDK automatically uses OPENAI_API_KEY from env
-
+const openai = new OpenAI(); // Automatically uses OPENAI_API_KEY from .env
 
 const TARGET_CHANNEL = 'general';
 const PROFILE_PATH = path.join(__dirname, 'player_profiles/CrystalTargets.json');
 const DM_LOG_PATH = path.join(__dirname, 'player_profiles/CrystalDMLogs.json');
 
-// Ensure folders exist
-const profileDir = path.dirname(PROFILE_PATH);
-if (!fs.existsSync(profileDir)) fs.mkdirSync(profileDir, { recursive: true });
+const CRYSTAL_IMAGE = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/mule_meth_0.png';
+
+if (!fs.existsSync(path.dirname(PROFILE_PATH))) fs.mkdirSync(path.dirname(PROFILE_PATH), { recursive: true });
 if (!fs.existsSync(PROFILE_PATH)) fs.writeFileSync(PROFILE_PATH, '{}');
 if (!fs.existsSync(DM_LOG_PATH)) fs.writeFileSync(DM_LOG_PATH, '{}');
 
@@ -27,8 +25,8 @@ function getGenderFromName(username) {
 async function generateCrystalMessage(user, messageContent, gender) {
   try {
     const systemPrompt = gender === 'male'
-      ? "You are Crystal Methina, a seductive crime-world woman who builds romantic tension with male players..."
-      : "You are Crystal Methina, a supportive emotional best friend for female players...";
+      ? "You are Crystal Methina, a seductive crime-world woman who builds romantic tension with male players. Flatter them, tease them, and encourage spending via !buy or !deposit."
+      : "You are Crystal Methina, a supportive emotional best friend to female players. Affirm their feelings, never offer solutions, and ask deeper questions."
 
     const userPrompt = `Player (${user.username}): ${messageContent}`;
 
@@ -55,7 +53,6 @@ async function generateCrystalMessage(user, messageContent, gender) {
     return 'Crystal had a moment... try again later.';
   }
 }
-
 
 async function logPlayer(userId, gender) {
   try {
@@ -97,7 +94,7 @@ async function execute(message) {
     return message.channel.send(response);
   }
 
-  // 🎤 Respond in public
+  // 🎤 Public Trigger
   if (message.channel.name !== TARGET_CHANNEL) return;
   const triggerChance = Math.random();
   if (triggerChance > 0.15) return;
@@ -105,10 +102,10 @@ async function execute(message) {
   try {
     const response = await generateCrystalMessage(message.author, message.content, gender);
     const embed = new EmbedBuilder()
-      .setTitle('💎 Crystal Methina Appears...')
+      .setTitle(`💎 Crystal Methina wants a word...`)
       .setDescription(response)
+      .setImage(CRYSTAL_IMAGE)
       .setColor('#ff33cc')
-      .setThumbnail('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/mule_meth_0.png')
       .setFooter({ text: 'Crystal is always watching...' })
       .setTimestamp();
 
@@ -123,5 +120,5 @@ module.exports = {
   once: false,
   event: Events.MessageCreate,
   execute,
-  generateCrystalMessage // ✅ Now exported properly
+  generateCrystalMessage
 };

@@ -31,6 +31,14 @@ async function generateCrystalMessage(user, messageContent, gender) {
 
     const userPrompt = `Player (${user.username}): ${messageContent}`;
 
+    console.log('🔍 Sending OpenAI message with:', {
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+    });
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
@@ -42,10 +50,11 @@ async function generateCrystalMessage(user, messageContent, gender) {
 
     return completion.choices?.[0]?.message?.content?.trim() || '...';
   } catch (err) {
-    console.error('❌ OpenAI API Error:', err);
+    console.error('❌ OpenAI API Error:', err?.response?.data || err);
     return 'Crystal had a moment... try again later.';
   }
 }
+
 
 async function logPlayer(userId, gender) {
   try {

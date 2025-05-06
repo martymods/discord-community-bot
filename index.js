@@ -1415,23 +1415,34 @@ setInterval(() => {
     
     if (message.author.bot) return;
 
-  // 💬 Crystal AI trigger
-  const lowered = message.content.toLowerCase();
-  if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includes('spine')) {
-    try {
-      const username = message.author.username.toLowerCase();
-      const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
-        .some(n => username.includes(n)) ? 'female' : 'male';
+// 💬 Crystal AI trigger
+const lowered = message.content.toLowerCase();
+if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includes('spine')) {
+  try {
+    const username = message.author.username.toLowerCase();
+    const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava', 'Phat Moose']
+      .some(n => username.includes(n)) ? 'female' : 'male';
 
-      const response = await generateCrystalMessage(message.author, message.content, gender);
-      await message.channel.send({
-        content: `💎 **CrystalAI**: ${response}`,
-        allowedMentions: { parse: [] }
-      });
-    } catch (err) {
-      console.error("❌ CrystalAI error:", err);
-    }
+    const response = await generateCrystalMessage(message.author, message.content, gender);
+
+    const embed = new EmbedBuilder()
+      .setTitle('💎 Crystal Methina wants a word...')
+      .setDescription(`**[Crystal Methina]:** ${response}`)
+      .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/mule_meth_0.png')
+      .setColor('#ff33cc')
+      .setFooter({ text: 'Crystal is always watching...' })
+      .setTimestamp();
+
+    await message.channel.send({
+      content: `<@${message.author.id}>`,
+      embeds: [embed],
+      allowedMentions: { parse: ['users'] }
+    });
+
+  } catch (err) {
+    console.error("❌ CrystalAI error:", err);
   }
+}
 
 
     // 👁️ Auto-whisper tip every 3 messages

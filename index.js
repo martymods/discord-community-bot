@@ -85,6 +85,8 @@ const buyCommand = require('./commands/buyCommand');
 const myOrdersCommand = require('./commands/myOrdersCommand');
 const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
+client.commands.set('crystal', crystalAI);
+const { generateCrystalMessage } = require('./events/npc/crystalAI');
 const playCommand = require('./commands/play.js');
 
 
@@ -1413,6 +1415,22 @@ setInterval(() => {
   client.on('messageCreate', async (message) => {
     
     if (message.author.bot) return;
+    
+  // 💬 Crystal AI trigger
+  const lowered = message.content.toLowerCase();
+  if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includes('spine')) {
+    try {
+      const response = await generateCrystalMessage(message.author, message.content, 'gptrole'); // replace 'gptrole' if needed
+      await message.channel.send({
+        content: `💎CrystalAI: ${response}`,
+        allowedMentions: { parse: [] }
+      });
+    } catch (err) {
+      console.error("❌ CrystalAI error:", err);
+    }
+  }
+
+
     // 👁️ Auto-whisper tip every 3 messages
     global.userMessageCounts = global.userMessageCounts || new Map();
     const count = (global.userMessageCounts.get(message.author.id) || 0) + 1;

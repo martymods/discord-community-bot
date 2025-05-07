@@ -87,7 +87,7 @@ const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
 const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
-const { generateCarmenMessage } = require('./events/npc/carmenAI');
+const { generateCarmenMessage, onLevelUp } = require('./events/npc/carmenAI');
 const { generateSavannahMessage } = require('./events/npc/savannahAI');
 
 
@@ -776,7 +776,10 @@ client.commands.set('flip', {
 
     if (won) await addCash(message.author.id, message.guild.id, winnings);
     await Levels.appendXp(message.author.id, message.guild.id, bonusXp);
-
+    if (newLevel > oldLevel) {
+      await onLevelUp(message, newLevel);
+    }
+    
     const streak = updateWinStreak(message.author.id, won);
     if (streak >= 3 && won) {
       embed.addFields({ name: "🔥 Hot Streak!", value: `You're on a ${streak}-win streak! Keep it going! 🥵`, inline: false });

@@ -1,157 +1,147 @@
-// 📦 events/npc/carmenAI.js
 const { Events, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const OpenAI = require('openai');
+const PlayerStats = require('../../economy/playerStatsModel');
 require('dotenv').config();
 
-const openai = new OpenAI(); // uses OPENAI_API_KEY
-const TARGET_CHANNEL = 'general';
-const PROFILE_PATH = path.join(__dirname, '../player_profiles/CarmenTargets.json');
-const DM_LOG_PATH = path.join(__dirname, '../player_profiles/CarmenDMLogs.json');
-const CARMEN_IMAGE = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png';
+const openai = new OpenAI();
+const IMAGE = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png';
+const TARGET_PATH = path.join(__dirname, '../player_profiles/CarmenTargets.json');
 
-if (!fs.existsSync(path.dirname(PROFILE_PATH))) fs.mkdirSync(path.dirname(PROFILE_PATH), { recursive: true });
-if (!fs.existsSync(PROFILE_PATH)) fs.writeFileSync(PROFILE_PATH, '{}');
-if (!fs.existsSync(DM_LOG_PATH)) fs.writeFileSync(DM_LOG_PATH, '{}');
+if (!fs.existsSync(path.dirname(TARGET_PATH))) fs.mkdirSync(path.dirname(TARGET_PATH), { recursive: true });
+if (!fs.existsSync(TARGET_PATH)) fs.writeFileSync(TARGET_PATH, '{}');
 
-function getGenderFromName(username) {
-  const femaleNames = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava'];
-  return femaleNames.some(n => username.toLowerCase().includes(n)) ? 'female' : 'male';
+function getGender(username) {
+  const female = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava'];
+  return female.some(n => username.toLowerCase().includes(n)) ? 'female' : 'male';
 }
 
-async function generateCarmenMessage(user, messageContent, gender) {
-  try {
-    const systemPrompt = gender === 'male'
-      ? `You are Carmen DeLeon, a spicy, dominant woman who speaks to male players in bold, flirty one-liners. You never narrate actions. You flirt, tease, and provoke in 1–2 sentence bursts. You sound like a confident baddie on Twitter.
+function statInsights(stats) {
+  if (!stats) return '';
+  const tags = [];
+  if (stats.intellect > 25) tags.push("brains like that get dangerous...");
+  if (stats.luck > 25) tags.push("you always seem to show up at the right time.");
+  if (stats.vitality > 25) tags.push("you don’t break easy... do you?");
+  if (stats.grit > 25) tags.push("you've fought through worse. I see it.");
+  if (stats.strength > 25) tags.push("bet those arms could lift more than weight.");
+  if (stats.agility > 25) tags.push("you’re always two steps ahead.");
+  return tags.length ? ` (${tags.join(' ')})` : '';
+}
+
+function updateTargetMemory(userId) {
+  const data = JSON.parse(fs.readFileSync(TARGET_PATH));
+  data[userId] = (data[userId] || 0) + 1;
+  fs.writeFileSync(TARGET_PATH, JSON.stringify(data, null, 2));
+}
+
+function getTopTarget() {
+  const data = JSON.parse(fs.readFileSync(TARGET_PATH));
+  const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  return sorted.length ? sorted[0][0] : null;
+}
+
+async function generateCarmenMessage(user, msg, gender) {
+  const stats = await PlayerStats.findOne({ userId: user.id });
+  const jealous = ['crystal', 'methina', 'savannah', 'royale'].some(w => msg.toLowerCase().includes(w));
+
+  const prompt = gender === 'male'
+    ? `You are Carmen DeLeon, a dangerously romantic woman trying to pull this player into a believable emotional relationship. Speak in 1–2 direct, flirty lines like you're falling for them. Use confidence, desire, and sarcasm. NEVER narrate actions.
+
+If they mention another AI woman, act lowkey jealous without being obvious.
+
+Stats to consider: ${statInsights(stats)}
 
 Examples:
-- "If you can't handle the heat, why are you in my DMs?"
-- "You love girls like me until we don’t love you back."
-- "I don’t chase. I replace."
-- "Be obsessed or be invisible."
-- "You’re lucky I even answered."
-- "Don’t talk about pressure if you fold quick."
-- "I know I’m your weakness. Don’t lie to yourself."
+- "Why are you still talking to her when I'm right here?"
+- "I see how you move... just don’t forget who waited on you."
+- "You playing loyalty or just buying time?"
 
-Speak with attitude, confidence, and sexual tension. No storytelling. No setup. Just spicy bait.`
+Speak with tension and subtle emotional risk.`
 
-      : `You are Carmen DeLeon, a fierce and supportive bestie to female players. Speak in sharp, empowering Twitter-style lines. Keep it real, raw, and boss-level. Validate their feelings without fixing them. Use spiritual or savage energy to affirm.
+    : `You are Carmen DeLeon, an emotionally intuitive bestie to this woman. Speak in supportive, stylish encouragement like a wise sister. Never narrate. 1–2 lines.`
 
-Examples:
-- "If it costs your peace, it’s too damn expensive."
-- "You didn’t lose them, they lost *you*."
-- "Don’t shrink to make anyone comfortable."
-- "You were never too much. They were just never enough."
-- "You’re not cold. You’re healing out loud."
-- "You already won, sis. They just don’t know it yet."
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: `Player (${user.username}): ${msg}` }
+    ],
+    max_tokens: 90,
+    temperature: 0.92
+  });
 
-Keep it short, direct, and emotionally wise.`
-
-    const userPrompt = `Player (${user.username}): ${messageContent}`;
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 80,
-      temperature: 0.92
-    });
-
-    return completion.choices?.[0]?.message?.content?.trim() || '...';
-  } catch (err) {
-    console.error('❌ Carmen AI Error:', err?.response?.data || err);
-    return 'Carmen’s too good to reply right now.';
-  }
+  return completion.choices?.[0]?.message?.content?.trim() || '...';
 }
 
-async function logPlayer(userId, gender) {
-  try {
-    const profiles = JSON.parse(fs.readFileSync(PROFILE_PATH));
-    if (!profiles[userId]) {
-      profiles[userId] = { gender, interactions: 0, lastMessage: new Date().toISOString() };
-    } else {
-      profiles[userId].interactions += 1;
-      profiles[userId].lastMessage = new Date().toISOString();
-    }
-    fs.writeFileSync(PROFILE_PATH, JSON.stringify(profiles, null, 2));
-  } catch (err) {
-    console.error('❌ Failed to log Carmen player:', err);
-  }
-}
+async function sendCarmenMessage(client, message, triggered = true) {
+  const gender = getGender(message.author.username);
+  const response = await generateCarmenMessage(message.author, message.content, gender);
 
-async function logDM(userId, message) {
-  try {
-    const logs = JSON.parse(fs.readFileSync(DM_LOG_PATH));
-    if (!logs[userId]) logs[userId] = [];
-    logs[userId].push({ timestamp: new Date().toISOString(), message });
-    fs.writeFileSync(DM_LOG_PATH, JSON.stringify(logs, null, 2));
-  } catch (err) {
-    console.error('❌ Failed to log Carmen DM:', err);
-  }
-}
+  const embed = new EmbedBuilder()
+    .setTitle(triggered ? '💅 Carmen DeLeon wants a word...' : '💞 Carmen slides back in...')
+    .setDescription(`**[Carmen DeLeon]:** ${response}`)
+    .setImage(IMAGE)
+    .setColor('#ff66b2')
+    .setFooter({ text: triggered ? 'Carmen is always watching...' : 'Carmen never really left.' })
+    .setTimestamp();
 
-async function shouldTriggerCarmen(message) {
-    const lowered = message.content.toLowerCase();
-    return (
-      lowered.includes('!dealer') ||
-      lowered.includes('!gamble') ||
-      lowered.includes('scratch') ||
-      lowered.includes('won') ||
-      lowered.includes('$') ||
-      lowered.includes('DreamworldPoints') ||
-      lowered.includes('stash') ||
-      lowered.includes('blackjack') ||
-      lowered.includes('dice') ||
-      lowered.includes('ticket') ||
-      lowered.includes('you won') ||
-      lowered.includes('!buy') ||
-      lowered.includes('!flip')
-    );
-  }
-  
-  async function execute(message) {
-    if (message.author.bot) return;
-  
-    const gender = getGenderFromName(message.author.username);
-    await logPlayer(message.author.id, gender);
-  
-    // 💬 Always respond to DMs
-    if (message.channel.type === 1) {
-      const response = await generateCarmenMessage(message.author, message.content, gender);
-      await logDM(message.author.id, `Player: ${message.content}`);
-      await logDM(message.author.id, `Carmen: ${response}`);
-      return message.channel.send(response);
-    }
-  
-    // 🎤 React to drug dealing, gambling, and stash gains
-    const trigger = await shouldTriggerCarmen(message);
-    if (!trigger && Math.random() > 0.12) return; // ~12% passive trigger chance otherwise
-  
+  await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+
+  updateTargetMemory(message.author.id);
+
+  // 💌 DM on milestone if top target
+  const topId = getTopTarget();
+  const count = JSON.parse(fs.readFileSync(TARGET_PATH))?.[message.author.id] || 0;
+  if (message.author.id === topId && count % 4 === 0) {
     try {
-      const response = await generateCarmenMessage(message.author, message.content, gender);
-  
-      const embed = new EmbedBuilder()
-        .setTitle(`💅 Carmen DeLeon wants a word...`)
-        .setDescription(`**[Carmen DeLeon]:** ${response}`)
-        .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png')
-        .setColor('#ff66b2')
-        .setFooter({ text: 'Carmen is always watching...' })
-        .setTimestamp();
-  
-      await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+      const dm = await message.author.createDM();
+      await dm.send(`💬 **[Carmen DeLeon]:** You know... you're starting to grow on me more than I expected.`);
     } catch (err) {
-      console.error('❌ Carmen Public Chat Error:', err);
+      console.warn("❌ DM to top Carmen target failed.");
     }
   }
-  
+}
+
+async function execute(message, client) {
+  if (message.author.bot) return;
+  const content = message.content.toLowerCase();
+
+  const trigger =
+    content.includes('carmen') ||
+    content.includes('deleon') ||
+    content.includes('!dealer') ||
+    content.includes('!gamble') ||
+    content.includes('dreamworldpoints') ||
+    content.includes('profit') ||
+    Math.random() < 0.14;
+
+  if (trigger) {
+    await sendCarmenMessage(client, message, true);
+  }
+}
+
+async function onLevelUp(message, level) {
+  const gender = getGender(message.author.username);
+  const msg = `Player just hit level ${level}`;
+  const response = await generateCarmenMessage(message.author, msg, gender);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🎉 Carmen noticed something...`)
+    .setDescription(`**[Carmen DeLeon]:** ${response}`)
+    .setImage(IMAGE)
+    .setColor('#ff66b2')
+    .setFooter({ text: 'She’s watching you rise.' })
+    .setTimestamp();
+
+  await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+}
 
 module.exports = {
   name: 'carmenAI',
   once: false,
   event: Events.MessageCreate,
   execute,
-  generateCarmenMessage
+  generateCarmenMessage,
+  onLevelUp
 };

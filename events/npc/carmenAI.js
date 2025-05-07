@@ -93,38 +93,6 @@ async function logDM(userId, message) {
   }
 }
 
-async function execute(message) {
-  if (message.author.bot) return;
-  const gender = getGenderFromName(message.author.username);
-  await logPlayer(message.author.id, gender);
-
-  if (message.channel.type === 1) {
-    const response = await generateCarmenMessage(message.author, message.content, gender);
-    await logDM(message.author.id, `Player: ${message.content}`);
-    await logDM(message.author.id, `Carmen: ${response}`);
-    return message.channel.send(response);
-  }
-
-  if (message.channel.name !== TARGET_CHANNEL) return;
-  const triggerChance = Math.random();
-  if (triggerChance > 0.15) return;
-
-  try {
-    const response = await generateCarmenMessage(message.author, message.content, gender);
-    const embed = new EmbedBuilder()
-      .setTitle('💅 Carmen DeLeon has something to say...')
-      .setDescription(`**[Carmen DeLeon]:** ${response}`)
-      .setImage(CARMEN_IMAGE)
-      .setColor('#ff66b2')
-      .setFooter({ text: 'Carmen doesn’t play nice...' })
-      .setTimestamp();
-
-    await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
-  } catch (err) {
-    console.error('❌ Carmen Public Chat Error:', err);
-  }
-}
-
 async function shouldTriggerCarmen(message) {
     const lowered = message.content.toLowerCase();
     return (

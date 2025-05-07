@@ -88,6 +88,7 @@ const crystalAI = require('./events/crystalAI');
 const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
 const { generateCarmenMessage } = require('./events/npc/carmenAI');
+const { generateSavannahMessage } = require('./events/npc/savannahAI');
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -1416,6 +1417,26 @@ setInterval(() => {
     
     if (message.author.bot) return;
 
+// 💬 Savannah Royale AI Trigger
+if (lowered.includes('savannah') || lowered.includes('royale') || lowered.includes('queen')) {
+  try {
+    const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
+      .some(n => message.author.username.toLowerCase().includes(n)) ? 'female' : 'male';
+
+    const response = await generateSavannahMessage(message.author, message.content, gender);
+    const embed = new EmbedBuilder()
+      .setTitle('👑 Savannah Royale heard you...')
+      .setDescription(`**[Savannah]:** ${response}`)
+      .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_3.png')
+      .setColor('#f5b041')
+      .setFooter({ text: 'Savannah doesn’t wait. She upgrades.' })
+      .setTimestamp();
+
+    await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+  } catch (err) {
+    console.error('❌ Savannah Trigger Error:', err);
+  }
+}
     
 
 // 💬 Crystal AI trigger

@@ -87,7 +87,8 @@ const { sendToSportsIntel } = require('./functions/helpers/logging');
 const crystalAI = require('./events/crystalAI');
 const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
-const { generateCarmenMessage } = require('./events/npc/carmenAI');
+const { generateCarmenMessage, onLevelUp } = require('./events/npc/carmenAI');
+const { generateSavannahMessage } = require('./events/npc/savannahAI');
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -774,8 +775,19 @@ client.commands.set('flip', {
     }
 
     if (won) await addCash(message.author.id, message.guild.id, winnings);
+    const levelDataBefore = await Levels.fetch(message.author.id, message.guild.id);
+    const oldLevel = levelDataBefore?.level || 1;
+    
     await Levels.appendXp(message.author.id, message.guild.id, bonusXp);
-
+    
+    const levelDataAfter = await Levels.fetch(message.author.id, message.guild.id);
+    const newLevel = levelDataAfter?.level || oldLevel;
+    
+    if (newLevel > oldLevel) {
+      await onLevelUp(message, newLevel);
+    }
+    
+    
     const streak = updateWinStreak(message.author.id, won);
     if (streak >= 3 && won) {
       embed.addFields({ name: "🔥 Hot Streak!", value: `You're on a ${streak}-win streak! Keep it going! 🥵`, inline: false });
@@ -1416,6 +1428,26 @@ setInterval(() => {
     
     if (message.author.bot) return;
 
+// 💬 Savannah Royale AI Trigger
+if (lowered.includes('savannah') || lowered.includes('royale') || lowered.includes('queen')) {
+  try {
+    const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
+      .some(n => message.author.username.toLowerCase().includes(n)) ? 'female' : 'male';
+
+    const response = await generateSavannahMessage(message.author, message.content, gender);
+    const embed = new EmbedBuilder()
+      .setTitle('👑 Savannah Royale heard you...')
+      .setDescription(`**[Savannah]:** ${response}`)
+      .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_3.png')
+      .setColor('#f5b041')
+      .setFooter({ text: 'Savannah doesn’t wait. She upgrades.' })
+      .setTimestamp();
+
+    await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+  } catch (err) {
+    console.error('❌ Savannah Trigger Error:', err);
+  }
+}
     
 
 // 💬 Crystal AI trigger
@@ -3924,21 +3956,19 @@ if (interaction.isButton() && customId.startsWith('bulk_sell_')) {
     
       await removeCash(user.id, interaction.guildId, price);
     
-      // ✅ Update inventory safely
       const inv = profile.inventory instanceof Map
         ? Object.fromEntries(profile.inventory)
         : { ...profile.inventory };
     
       inv[drugId] = (inv[drugId] || 0) + 1;
       profile.inventory = inv;
-    
       profile.stashUsed += 1;
       profile.markModified('inventory');
     
       profile.prices = Object.fromEntries(profile.prices); // ensure prices saves cleanly
       await profile.save();
     
-      // 🚨 RAID LOGIC (unchanged)
+      // 🚨 RAID LOGIC
       const userXp = await Levels.fetch(user.id, interaction.guildId);
       const level = userXp?.level || 1;
       const raidChance = Math.max(0.15 - (level * 0.01), 0.04);
@@ -3949,7 +3979,27 @@ if (interaction.isButton() && customId.startsWith('bulk_sell_')) {
         const newStrikes = currentStrikes + 1;
         raidStrikes.set(user.id, newStrikes);
     
-        interaction.channel.send(`🚨 **POLICE RAID!** ${user.username} is ducking again. Strike ${newStrikes}/3`);
+        // 🖼️ Select police raid image
+        let raidImage = '';
+        if (newStrikes === 1) {
+          raidImage = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/Police_1.png';
+        } else if (newStrikes === 2) {
+          raidImage = 'https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/Police_2.png';
+        } else {
+          const bustedImgs = ['Police_Butsted_1.png', 'Police_Butsted_2.png', 'Police_Butsted_3.png'];
+          const picked = bustedImgs[Math.floor(Math.random() * bustedImgs.length)];
+          raidImage = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${picked}`;
+        }
+    
+        const raidEmbed = new EmbedBuilder()
+          .setTitle(`🚨 POLICE RAID — Strike ${newStrikes}/3`)
+          .setDescription(`${user.username} is ducking again!`)
+          .setImage(raidImage)
+          .setColor('#ff0000')
+          .setFooter({ text: 'The streets are watching...' })
+          .setTimestamp();
+    
+        interaction.channel.send({ embeds: [raidEmbed] });
     
         const heat = heatMap.get(user.id) || { heat: 0, lastActivity: Date.now() };
         heat.heat += 2;
@@ -3967,10 +4017,12 @@ if (interaction.isButton() && customId.startsWith('bulk_sell_')) {
           const currentBal = await getBalance(user.id, interaction.guildId);
           await removeCash(user.id, interaction.guildId, Math.floor(currentBal));
           prisonBalances.set(user.id, currentBal);
+    
           const prisonChannel = interaction.guild.channels.cache.find(c => c.name === "prison");
           if (prisonChannel) {
             prisonChannel.send(`🔐 <@${user.id}> got caught and sent to prison.\nRelease: <t:${Math.floor(releaseTime / 1000)}:R> unless bail is paid.`);
           }
+    
           return interaction.editReply("🚓 Busted! You're being sent to prison...");
         }
       }
@@ -3979,9 +4031,10 @@ if (interaction.isButton() && customId.startsWith('bulk_sell_')) {
       const updatedEmbed = generateMarketEmbed(user, profile, updatedBal);
       const msg = await interaction.channel.messages.fetch(profile.lastMarketMessageId).catch(() => null);
       if (msg) await msg.edit({ embeds: [updatedEmbed] });
-      
+    
       await spawnBulkBuyer(interaction.client, user.id, interaction.guildId, interaction.channel);
-      await maybeTriggerRobbery(interaction);      // 💥 Check for random robber attack
+      await maybeTriggerRobbery(interaction); // 💥 Robbery event
+    
       return interaction.editReply(`🛒 Bought 1 ${drug.name} for $${price}`);
     }
     

@@ -125,6 +125,61 @@ async function execute(message) {
   }
 }
 
+async function shouldTriggerCarmen(message) {
+    const lowered = message.content.toLowerCase();
+    return (
+      lowered.includes('!dealer') ||
+      lowered.includes('!gamble') ||
+      lowered.includes('scratch') ||
+      lowered.includes('won') ||
+      lowered.includes('$') ||
+      lowered.includes('DreamworldPoints') ||
+      lowered.includes('stash') ||
+      lowered.includes('blackjack') ||
+      lowered.includes('dice') ||
+      lowered.includes('ticket') ||
+      lowered.includes('you won') ||
+      lowered.includes('!buy') ||
+      lowered.includes('!flip')
+    );
+  }
+  
+  async function execute(message) {
+    if (message.author.bot) return;
+  
+    const gender = getGenderFromName(message.author.username);
+    await logPlayer(message.author.id, gender);
+  
+    // 💬 Always respond to DMs
+    if (message.channel.type === 1) {
+      const response = await generateCarmenMessage(message.author, message.content, gender);
+      await logDM(message.author.id, `Player: ${message.content}`);
+      await logDM(message.author.id, `Carmen: ${response}`);
+      return message.channel.send(response);
+    }
+  
+    // 🎤 React to drug dealing, gambling, and stash gains
+    const trigger = await shouldTriggerCarmen(message);
+    if (!trigger && Math.random() > 0.12) return; // ~12% passive trigger chance otherwise
+  
+    try {
+      const response = await generateCarmenMessage(message.author, message.content, gender);
+  
+      const embed = new EmbedBuilder()
+        .setTitle(`💅 Carmen DeLeon wants a word...`)
+        .setDescription(`**[Carmen DeLeon]:** ${response}`)
+        .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png')
+        .setColor('#ff66b2')
+        .setFooter({ text: 'Carmen is always watching...' })
+        .setTimestamp();
+  
+      await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });
+    } catch (err) {
+      console.error('❌ Carmen Public Chat Error:', err);
+    }
+  }
+  
+
 module.exports = {
   name: 'carmenAI',
   once: false,

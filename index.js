@@ -1448,7 +1448,14 @@ if (lowered.includes('crystal') || lowered.includes('cry5tal') || lowered.includ
 }
 
 // 💬 Carmen AI trigger
-if (lowered.includes('carmen') || lowered.includes('deLeon')) {
+const triggerWords = ['!dealer', '!gamble', 'scratch', 'DreamworldPoints', 'stash', '$'];
+const shouldTrigger =
+  lowered.includes('carmen') ||
+  lowered.includes('deleon') ||
+  triggerWords.some(word => lowered.includes(word)) ||
+  Math.random() < 0.12;
+
+if (shouldTrigger) {
   try {
     const username = message.author.username.toLowerCase();
     const gender = ['jess', 'emma', 'lily', 'ash', 'chloe', 'sara', 'rose', 'ava']
@@ -1456,11 +1463,13 @@ if (lowered.includes('carmen') || lowered.includes('deLeon')) {
 
     const response = await generateCarmenMessage(message.author, message.content, gender);
     const embed = new EmbedBuilder()
-      .setTitle('💅 Carmen DeLeon has something to say...')
+      .setTitle(lowered.includes('carmen') || lowered.includes('deleon')
+        ? '💅 Carmen DeLeon has something to say...'
+        : '💅 Carmen DeLeon wants a word...')
       .setDescription(`**[Carmen DeLeon]:** ${response}`)
       .setImage('https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/woman_date_0.png')
       .setColor('#ff66b2')
-      .setFooter({ text: 'Carmen doesn’t play nice...' })
+      .setFooter({ text: lowered.includes('carmen') ? 'Carmen doesn’t play nice...' : 'Carmen is always watching...' })
       .setTimestamp();
 
     await message.channel.send({ content: `<@${message.author.id}>`, embeds: [embed] });

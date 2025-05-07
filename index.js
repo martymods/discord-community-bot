@@ -775,10 +775,18 @@ client.commands.set('flip', {
     }
 
     if (won) await addCash(message.author.id, message.guild.id, winnings);
+    const levelDataBefore = await Levels.fetch(message.author.id, message.guild.id);
+    const oldLevel = levelDataBefore?.level || 1;
+    
     await Levels.appendXp(message.author.id, message.guild.id, bonusXp);
+    
+    const levelDataAfter = await Levels.fetch(message.author.id, message.guild.id);
+    const newLevel = levelDataAfter?.level || oldLevel;
+    
     if (newLevel > oldLevel) {
       await onLevelUp(message, newLevel);
     }
+    
     
     const streak = updateWinStreak(message.author.id, won);
     if (streak >= 3 && won) {

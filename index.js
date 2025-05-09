@@ -4319,16 +4319,22 @@ client.commands.set('banktotal', {
   async execute(message) {
     if (message.channel.name !== 'bank') return;
 
-    const [cashSum, tokenSum] = await Promise.all([
+    const [cashSum, tokenSum, bankSum] = await Promise.all([
       Currency.aggregate([{ $group: { _id: null, total: { $sum: "$cash" } } }]),
-      TokenModel.aggregate([{ $group: { _id: null, total: { $sum: "$tokensWon" } } }])
+      TokenModel.aggregate([{ $group: { _id: null, total: { $sum: "$tokensWon" } } }]),
+      DealerProfile.aggregate([{ $group: { _id: null, total: { $sum: "$bankBalance" } } }])
     ]);
 
     const totalCash = cashSum[0]?.total || 0;
     const totalTokens = tokenSum[0]?.total || 0;
-    const combined = totalCash + totalTokens;
+    const totalBank = bankSum[0]?.total || 0;
+    const combined = totalCash + totalTokens + totalBank;
 
-    message.channel.send(`🏦 **Total Wealth in Circulation**\n💵 Cash: $${totalCash}\n🎲 Betting Tokens: ${totalTokens} DreamTokens\n🧮 **Combined Total: $${combined}**`);
+    message.channel.send(`🏦 **Total Wealth in Circulation**  
+💵 Cash: $${totalCash.toLocaleString()}  
+🏛️ Banked Funds: $${totalBank.toLocaleString()}  
+🎲 Betting Tokens: ${totalTokens.toLocaleString()} DreamTokens  
+🧮 **Combined Total: $${combined.toLocaleString()}**`);
   }
 });
 

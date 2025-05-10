@@ -7017,6 +7017,10 @@ client.commands.set('farm', {
     const collector = msg.createMessageComponentCollector({ time: 30000 });
 
     collector.on('collect', async interaction => {
+
+      const selectedSeed = seedOptions.find(s => s.id === seedId);
+const seedYield = selectedSeed?.yield || 3;
+
       if (interaction.user.id !== userId) return interaction.reply({ content: "Not your session.", ephemeral: true });
 
       if (interaction.customId.startsWith('farm_seed_')) {
@@ -7059,23 +7063,25 @@ client.commands.set('farm', {
           }
         }
 
-        await Plant.findOneAndUpdate(
-          { userId, guildId },
-          {
-            userId,
-            guildId,
-            seedId,
-            potType,
-            fertilizer: fertLevel,
-            plantedAt: new Date(),
-            lastWatered: new Date(),
-            wateredAt: usedWater ? new Date() : null,
-            harvested: false,
-            dead: false,
-            isDead: false
-          },
-          { upsert: true }
-        );
+await Plant.findOneAndUpdate(
+  { userId, guildId },
+  {
+    userId,
+    guildId,
+    seedId,
+    potType,
+    yield: seedYield, // ✅ Save yield
+    fertilizer: fertLevel,
+    plantedAt: new Date(),
+    lastWatered: new Date(),
+    wateredAt: usedWater ? new Date() : null,
+    harvested: false,
+    dead: false,
+    isDead: false
+  },
+  { upsert: true }
+);
+
 
         const imageURL = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/farming/weed_r_p${potType}_0.png`;
         const embed = new EmbedBuilder()
@@ -7210,7 +7216,8 @@ const sent = await message.channel.send({ embeds: [embed], components });
       if (interaction.customId === 'harvest_plant') {
         if (plant.harvested) return interaction.reply({ content: '❌ Already harvested.', ephemeral: true });
 
-        const bonus = plant.potType + plant.fertilizer + 1;
+const bonus = Math.floor((plant.yield || 3) * (1 + 0.1 * plant.fertilizer)); // 🌿 More fertilizer = higher yield
+
         await addItem(userId, guildId, 'weed', bonus);
         plant.harvested = true;
         await plant.save();

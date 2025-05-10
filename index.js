@@ -7234,7 +7234,17 @@ if (interaction.customId === 'harvest_plant') {
   console.log(`🌿 HARVEST DEBUG - Calculated yieldAmount: ${yieldAmount}`);
 
   // Add to inventory
-  await addItem(userId, guildId, 'weed', yieldAmount);
+const inv = profile.inventory instanceof Map
+  ? Object.fromEntries(profile.inventory)
+  : { ...profile.inventory };
+
+inv['weed'] = (inv['weed'] || 0) + yieldAmount;
+profile.inventory = inv;
+profile.markModified('inventory');
+profile.stashUsed += yieldAmount;
+profile.markModified('stashUsed');
+await profile.save();
+
   console.log("🌿 HARVEST DEBUG - Called addItem");
 
   // Add to stashUsed

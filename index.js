@@ -7215,29 +7215,49 @@ client.commands.set('myplant', {
         return interaction.reply({ content: `🌾 You used **Fertilizer Level ${fertLevel}**. Growth will improve.`, ephemeral: true });
       }
 
-      if (interaction.customId === 'harvest_plant') {
-        if (plant.harvested) return interaction.reply({ content: '❌ Already harvested.', ephemeral: true });
+if (interaction.customId === 'harvest_plant') {
+  if (plant.harvested) return interaction.reply({ content: '❌ Already harvested.', ephemeral: true });
 
-        const selectedSeed = seedOptions.find(s => s.id === plant.seedId);
-        const baseYield = selectedSeed?.yield || 3;
-        const potBonus = plant.potType || 0;
-        const fertBonus = plant.fertilizer || 0;
-        const yieldAmount = baseYield + potBonus * 2 + fertBonus * 2;
+  console.log("🌿 HARVEST DEBUG - Plant Data:", {
+    seedId: plant.seedId,
+    potType: plant.potType,
+    fertilizer: plant.fertilizer
+  });
 
-        await addItem(userId, guildId, 'weed', yieldAmount);
-        const profile = await DealerProfile.findOne({ userId, guildId });
-        if (profile) {
-          profile.stashUsed += yieldAmount;
-          profile.markModified('stashUsed');
-          await profile.save();
-        }
+  const selectedSeed = seedOptions.find(s => s.id === plant.seedId);
+  const baseYield = selectedSeed?.yield || 3;
+  const potBonus = plant.potType || 0;
+  const fertBonus = plant.fertilizer || 0;
+  const yieldAmount = baseYield + potBonus * 2 + fertBonus * 2;
 
-        plant.harvested = true;
-        await plant.save();
-        await Levels.appendXp(userId, guildId, yieldAmount * 10);
+  console.log(`🌿 HARVEST DEBUG - Found seed yield: ${baseYield}`);
+  console.log(`🌿 HARVEST DEBUG - Calculated yieldAmount: ${yieldAmount}`);
 
-        return interaction.reply({ content: `🌿 You harvested **${yieldAmount}x weed**. Added to your stash.`, ephemeral: true });
-      }
+  // Add to inventory
+  await addItem(userId, guildId, 'weed', yieldAmount);
+  console.log("🌿 HARVEST DEBUG - Called addItem");
+
+  // Add to stashUsed
+  const profile = await DealerProfile.findOne({ userId, guildId });
+  if (profile) {
+    profile.stashUsed += yieldAmount;
+    profile.markModified('stashUsed');
+    await profile.save();
+    console.log("🌿 HARVEST DEBUG - Updated stashUsed in DealerProfile");
+  } else {
+    console.log("🌿 HARVEST DEBUG - DealerProfile not found for user");
+  }
+
+  plant.harvested = true;
+  await plant.save();
+  console.log("🌿 HARVEST DEBUG - Marked plant as harvested and saved");
+
+  await Levels.appendXp(userId, guildId, yieldAmount * 10);
+  console.log(`🌿 HARVEST DEBUG - Added XP: ${yieldAmount * 10}`);
+
+  return interaction.reply({ content: `🌿 You harvested **${yieldAmount}x weed**. Added to your stash.`, ephemeral: true });
+}
+
     });
   }
 });

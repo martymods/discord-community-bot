@@ -4277,11 +4277,18 @@ client.commands.set('banktotal', {
     const totalBank = bankSum[0]?.total || 0;
     const combined = totalCash + totalTokens + totalBank;
 
-    message.channel.send(`🏦 **Total Wealth in Circulation**  
-💵 Cash: $${totalCash.toLocaleString()}  
-🏛️ Banked Funds: $${totalBank.toLocaleString()}  
-🎲 Betting Tokens: ${totalTokens.toLocaleString()} DreamTokens  
-🧮 **Combined Total: $${combined.toLocaleString()}**`);
+    const embed = new EmbedBuilder()
+      .setTitle('🏦 Dreamworld Point Bank Broadcast')
+      .setDescription(`**Current Wealth Circulation Report**\n\n💵 **Liquid Cash:** $${totalCash.toLocaleString()}\n🏛️ **Bank Deposits:** $${totalBank.toLocaleString()}\n🎲 **DreamTokens:** ${totalTokens.toLocaleString()} tokens\n\n🧮 **Combined Total:** $${combined.toLocaleString()}`)
+      .setColor('#ffaa00')
+      .setImage('https://img.youtube.com/vi/WVWhYQhtXBE/maxresdefault.jpg')
+      .setURL('https://www.youtube.com/watch?v=WVWhYQhtXBE') // Clickable video
+      .setFooter({ text: 'Dreamworld Bank • Broadcast feed encrypted by the House' });
+
+    await message.channel.send({ embeds: [embed] });
+
+    // Autoplay video (simulate it via a follow-up link since embeds can't autoplay in Discord)
+    await message.channel.send(`▶️ **Live Feed:** https://www.youtube.com/embed/WVWhYQhtXBE?autoplay=1&mute=1`);
   }
 });
 

@@ -7106,6 +7106,16 @@ client.commands.set('myplant', {
     const Plant = require('./models/PlantModel');
     const { addItem, getInventory, removeItem } = require('./economy/inventory');
     const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    const Levels = require('./economy/xpRewards');
+    const DealerProfile = require('./economy/dealerProfileModel');
+
+    const seedOptions = [
+      { id: 'weed_seed_0', yield: 10 },
+      { id: 'weed_seed_3', yield: 50 },
+      { id: 'weed_seed_6', yield: 150 },
+      { id: 'weed_seed_9', yield: 250 },
+      { id: 'weed_seed_11', yield: 500 }
+    ];
 
     const plant = await Plant.findOne({ userId, guildId });
     if (!plant) return message.reply("🌱 You haven’t planted anything yet. Use !farm to begin.");
@@ -7138,9 +7148,8 @@ client.commands.set('myplant', {
     const fertStatus = plant.fertilizer > 0 ? `🌾 Fertilizer Level: ${plant.fertilizer}` : '❌ No fertilizer';
 
     const imgURL = plant.dead
-    ? `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/farming/weed_r_p${plant.potType}_dead.png`
-    : getPlantImage(plant.potType || 0, isNaN(stage) ? 0 : stage);
-  
+      ? `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/farming/weed_r_p${plant.potType}_dead.png`
+      : getPlantImage(plant.potType || 0, isNaN(stage) ? 0 : stage);
 
     const embed = new EmbedBuilder()
       .setTitle("🪴 Your Weed Plant")
@@ -7150,17 +7159,16 @@ client.commands.set('myplant', {
       .setColor(plant.dead ? "#444444" : "#44dd88")
       .setFooter({ text: plant.harvested ? "✅ Already harvested" : "Water daily and check back!" });
 
-      const components = [];
+    const components = [];
+    const row = new ActionRowBuilder();
 
-      const row = new ActionRowBuilder();
-      if (!plant.dead && !plant.harvested) {
-        row.addComponents(
-          new ButtonBuilder().setCustomId('water_plant').setLabel('💧 Water').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('fertilize_plant').setLabel('🌾 Fertilize').setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId('harvest_plant').setLabel('🌿 Harvest').setStyle(ButtonStyle.Success).setDisabled(elapsed < duration)
-        );
-        components.push(row);
-      
+    if (!plant.dead && !plant.harvested) {
+      row.addComponents(
+        new ButtonBuilder().setCustomId('water_plant').setLabel('💧 Water').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('fertilize_plant').setLabel('🌾 Fertilize').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('harvest_plant').setLabel('🌿 Harvest').setStyle(ButtonStyle.Success).setDisabled(elapsed < duration)
+      );
+      components.push(row);
     } else if (plant.dead && !plant.harvested) {
       const deadRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('discard_plant').setLabel('🗑️ Discard').setStyle(ButtonStyle.Danger),
@@ -7168,28 +7176,25 @@ client.commands.set('myplant', {
       );
       components.push(deadRow);
     }
-    
-const sent = await message.channel.send({ embeds: [embed], components });
 
+    const sent = await message.channel.send({ embeds: [embed], components });
 
     const collector = sent.createMessageComponentCollector({ time: 60000 });
     collector.on('collect', async interaction => {
+      if (interaction.user.id !== userId) return interaction.reply({ content: 'This isn’t your plant.', ephemeral: true });
+
       if (interaction.customId === 'discard_plant') {
         await Plant.deleteOne({ userId, guildId });
         return interaction.reply({ content: '🗑️ You discarded your dead plant. You may now `!farm` again.', ephemeral: true });
       }
-      
+
       if (interaction.customId === 'harvest_dead_plant') {
         if (plant.harvested) return interaction.reply({ content: '❌ Already harvested.', ephemeral: true });
-      
-        await addItem(userId, guildId, 'weed', 1); // optional, 0x weed
+        await addItem(userId, guildId, 'weed', 0);
         plant.harvested = true;
         await plant.save();
-      
         return interaction.reply({ content: `☠️ You harvested your dead plant. You got nothing, but it's cleared.`, ephemeral: true });
       }
-      
-      if (interaction.user.id !== userId) return interaction.reply({ content: 'This isn’t your plant.', ephemeral: true });
 
       if (interaction.customId === 'water_plant') {
         plant.lastWatered = new Date();
@@ -7201,36 +7206,42 @@ const sent = await message.channel.send({ embeds: [embed], components });
         const inventory = await getInventory(userId, guildId);
         const fertLevels = ['weed_fert_3', 'weed_fert_2', 'weed_fert_1', 'weed_fert_0'];
         const bestFert = fertLevels.find(f => inventory[f] && inventory[f] > 0);
-
-        if (!bestFert) {
-          return interaction.reply({ content: '❌ You don’t have any fertilizer.', ephemeral: true });
-        }
+        if (!bestFert) return interaction.reply({ content: '❌ You don’t have any fertilizer.', ephemeral: true });
 
         const fertLevel = parseInt(bestFert.split('_').pop());
         plant.fertilizer = fertLevel;
         await plant.save();
         await removeItem(userId, guildId, bestFert, 1);
-
         return interaction.reply({ content: `🌾 You used **Fertilizer Level ${fertLevel}**. Growth will improve.`, ephemeral: true });
       }
 
       if (interaction.customId === 'harvest_plant') {
         if (plant.harvested) return interaction.reply({ content: '❌ Already harvested.', ephemeral: true });
 
-const bonus = Math.floor((plant.yield || 3) * (1 + 0.1 * plant.fertilizer)); // 🌿 More fertilizer = higher yield
+        const selectedSeed = seedOptions.find(s => s.id === plant.seedId);
+        const baseYield = selectedSeed?.yield || 3;
+        const potBonus = plant.potType || 0;
+        const fertBonus = plant.fertilizer || 0;
+        const yieldAmount = baseYield + potBonus * 2 + fertBonus * 2;
 
-        await addItem(userId, guildId, 'weed', bonus);
+        await addItem(userId, guildId, 'weed', yieldAmount);
+        const profile = await DealerProfile.findOne({ userId, guildId });
+        if (profile) {
+          profile.stashUsed += yieldAmount;
+          profile.markModified('stashUsed');
+          await profile.save();
+        }
+
         plant.harvested = true;
         await plant.save();
+        await Levels.appendXp(userId, guildId, yieldAmount * 10);
 
-        return interaction.reply({ content: `🌿 You harvested **${bonus}x weed**. Added to your stash.`, ephemeral: true });
-        
+        return interaction.reply({ content: `🌿 You harvested **${yieldAmount}x weed**. Added to your stash.`, ephemeral: true });
       }
     });
-    await Levels.appendXp(userId, guildId, yieldAmount * 10); // 10 XP per weed
-
   }
 });
+
 
 client.commands.set('fashion', fashion);
 

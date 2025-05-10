@@ -9,7 +9,9 @@ const plantSchema = new mongoose.Schema({
   plantedAt: { type: Date, required: true },
   lastWatered: { type: Date, required: true },
   harvested: { type: Boolean, default: false },
-  dead: { type: Boolean, default: false }
+  dead: { type: Boolean, default: false },
+  yield: { type: Number, default: 3 }, // 🆕 Add this line to control how much weed you get
+
 }, { timestamps: true });
 
 plantSchema.index({ userId: 1, guildId: 1 }, { unique: true });

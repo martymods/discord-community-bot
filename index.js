@@ -7018,7 +7018,8 @@ client.commands.set('farm', {
 
     collector.on('collect', async interaction => {
 
-      const selectedSeed = seedOptions.find(s => s.id === seedId);
+const selectedSeed = seedOptions.find(s => s.id === selection.seed);
+
 const seedYield = selectedSeed?.yield || 3;
 
       if (interaction.user.id !== userId) return interaction.reply({ content: "Not your session.", ephemeral: true });

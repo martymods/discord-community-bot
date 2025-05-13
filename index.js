@@ -90,6 +90,9 @@ const playCommand = require('./commands/play.js');
 const { generateCarmenMessage } = require('./events/npc/carmenAI');
 const { fetchStockPrice, isPennyStock } = require('./utils/fetchStockPrice');
 const { scanForPennySnipers } = require('./utils/pennyScanner');
+const { checkForPriceSpikes } = require('./utils/pennySpikeWatcher');
+const { getAllSnipers } = require('./economy/sniperTargets');
+const { removeTrackedTicker } = require('./economy/sniperTargets');
 
 
 
@@ -4181,6 +4184,28 @@ client.commands.set('scanpennies', {
   }
 });
 
+client.commands.set('watchlist', {
+  async execute(message) {
+    const snipes = getAllSnipers().filter(s => s.source === 'penny');
+    if (!snipes.length) return message.reply("📭 No penny stocks are currently tracked.");
+
+    const lines = snipes.map(s =>
+      `• **${s.ticker}** (Added by: <@${s.addedBy}> at ${new Date(s.addedAt).toLocaleString()})`
+    );
+
+    message.reply(`📋 **Penny Stock Watchlist:**\n${lines.join('\n')}`);
+  }
+});
+
+client.commands.set('untrack', {
+  async execute(message, args) {
+    const ticker = args[0]?.toUpperCase();
+    if (!ticker) return message.reply("Usage: `!untrack <TICKER>`");
+
+    removeTrackedTicker(ticker);
+    message.reply(`❌ Untracked **${ticker}** from sniper list.`);
+  }
+});
 
 client.commands.set('nominate', {
   async execute(message, args) {
@@ -7401,8 +7426,11 @@ setInterval(() => {
   rotateShop();
 }, 20 * 60 * 1000); // Rotate every 20 minutes
 
-  // Scan every hour
+  // Scan every hour penny
   setInterval(() => scanForPennySnipers(client), 60 * 60 * 1000); // every 60 mins
+
+  // Every 15 minutes peeny
+setInterval(() => checkForPriceSpikes(client), 15 * 60 * 1000);
 
 
 app.use('/stripe/webhook', stripeWebhook);

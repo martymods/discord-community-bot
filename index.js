@@ -91,8 +91,13 @@ const { generateCarmenMessage } = require('./events/npc/carmenAI');
 const { fetchStockPrice, isPennyStock } = require('./utils/fetchStockPrice');
 const { scanForPennySnipers } = require('./utils/pennyScanner');
 const { checkForPriceSpikes } = require('./utils/pennySpikeWatcher');
-const { getAllSnipers } = require('./economy/sniperTargets');
 const { removeTrackedTicker } = require('./economy/sniperTargets');
+const {
+  addTrackedTicker,
+  removeTrackedTicker,
+  getAllSnipers,
+  getTrackedTickers
+} = require('./economy/sniperTargets');
 
 
 
@@ -450,7 +455,6 @@ const { hasPaidForSubmission } = require('./economy/musicPayCheck.js');
 const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require('./economy/sportsPredict');
 const { scanTicker } = require('./economy/financeIntel');
 const { scanOptionsFlow } = require('./economy/flowIntel');
-const { addTrackedTicker, getAllSnipers, getTrackedTickers } = require('./economy/sniperTargets');
 const { scanAllSnipers } = require('./economy/flowIntel');
 const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');

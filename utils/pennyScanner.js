@@ -1,8 +1,7 @@
-// utils/pennyScanner.js
-
 const axios = require('axios');
-const cheerio = require('cheerio');
 const { addTrackedTicker } = require('../economy/sniperTargets');
+
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
 async function scanForPennySnipers(client) {
   const channel = client.channels.cache.find(c => c.name === 'finance-intel');
@@ -12,67 +11,41 @@ async function scanForPennySnipers(client) {
   }
 
   const hits = [];
-  const url = 'https://finance.yahoo.com/screener/predefined/penny_stocks';
+  const pennyTickers = []; // Final list
 
   try {
-    console.log(`📡 Requesting Yahoo Finance screener page:\n${url}`);
+    console.log("📡 Fetching US stock list from Finnhub...");
+    const all = await axios.get(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_API_KEY}`);
+    console.log(`✅ Retrieved ${all.data.length} total tickers.`);
 
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'text/html',
-        'Accept-Encoding': 'gzip, deflate, br'
+    const filtered = all.data.filter(s =>
+      s.type === 'Common Stock' && s.currency === 'USD'
+    );
+
+    for (const stock of filtered.slice(0, 300)) { // limit to 300 for speed
+      try {
+        const quote = await axios.get(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_API_KEY}`);
+        const price = quote.data.c;
+        const volume = quote.data.v;
+
+        if (price > 0 && price <= 5 && volume > 100000) {
+          addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
+          hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
+        }
+      } catch (e) {
+        console.log(`⚠️ Error fetching ${stock.symbol}:`, e.message);
       }
-    });
-
-    console.log(`✅ HTTP ${response.status} ${response.statusText}`);
-    console.log("📦 Headers:", response.headers);
-    console.log("📏 Response length:", response.data.length);
-
-    const $ = cheerio.load(response.data);
-
-    const table = $('table');
-    if (table.length === 0) {
-      console.log("❌ No <table> found in response. Page structure may have changed.");
-      await channel.send("⚠️ Screener page loaded but no table was found. Yahoo might've updated their layout.");
-      return;
     }
 
-    const rows = $('table tbody tr');
-    console.log(`✅ Found ${rows.length} rows in screener table.`);
-
-    rows.each((i, row) => {
-      const cells = $(row).find('td');
-      const ticker = $(cells[0]).text().trim();
-      const price = parseFloat($(cells[2]).text().replace(/[^\d.]/g, ''));
-      const volume = parseInt($(cells[6]).text().replace(/,/g, ''));
-
-      console.log(`→ ${ticker}: $${price}, Volume: ${volume}`);
-
-      if (ticker && price > 0 && price <= 5 && volume >= 100000) {
-        addTrackedTicker(ticker, 'penny', 'scanner-bot');
-        hits.push(`• $${ticker} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
-      }
-    });
-
     if (hits.length) {
-      await channel.send(`📡 **Live Penny Stock Screener Alert**\nTop Candidates:\n${hits.join('\n')}`);
+      await channel.send(`📡 **Penny Stock Screener Results (via Finnhub)**\nTop Candidates:\n${hits.join('\n')}`);
     } else {
-      await channel.send("📡 Screener found no penny stocks meeting criteria.");
+      await channel.send("📭 No penny stocks found in Finnhub scan.");
     }
 
   } catch (err) {
-    console.log("❌ Screener failed:");
-    console.log("🧵 URL:", url);
-    if (err.response) {
-      console.log("📉 Response status:", err.response.status);
-      console.log("📃 Response headers:", err.response.headers);
-      console.log("📄 Response body:", err.response.data?.slice?.(0, 500) ?? '[binary]');
-    } else {
-      console.log("❗ Request error:", err.message);
-    }
-
-    await channel.send("⚠️ Error scraping Yahoo Finance for penny stocks.");
+    console.error("❌ Finnhub scanner failed:", err.message);
+    await channel.send("⚠️ Failed to scan penny stocks using Finnhub.");
   }
 }
 

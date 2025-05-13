@@ -6,6 +6,14 @@ const { addTrackedTicker } = require('../economy/sniperTargets');
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 const LOG_PATH = path.join(__dirname, '../logs/penny_snipes.json');
+const LOG_DIR = path.dirname(LOG_PATH);
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+if (!fs.existsSync(LOG_PATH)) {
+  fs.writeFileSync(LOG_PATH, '[]');
+}
+
 
 if (!FINNHUB_API_KEY) {
   console.error("❌ FINNHUB_API_KEY is missing! Make sure it's set in Render.");

@@ -3,6 +3,12 @@ const { addTrackedTicker } = require('../economy/sniperTargets');
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
+if (!FINNHUB_API_KEY) {
+  console.error("❌ FINNHUB_API_KEY is missing! Make sure it's set in Render's Environment Variables.");
+} else {
+  console.log(`🔐 FINNHUB_API_KEY loaded (last 6 chars: ${FINNHUB_API_KEY.slice(-6)})`);
+}
+
 async function scanForPennySnipers(client) {
   const channel = client.channels.cache.find(c => c.name === 'finance-intel');
   if (!channel) {
@@ -11,7 +17,6 @@ async function scanForPennySnipers(client) {
   }
 
   const hits = [];
-  const pennyTickers = []; // Final list
 
   try {
     console.log("📡 Fetching US stock list from Finnhub...");
@@ -22,18 +27,18 @@ async function scanForPennySnipers(client) {
       s.type === 'Common Stock' && s.currency === 'USD'
     );
 
-    for (const stock of filtered.slice(0, 300)) { // limit to 300 for speed
+    for (const stock of filtered.slice(0, 300)) {
       try {
         const quote = await axios.get(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_API_KEY}`);
         const price = quote.data.c;
         const volume = quote.data.v;
 
-        if (price > 0 && price <= 5 && volume > 100000) {
+        if (price > 0 && price <= 5 && volume >= 100000) {
           addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
           hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
         }
       } catch (e) {
-        console.log(`⚠️ Error fetching ${stock.symbol}:`, e.message);
+        console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
       }
     }
 

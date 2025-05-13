@@ -1,24 +1,8 @@
 // economy/sniperTargets.js
 
+const { fetchStockPrice, isPennyStock } = require('../utils/fetchStockPrice');
+
 const trackedTickers = new Map(); // ticker → { addedBy, source }
-
-// 🪙 Penny Stock Check
-function isPennyStock(price) {
-  return price > 0 && price <= 5;
-}
-
-// Placeholder — replace with real API later
-async function fetchStockPrice(ticker) {
-  // Example hardcoded responses for testing
-  const dummyPrices = {
-    PLTR: 16.2,
-    SOFI: 7.4,
-    MARA: 4.1,  // 🪙 Penny
-    RIOT: 2.9,  // 🪙 Penny
-    BBBY: 0.85  // 🪙 Penny
-  };
-  return dummyPrices[ticker.toUpperCase()] ?? 3.5; // Default mock
-}
 
 function addTrackedTicker(ticker, source = 'manual', addedBy = 'system') {
   trackedTickers.set(ticker.toUpperCase(), {

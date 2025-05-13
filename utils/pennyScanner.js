@@ -23,33 +23,46 @@ async function scanForPennySnipers(client) {
     const all = await axios.get(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_API_KEY}`);
     console.log(`✅ Retrieved ${all.data.length} total tickers.`);
 
-    // Filter for USD common stocks
     const filtered = all.data.filter(s =>
       s.type === 'Common Stock' && s.currency === 'USD'
     );
 
-    // Shuffle and limit
     const shuffled = filtered.sort(() => Math.random() - 0.5);
-    const targets = shuffled.slice(0, 150);
+    const now = Math.floor(Date.now() / 1000);
+    const oneDayAgo = now - 60 * 60 * 24;
 
-    for (const stock of targets) {
+    for (const stock of shuffled.slice(0, 150)) {
       console.log(`🔍 Checking ${stock.symbol}...`);
+
       try {
-        const quote = await axios.get(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_API_KEY}`);
-        const price = quote.data.c;
-        const volume = quote.data.v;
+        const candle = await axios.get(`https://finnhub.io/api/v1/stock/candle`, {
+          params: {
+            symbol: stock.symbol,
+            resolution: 'D',
+            from: oneDayAgo,
+            to: now,
+            token: FINNHUB_API_KEY
+          }
+        });
+
+        if (candle.data.s !== 'ok') {
+          console.log(`⛔ No candle data for ${stock.symbol}`);
+          continue;
+        }
+
+        const price = candle.data.c?.[0];
+        const volume = candle.data.v?.[0];
 
         console.log(`↪️ ${stock.symbol} — $${price?.toFixed(2)} | Vol: ${volume?.toLocaleString()}`);
 
-if (price > 0 && price <= 5 && volume >= 50000) {
-  addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
-  hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
-}
+        if (price > 0 && price <= 5 && volume >= 100000) {
+          addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
+          hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
+        }
 
-
-        await new Promise(res => setTimeout(res, 1100)); // wait ~1.1s to stay under rate limit
+        await new Promise(res => setTimeout(res, 1100)); // Rate-limit safe
       } catch (e) {
-        console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
+        console.log(`⚠️ Error fetching candle for ${stock.symbol}:`, e.message);
       }
     }
 

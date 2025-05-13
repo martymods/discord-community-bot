@@ -4191,7 +4191,10 @@ client.commands.set('scanpennies', {
 
 client.commands.set('watchlist', {
   async execute(message) {
-    const snipes = getAllSnipers().filter(s => s.source === 'penny');
+const snipes = getAllSnipers().filter(s =>
+  s.source === 'penny' || s.source === 'auto-scan'
+);
+
     if (!snipes.length) return message.reply("📭 No penny stocks are currently tracked.");
 
     const lines = snipes.map(s =>

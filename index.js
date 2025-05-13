@@ -458,7 +458,6 @@ const { buildRealTeamStats, simpleLogicPredict, runDailyPredictions } = require(
 const { scanTicker } = require('./economy/financeIntel');
 const { scanOptionsFlow } = require('./economy/flowIntel');
 const { scanAllSnipers } = require('./economy/flowIntel');
-const { getSniperRotation } = require('./economy/sniperTargets');
 const realShopItems = require('./economy/realShopItems');
 const TokenModel = require('./economy/bettingStatsModel');
 const { startRandomChaos } = require('./economy/chaosEvents');

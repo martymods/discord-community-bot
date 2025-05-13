@@ -96,10 +96,9 @@ const {
   removeTrackedTicker,
   getAllSnipers,
   getTrackedTickers,
-  getSniperRotation,
-  isPennyStock,
-  fetchStockPrice
+  getSniperRotation
 } = require('./economy/sniperTargets');
+
 
 
 

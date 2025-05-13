@@ -89,6 +89,8 @@ const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
 const { generateCarmenMessage } = require('./events/npc/carmenAI');
 const { fetchStockPrice, isPennyStock } = require('./utils/fetchStockPrice');
+const { scanForPennySnipers } = require('./utils/pennyScanner');
+
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -4171,6 +4173,15 @@ client.commands.set('penny', {
   }
 });
 
+client.commands.set('scanpennies', {
+  async execute(message) {
+    if (message.channel.name !== 'finance-intel') return;
+    await scanForPennySnipers(message.client);
+    message.reply("🔍 Penny scan complete.");
+  }
+});
+
+
 client.commands.set('nominate', {
   async execute(message, args) {
     const ticker = args[0]?.toUpperCase();
@@ -7390,6 +7401,8 @@ setInterval(() => {
   rotateShop();
 }, 20 * 60 * 1000); // Rotate every 20 minutes
 
+  // Scan every hour
+  setInterval(() => scanForPennySnipers(client), 60 * 60 * 1000); // every 60 mins
 
 
 app.use('/stripe/webhook', stripeWebhook);

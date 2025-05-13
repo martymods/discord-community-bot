@@ -91,13 +91,16 @@ const { generateCarmenMessage } = require('./events/npc/carmenAI');
 const { fetchStockPrice, isPennyStock } = require('./utils/fetchStockPrice');
 const { scanForPennySnipers } = require('./utils/pennyScanner');
 const { checkForPriceSpikes } = require('./utils/pennySpikeWatcher');
-const { removeTrackedTicker } = require('./economy/sniperTargets');
 const {
   addTrackedTicker,
   removeTrackedTicker,
   getAllSnipers,
-  getTrackedTickers
+  getTrackedTickers,
+  getSniperRotation,
+  isPennyStock,
+  fetchStockPrice
 } = require('./economy/sniperTargets');
+
 
 
 

@@ -23,11 +23,17 @@ async function scanForPennySnipers(client) {
     const all = await axios.get(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_API_KEY}`);
     console.log(`✅ Retrieved ${all.data.length} total tickers.`);
 
+    // Filter for USD common stocks
     const filtered = all.data.filter(s =>
       s.type === 'Common Stock' && s.currency === 'USD'
     );
 
-    for (const stock of filtered.slice(0, 50)) { // scan 50 tickers per run
+    // Shuffle and limit
+    const shuffled = filtered.sort(() => Math.random() - 0.5);
+    const targets = shuffled.slice(0, 100);
+
+    for (const stock of targets) {
+      console.log(`🔍 Checking ${stock.symbol}...`);
       try {
         const quote = await axios.get(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_API_KEY}`);
         const price = quote.data.c;
@@ -38,7 +44,7 @@ async function scanForPennySnipers(client) {
           hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
         }
 
-        await new Promise(res => setTimeout(res, 1100)); // wait ~1.1 seconds
+        await new Promise(res => setTimeout(res, 1100)); // wait ~1.1s to stay under rate limit
       } catch (e) {
         console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
       }

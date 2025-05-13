@@ -4157,6 +4157,19 @@ client.commands.set('sniperlog', {
   }
 });
 
+client.commands.set('penny', {
+  async execute(message, args) {
+    const ticker = args[0]?.toUpperCase();
+    if (!ticker) return message.reply("Usage: `!penny <TICKER>`");
+
+    const price = await fetchStockPrice(ticker);
+    if (!isPennyStock(price)) return message.reply(`❌ ${ticker} is not a penny stock.`);
+
+    addTrackedTicker(ticker, 'penny', message.author.id);
+    message.reply(`🪙 Tracking **${ticker}** as a potential penny sniper play.`);
+  }
+});
+
 client.commands.set('nominate', {
   async execute(message, args) {
     const ticker = args[0]?.toUpperCase();

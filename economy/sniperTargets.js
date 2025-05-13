@@ -1,7 +1,5 @@
 // economy/sniperTargets.js
 
-const { fetchStockPrice, isPennyStock } = require('../utils/fetchStockPrice');
-
 const trackedTickers = new Map(); // ticker → { addedBy, source }
 
 function addTrackedTicker(ticker, source = 'manual', addedBy = 'system') {
@@ -43,7 +41,6 @@ module.exports = {
   removeTrackedTicker,
   getTrackedTickers,
   getAllSnipers,
-  getSniperRotation,
-  isPennyStock,
-  fetchStockPrice
+  getSniperRotation
 };
+

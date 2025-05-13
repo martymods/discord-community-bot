@@ -3,6 +3,9 @@ const { addTrackedTicker } = require('../economy/sniperTargets');
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
+// Toggle this to false if you want to test without volume filter
+const REQUIRE_VOLUME = true;
+
 if (!FINNHUB_API_KEY) {
   console.error("❌ FINNHUB_API_KEY is missing! Make sure it's set in Render's Environment Variables.");
 } else {
@@ -26,8 +29,7 @@ async function scanForPennySnipers(client) {
     const filtered = all.data.filter(s =>
       s.type === 'Common Stock' &&
       s.currency === 'USD' &&
-      s.exchange !== 'OTC' &&
-      s.symbol.length <= 5
+      ['NASDAQ', 'NYSE', 'AMEX'].includes(s.exchange)
     );
 
     const shuffled = filtered.sort(() => Math.random() - 0.5);
@@ -46,14 +48,20 @@ async function scanForPennySnipers(client) {
         const price = quote.data.c;
         const volume = quote.data.v;
 
-        console.log(`↪️ ${stock.symbol} — $${price?.toFixed(2)} | Vol: ${volume?.toLocaleString()}`);
-
-        if (price > 0 && price <= 5 && volume >= 100000) {
-          addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
-          hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
+        if (volume === undefined) {
+          console.log(`⚠️ ${stock.symbol} returned no volume. Raw quote:`, quote.data);
         }
 
-        await new Promise(res => setTimeout(res, 1100)); // Safe API delay
+        console.log(`↪️ ${stock.symbol} — $${price?.toFixed(2)} | Vol: ${volume?.toLocaleString() ?? 'N/A'}`);
+
+        const passesVolume = !REQUIRE_VOLUME || (volume >= 100000);
+
+        if (price > 0 && price <= 5 && passesVolume) {
+          addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
+          hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume?.toLocaleString() ?? 'N/A'}`);
+        }
+
+        await new Promise(res => setTimeout(res, 1100));
       } catch (e) {
         console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
       }

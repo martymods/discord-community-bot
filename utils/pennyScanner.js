@@ -1,7 +1,8 @@
-const yahooFinance = require('yahoo-finance2').default;
-const { addTrackedTicker } = require('../economy/sniperTargets');
+// utils/pennyScanner.js
 
-const candidateTickers = ['MARA', 'SIRI', 'NOK', 'BBBY', 'BBIG', 'MVIS', 'SOFI', 'IDEX', 'ZNGA', 'NNDM'];
+const axios = require('axios');
+const cheerio = require('cheerio');
+const { addTrackedTicker } = require('../economy/sniperTargets');
 
 async function scanForPennySnipers(client) {
   const channel = client.channels.cache.find(c => c.name === 'finance-intel');
@@ -9,26 +10,38 @@ async function scanForPennySnipers(client) {
 
   const hits = [];
 
-  for (const ticker of candidateTickers) {
-    try {
-      const quote = await yahooFinance.quote(ticker);
-      const price = quote.regularMarketPrice;
-      const volume = quote.regularMarketVolume;
+  try {
+    // Yahoo Finance Screener: Penny stocks under $5 with volume
+    const res = await axios.get('https://finance.yahoo.com/screener/predefined/penny_stocks');
+    const $ = cheerio.load(res.data);
 
-      if (price > 0 && price <= 5 && volume >= 100000) {
-        addTrackedTicker(ticker, 'auto-scan', 'scanner-bot');
+    const rows = $('table tbody tr');
+
+    for (let i = 0; i < rows.length && hits.length < 10; i++) {
+      const row = $(rows[i]);
+      const cells = row.find('td');
+
+      const ticker = $(cells[0]).text().trim();
+      const name = $(cells[1]).text().trim();
+      const price = parseFloat($(cells[2]).text().replace(/[^\d.]/g, ''));
+      const volume = parseInt($(cells[6]).text().replace(/,/g, ''));
+
+      if (!ticker || isNaN(price) || isNaN(volume)) continue;
+      if (price <= 5 && volume > 100000) {
+        addTrackedTicker(ticker, 'penny', 'scanner-bot');
         hits.push(`• $${ticker} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
       }
-
-    } catch (err) {
-      console.error(`❌ Error scanning ${ticker}:`, err.message);
     }
-  }
 
-  if (hits.length > 0) {
-    channel.send(`📡 **Penny Stock Scanner Alert**\nTop Candidates:\n${hits.join('\n')}`);
-  } else {
-    channel.send(`📡 Scanner found no valid penny candidates this round.`);
+    if (hits.length) {
+      await channel.send(`📡 **Live Penny Stock Screener Alert**\nTop Candidates:\n${hits.join('\n')}`);
+    } else {
+      await channel.send("📡 Screener found no penny stocks meeting criteria.");
+    }
+
+  } catch (err) {
+    console.error("❌ Screener failed:", err.message);
+    await channel.send("⚠️ Error scanning Yahoo Finance for penny stocks.");
   }
 }
 

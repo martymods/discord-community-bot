@@ -3,7 +3,7 @@ const { addTrackedTicker } = require('../economy/sniperTargets');
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
-// Toggle this to false if you want to test without volume filter
+// Toggle to skip volume check if needed
 const REQUIRE_VOLUME = true;
 
 if (!FINNHUB_API_KEY) {
@@ -29,8 +29,10 @@ async function scanForPennySnipers(client) {
     const filtered = all.data.filter(s =>
       s.type === 'Common Stock' &&
       s.currency === 'USD' &&
-      ['NASDAQ', 'NYSE', 'AMEX'].includes(s.exchange)
+      s.symbol.length <= 5
     );
+
+    console.log("✅ Sample tickers:", filtered.slice(0, 10).map(s => s.symbol).join(', '));
 
     const shuffled = filtered.sort(() => Math.random() - 0.5);
 

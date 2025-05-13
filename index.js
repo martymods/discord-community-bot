@@ -88,6 +88,7 @@ const crystalAI = require('./events/crystalAI');
 const { generateCrystalMessage } = require('./events/crystalAI');
 const playCommand = require('./commands/play.js');
 const { generateCarmenMessage } = require('./events/npc/carmenAI');
+const { fetchStockPrice, isPennyStock } = require('./utils/fetchStockPrice');
 
 
 global.bountyMap = global.bountyMap || new Map();

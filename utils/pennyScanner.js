@@ -24,34 +24,27 @@ async function scanForPennySnipers(client) {
     console.log(`✅ Retrieved ${all.data.length} total tickers.`);
 
     const filtered = all.data.filter(s =>
-      s.type === 'Common Stock' && s.currency === 'USD'
+      s.type === 'Common Stock' &&
+      s.currency === 'USD' &&
+      s.exchange !== 'OTC' &&
+      s.symbol.length <= 5
     );
 
     const shuffled = filtered.sort(() => Math.random() - 0.5);
-    const now = Math.floor(Date.now() / 1000);
-    const oneDayAgo = now - 60 * 60 * 24;
 
     for (const stock of shuffled.slice(0, 150)) {
       console.log(`🔍 Checking ${stock.symbol}...`);
 
       try {
-        const candle = await axios.get(`https://finnhub.io/api/v1/stock/candle`, {
+        const quote = await axios.get(`https://finnhub.io/api/v1/quote`, {
           params: {
             symbol: stock.symbol,
-            resolution: 'D',
-            from: oneDayAgo,
-            to: now,
             token: FINNHUB_API_KEY
           }
         });
 
-        if (candle.data.s !== 'ok') {
-          console.log(`⛔ No candle data for ${stock.symbol}`);
-          continue;
-        }
-
-        const price = candle.data.c?.[0];
-        const volume = candle.data.v?.[0];
+        const price = quote.data.c;
+        const volume = quote.data.v;
 
         console.log(`↪️ ${stock.symbol} — $${price?.toFixed(2)} | Vol: ${volume?.toLocaleString()}`);
 
@@ -60,9 +53,9 @@ async function scanForPennySnipers(client) {
           hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
         }
 
-        await new Promise(res => setTimeout(res, 1100)); // Rate-limit safe
+        await new Promise(res => setTimeout(res, 1100)); // Safe API delay
       } catch (e) {
-        console.log(`⚠️ Error fetching candle for ${stock.symbol}:`, e.message);
+        console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
       }
     }
 

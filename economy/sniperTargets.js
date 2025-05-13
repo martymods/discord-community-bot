@@ -2,8 +2,30 @@
 
 const trackedTickers = new Map(); // ticker → { addedBy, source }
 
+// 🪙 Penny Stock Check
+function isPennyStock(price) {
+  return price > 0 && price <= 5;
+}
+
+// Placeholder — replace with real API later
+async function fetchStockPrice(ticker) {
+  // Example hardcoded responses for testing
+  const dummyPrices = {
+    PLTR: 16.2,
+    SOFI: 7.4,
+    MARA: 4.1,  // 🪙 Penny
+    RIOT: 2.9,  // 🪙 Penny
+    BBBY: 0.85  // 🪙 Penny
+  };
+  return dummyPrices[ticker.toUpperCase()] ?? 3.5; // Default mock
+}
+
 function addTrackedTicker(ticker, source = 'manual', addedBy = 'system') {
-  trackedTickers.set(ticker.toUpperCase(), { addedBy, source, addedAt: new Date() });
+  trackedTickers.set(ticker.toUpperCase(), {
+    addedBy,
+    source,
+    addedAt: new Date()
+  });
 }
 
 function removeTrackedTicker(ticker) {
@@ -27,16 +49,17 @@ function getSniperRotation(count = 3) {
   return shuffled.slice(0, count);
 }
 
-// Pre-seed with common sniper-worthy tickers
+// 🧠 Pre-seed sniper-worthy targets
 [
-    "PLTR", "SOFI", "NVDA", "RIVN", "SPY", "QQQ", "MARA", "RIOT", "COIN", "TSM", "TQQQ", "BBBY"
-  ].forEach(t => addTrackedTicker(t, 'default', 'system'));
-  
+  "PLTR", "SOFI", "NVDA", "RIVN", "SPY", "QQQ", "MARA", "RIOT", "COIN", "TSM", "TQQQ", "BBBY"
+].forEach(t => addTrackedTicker(t, 'default', 'system'));
 
 module.exports = {
   addTrackedTicker,
   removeTrackedTicker,
   getTrackedTickers,
   getAllSnipers,
-  getSniperRotation
+  getSniperRotation,
+  isPennyStock,
+  fetchStockPrice
 };

@@ -27,7 +27,7 @@ async function scanForPennySnipers(client) {
       s.type === 'Common Stock' && s.currency === 'USD'
     );
 
-    for (const stock of filtered.slice(0, 300)) {
+    for (const stock of filtered.slice(0, 50)) { // scan 50 tickers per run
       try {
         const quote = await axios.get(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_API_KEY}`);
         const price = quote.data.c;
@@ -37,6 +37,8 @@ async function scanForPennySnipers(client) {
           addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
           hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
         }
+
+        await new Promise(res => setTimeout(res, 1100)); // wait ~1.1 seconds
       } catch (e) {
         console.log(`⚠️ Error fetching quote for ${stock.symbol}:`, e.message);
       }

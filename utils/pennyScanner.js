@@ -30,7 +30,7 @@ async function scanForPennySnipers(client) {
 
     // Shuffle and limit
     const shuffled = filtered.sort(() => Math.random() - 0.5);
-    const targets = shuffled.slice(0, 100);
+    const targets = shuffled.slice(0, 150);
 
     for (const stock of targets) {
       console.log(`🔍 Checking ${stock.symbol}...`);
@@ -39,10 +39,13 @@ async function scanForPennySnipers(client) {
         const price = quote.data.c;
         const volume = quote.data.v;
 
-        if (price > 0 && price <= 5 && volume >= 100000) {
-          addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
-          hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
-        }
+        console.log(`↪️ ${stock.symbol} — $${price?.toFixed(2)} | Vol: ${volume?.toLocaleString()}`);
+
+if (price > 0 && price <= 5 && volume >= 50000) {
+  addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
+  hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
+}
+
 
         await new Promise(res => setTimeout(res, 1100)); // wait ~1.1s to stay under rate limit
       } catch (e) {

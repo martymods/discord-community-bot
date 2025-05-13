@@ -15,17 +15,31 @@ async function scanForPennySnipers(client) {
   const url = 'https://finance.yahoo.com/screener/predefined/penny_stocks';
 
   try {
-    console.log(`📡 Scraping Yahoo Finance penny screener from: ${url}`);
-    const { data } = await axios.get(url, {
+    console.log(`📡 Requesting Yahoo Finance screener page:\n${url}`);
+
+    const response = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'text/html',
+        'Accept-Encoding': 'gzip, deflate, br'
       }
     });
 
-    const $ = cheerio.load(data);
-    const rows = $('table tbody tr');
+    console.log(`✅ HTTP ${response.status} ${response.statusText}`);
+    console.log("📦 Headers:", response.headers);
+    console.log("📏 Response length:", response.data.length);
 
-    console.log(`✅ Found ${rows.length} rows in table.`);
+    const $ = cheerio.load(response.data);
+
+    const table = $('table');
+    if (table.length === 0) {
+      console.log("❌ No <table> found in response. Page structure may have changed.");
+      await channel.send("⚠️ Screener page loaded but no table was found. Yahoo might've updated their layout.");
+      return;
+    }
+
+    const rows = $('table tbody tr');
+    console.log(`✅ Found ${rows.length} rows in screener table.`);
 
     rows.each((i, row) => {
       const cells = $(row).find('td');
@@ -48,7 +62,16 @@ async function scanForPennySnipers(client) {
     }
 
   } catch (err) {
-    console.error("❌ Screener failed:", err.message);
+    console.log("❌ Screener failed:");
+    console.log("🧵 URL:", url);
+    if (err.response) {
+      console.log("📉 Response status:", err.response.status);
+      console.log("📃 Response headers:", err.response.headers);
+      console.log("📄 Response body:", err.response.data?.slice?.(0, 500) ?? '[binary]');
+    } else {
+      console.log("❗ Request error:", err.message);
+    }
+
     await channel.send("⚠️ Error scraping Yahoo Finance for penny stocks.");
   }
 }

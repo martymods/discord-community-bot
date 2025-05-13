@@ -14,15 +14,11 @@ if (!fs.existsSync(LOG_PATH)) {
   fs.writeFileSync(LOG_PATH, '[]');
 }
 
-
 if (!FINNHUB_API_KEY) {
   console.error("❌ FINNHUB_API_KEY is missing! Make sure it's set in Render.");
 } else {
   console.log(`🔐 FINNHUB_API_KEY loaded (last 6 chars: ${FINNHUB_API_KEY.slice(-6)})`);
 }
-
-// Initialize log file if missing
-if (!fs.existsSync(LOG_PATH)) fs.writeFileSync(LOG_PATH, '[]');
 
 function saveSnipeLog(symbol, price, volume, time) {
   const data = JSON.parse(fs.readFileSync(LOG_PATH));
@@ -81,12 +77,37 @@ async function scanForPennySnipers(client) {
       });
 
       const price = quote.data.c;
-      const volume = quote.data.v;
+
+      // NEW: Fetch volume using /stock/candle endpoint
+      const now = Math.floor(Date.now() / 1000);
+      const oneDayAgo = now - (60 * 60 * 24);
+      let volume = null;
+
+      try {
+        const candle = await axios.get(`https://finnhub.io/api/v1/stock/candle`, {
+          params: {
+            symbol: stock.symbol,
+            resolution: 'D',
+            from: oneDayAgo,
+            to: now,
+            token: FINNHUB_API_KEY
+          }
+        });
+
+        if (candle.data && candle.data.v && Array.isArray(candle.data.v) && candle.data.v.length) {
+          volume = candle.data.v[candle.data.v.length - 1];
+        } else {
+          console.log(`⚠️ No volume from candle for ${stock.symbol}`);
+        }
+      } catch (err) {
+        console.log(`⚠️ Error fetching candle for ${stock.symbol}: ${err.message}`);
+      }
+
       console.log(`↪️ ${stock.symbol} — $${price} | Vol: ${volume ?? 'N/A'}`);
 
-      if (price > 0 && price <= 5) {
+      if (price > 0 && price <= 5 && (volume >= 100000)) {
         addTrackedTicker(stock.symbol, 'penny', 'scanner-bot');
-        hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume ?? 'N/A'}`);
+        hits.push(`• $${stock.symbol} — $${price.toFixed(2)}, Vol: ${volume?.toLocaleString() ?? 'N/A'}`);
         saveSnipeLog(stock.symbol, price, volume, Date.now());
       }
 

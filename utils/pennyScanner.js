@@ -1,7 +1,6 @@
 // utils/pennyScanner.js
 
 const axios = require('axios');
-const cheerio = require('cheerio');
 const { addTrackedTicker } = require('../economy/sniperTargets');
 
 async function scanForPennySnipers(client) {
@@ -11,23 +10,21 @@ async function scanForPennySnipers(client) {
   const hits = [];
 
   try {
-    // Yahoo Finance Screener: Penny stocks under $5 with volume
-    const res = await axios.get('https://finance.yahoo.com/screener/predefined/penny_stocks');
-    const $ = cheerio.load(res.data);
+    const url = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=penny_stocks&count=25';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
 
-    const rows = $('table tbody tr');
+    const quotes = response.data?.finance?.result?.[0]?.quotes || [];
 
-    for (let i = 0; i < rows.length && hits.length < 10; i++) {
-      const row = $(rows[i]);
-      const cells = row.find('td');
+    for (const quote of quotes) {
+      const ticker = quote.symbol;
+      const price = quote.regularMarketPrice;
+      const volume = quote.regularMarketVolume;
 
-      const ticker = $(cells[0]).text().trim();
-      const name = $(cells[1]).text().trim();
-      const price = parseFloat($(cells[2]).text().replace(/[^\d.]/g, ''));
-      const volume = parseInt($(cells[6]).text().replace(/,/g, ''));
-
-      if (!ticker || isNaN(price) || isNaN(volume)) continue;
-      if (price <= 5 && volume > 100000) {
+      if (price > 0 && price <= 5 && volume >= 100000) {
         addTrackedTicker(ticker, 'penny', 'scanner-bot');
         hits.push(`• $${ticker} — $${price.toFixed(2)}, Vol: ${volume.toLocaleString()}`);
       }

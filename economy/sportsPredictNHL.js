@@ -10,7 +10,7 @@ async function buildNHLTeamStats() {
     const teamStats = {};
 
     for (const team of teams) {
-      const abbrev = team.teamAbbrev;
+      const abbrev = team.teamAbbrev?.default;
       const gamesPlayed = team.gamesPlayed;
       const wins = team.wins;
       const goalsFor = team.goalsFor / gamesPlayed;
@@ -36,4 +36,3 @@ async function buildNHLTeamStats() {
 }
 
 module.exports = { buildNHLTeamStats };
-

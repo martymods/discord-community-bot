@@ -7507,6 +7507,7 @@ client.on('messageCreate', require('./events/crystalAI').execute);
 client.on('messageCreate', crystalAI.execute);
 client.commands.set('play', require('./commands/play.js'));
 client.commands.set('crystal', crystalAI);
+client.commands.set('mlbpredict', require('./commands/mlbpredict'));
 
 // ✅ Automatically trigger mule if player is overstocked
 async function maybeSpawnMule(client, userId, guildId, channel) {

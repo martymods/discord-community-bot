@@ -9,23 +9,31 @@ async function buildNHLTeamStats() {
 
     const teamStats = {};
 
-    for (const team of teams) {
-      const abbrev = team.teamAbbrev?.default;
-      const gamesPlayed = team.gamesPlayed;
-      const wins = team.wins;
-      const goalsFor = team.goalsFor / gamesPlayed;
-      const goalsAgainst = team.goalsAgainst / gamesPlayed;
-      const winPct = wins / gamesPlayed;
+for (const team of teams) {
+    console.log('[NHL STATS DEBUG] Sample team object:', team);
+const abbrev = team.teamAbbrev || team.teamTricode;
 
-      const powerScore = winPct * 100 + goalsFor - goalsAgainst;
+  if (!abbrev) {
+    console.warn('[NHL STATS WARNING] Missing abbrev for team:', team.teamName);
+    continue;
+  }
 
-      teamStats[abbrev] = {
-        winPct,
-        goalsFor,
-        goalsAgainst,
-        powerScore
-      };
-    }
+  const gamesPlayed = team.gamesPlayed;
+  const wins = team.wins;
+  const goalsFor = team.goalsFor / gamesPlayed;
+  const goalsAgainst = team.goalsAgainst / gamesPlayed;
+  const winPct = wins / gamesPlayed;
+  const powerScore = winPct * 100 + goalsFor - goalsAgainst;
+
+  teamStats[abbrev] = {
+    winPct,
+    goalsFor,
+    goalsAgainst,
+    powerScore,
+    logo: team.teamLogo?.default
+  };
+}
+
 
     console.log('[NHLPREDICT][STATS] Team stats loaded for:', Object.keys(teamStats));
     return teamStats;

@@ -2650,7 +2650,8 @@ client.commands.set('nhlpredict', {
     console.log("[NHLPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
 
     try {
-      const { buildNHLTeamStats } = require('./economy/sportsPredictNHL');
+      const { buildNHLTeamStats } = require('./economy/buildNHLTeamStats');
+
       const { getTodayNHLGames } = require('./economy/nhlGames');
       const { EmbedBuilder } = require('discord.js');
 

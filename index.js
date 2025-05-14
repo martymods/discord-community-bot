@@ -2700,6 +2700,16 @@ client.commands.set('nhlpredict', {
           .setTimestamp();
 
         await message.channel.send({ embeds: [embed] });
+
+const row = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId(`nhlbet_${predicted}_${home}_${visitor}`)
+    .setLabel(`Bet on ${predicted}`)
+    .setStyle(ButtonStyle.Primary)
+);
+await message.channel.send({ content: `🤑 Want to bet on **${predicted}**?`, components: [row] });
+
+
       }
     } catch (err) {
       console.error('❌ [NHLPREDICT ERROR]:', err);
@@ -2791,7 +2801,7 @@ client.on('interactionCreate', async interaction => {
 
     const { customId, user, message } = interaction;
     const userId = user.id;
-
+    
     // NBA BETTING BTTONS
     if (interaction.isButton() && interaction.customId.startsWith('nbabet_')) {
       const [_, teamLetter, gameId, amount] = interaction.customId.split('_');
@@ -2807,6 +2817,28 @@ client.on('interactionCreate', async interaction => {
     
       return; // ✅ Prevents fallthrough
     }
+
+    // NHL BETTING BUTTONS
+if (interaction.isButton() && interaction.customId.startsWith('nhlbet_')) {
+  const [_, predictedTeam, home, visitor] = interaction.customId.split('_');
+  const userId = interaction.user.id;
+  const guildId = interaction.guildId;
+
+  const { addCash } = require('./economy/currency'); // reuse your existing economy logic
+  const payout = Math.floor(Math.random() * 10000) + 5000;
+
+  // Log or save bet history here if needed
+
+  console.log(`[NHL BET] ${interaction.user.username} bet on ${predictedTeam} (${home} vs ${visitor}) → Potential: $${payout}`);
+
+  await interaction.reply({
+    content: `💰 You placed a bet on **${predictedTeam}** in **${visitor} @ ${home}**.\nIf they win, you’ll earn **$${payout.toLocaleString()}**!`,
+    ephemeral: true
+  });
+
+  return;
+}
+
     
 // Hide out
     if (interaction.isButton() && interaction.customId.startsWith('extend_hideout_') || interaction.customId.startsWith('leave_hideout_')) {

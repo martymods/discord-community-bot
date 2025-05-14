@@ -2682,17 +2682,17 @@ client.commands.set('nhlpredict', {
         const confidence = Math.abs(homeScore - awayScore).toFixed(2);
 
         const embed = new EmbedBuilder()
-          .setTitle(`🏒 NHL Prediction: ${visitor} @ ${home}`)
+          .setTitle(`🏒 NHL Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
           .setThumbnail(predicted === home ? homeStats.logo : awayStats.logo)
           .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}`)
           .addFields(
             {
-              name: `${home} Stats`,
+              name: `${homeStats.fullName} Stats`,
               value: `Win%: ${(homeStats.winPct * 100).toFixed(1)}%\nGF/Game: ${homeStats.goalsFor.toFixed(1)}\nGA/Game: ${homeStats.goalsAgainst.toFixed(1)}\nPower: ${homeScore.toFixed(2)}`,
               inline: true
             },
             {
-              name: `${visitor} Stats`,
+              name: `${awayStats.fullName} Stats`,
               value: `Win%: ${(awayStats.winPct * 100).toFixed(1)}%\nGF/Game: ${awayStats.goalsFor.toFixed(1)}\nGA/Game: ${awayStats.goalsAgainst.toFixed(1)}\nPower: ${awayScore.toFixed(2)}`,
               inline: true
             }
@@ -2709,7 +2709,9 @@ const row = new ActionRowBuilder().addComponents(
     .setLabel(`Bet on ${predicted}`)
     .setStyle(ButtonStyle.Primary)
 );
-await message.channel.send({ content: `🤑 Want to bet on **${predicted}**?`, components: [row] });
+const predictedFull = predicted === home ? homeStats.fullName : awayStats.fullName;
+await message.channel.send({ content: `💵 Want to bet on **${predictedFull}**?`, components: [row] });
+
 
 
       }

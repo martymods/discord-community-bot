@@ -6,7 +6,7 @@ async function buildMLBTeamStats() {
 
     const url = 'https://statsapi.mlb.com/api/v1/teams/stats?season=2024&group=hitting,pitching&stats=season';
     const res = await axios.get(url);
-    const teams = res.data.stats[0].splits;
+    const teams = res.data?.stats?.[0]?.splits || [];
 
     const teamStats = {};
 
@@ -18,10 +18,10 @@ async function buildMLBTeamStats() {
 
     for (const teamData of teams) {
       const team = teamData.team;
-      const teamId = team.id;
+      const teamId = team?.id;
 
       if (!officialMLBTeamIds.includes(teamId)) {
-        console.warn('[MLB STATS WARNING] Skipping non-MLB team:', team.name);
+        console.warn('[MLB STATS WARNING] Skipping non-MLB team:', team?.name);
         continue;
       }
 

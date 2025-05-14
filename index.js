@@ -2651,15 +2651,14 @@ client.commands.set('nhlpredict', {
 
     try {
       const { buildNHLTeamStats } = require('./economy/buildNHLTeamStats');
-
       const { getTodayNHLGames } = require('./economy/nhlGames');
-      const { EmbedBuilder } = require('discord.js');
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
       const games = await getTodayNHLGames();
       console.log(`[NHLPREDICT] Games fetched: ${games.length}`);
       if (!games.length) return message.reply("📭 No NHL games to predict today.");
 
-      const stats = await buildNHLTeamStats(); // ✅ Fixed
+      const stats = await buildNHLTeamStats();
 
       console.log("[NHLPREDICT] Team stats keys:", Object.keys(stats));
 
@@ -2681,19 +2680,42 @@ client.commands.set('nhlpredict', {
         const predicted = homeScore > awayScore ? home : visitor;
         const confidence = Math.abs(homeScore - awayScore).toFixed(2);
 
+        // 🎲 Simulate betting odds
+        const prob = (1 / (1 + Math.pow(10, (awayScore - homeScore) / 10))) * 100;
+        const predictedOdds = predicted === home ? prob : 100 - prob;
+        const decimalOdds = (100 / predictedOdds).toFixed(2);
+
         const embed = new EmbedBuilder()
           .setTitle(`🏒 NHL Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
           .setThumbnail(predicted === home ? homeStats.logo : awayStats.logo)
-          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}`)
+          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**
+**Confidence Score:** ${confidence}
+**Simulated Odds:** ${decimalOdds}x return`)
           .addFields(
             {
               name: `${homeStats.fullName} Stats`,
-              value: `Win%: ${(homeStats.winPct * 100).toFixed(1)}%\nGF/Game: ${homeStats.goalsFor.toFixed(1)}\nGA/Game: ${homeStats.goalsAgainst.toFixed(1)}\nPower: ${homeScore.toFixed(2)}`,
+              value: `Win%: ${(homeStats.winPct * 100).toFixed(1)}%
+GF/Game: ${homeStats.goalsFor.toFixed(1)}
+GA/Game: ${homeStats.goalsAgainst.toFixed(1)}
+PP%: ${(homeStats.powerPlayPct * 100).toFixed(1)}%
+PK%: ${(homeStats.penaltyKillPct * 100).toFixed(1)}%
+Shots For: ${homeStats.shotsForPerGame.toFixed(1)}
+Shots Against: ${homeStats.shotsAgainstPerGame.toFixed(1)}
+Last 10 Win%: ${(homeStats.last10WinRate * 100).toFixed(1)}%
+Power: ${homeScore.toFixed(2)}`,
               inline: true
             },
             {
               name: `${awayStats.fullName} Stats`,
-              value: `Win%: ${(awayStats.winPct * 100).toFixed(1)}%\nGF/Game: ${awayStats.goalsFor.toFixed(1)}\nGA/Game: ${awayStats.goalsAgainst.toFixed(1)}\nPower: ${awayScore.toFixed(2)}`,
+              value: `Win%: ${(awayStats.winPct * 100).toFixed(1)}%
+GF/Game: ${awayStats.goalsFor.toFixed(1)}
+GA/Game: ${awayStats.goalsAgainst.toFixed(1)}
+PP%: ${(awayStats.powerPlayPct * 100).toFixed(1)}%
+PK%: ${(awayStats.penaltyKillPct * 100).toFixed(1)}%
+Shots For: ${awayStats.shotsForPerGame.toFixed(1)}
+Shots Against: ${awayStats.shotsAgainstPerGame.toFixed(1)}
+Last 10 Win%: ${(awayStats.last10WinRate * 100).toFixed(1)}%
+Power: ${awayScore.toFixed(2)}`,
               inline: true
             }
           )
@@ -2703,17 +2725,15 @@ client.commands.set('nhlpredict', {
 
         await message.channel.send({ embeds: [embed] });
 
-const row = new ActionRowBuilder().addComponents(
-  new ButtonBuilder()
-    .setCustomId(`nhlbet_${predicted}_${home}_${visitor}`)
-    .setLabel(`Bet on ${predicted}`)
-    .setStyle(ButtonStyle.Primary)
-);
-const predictedFull = predicted === home ? homeStats.fullName : awayStats.fullName;
-await message.channel.send({ content: `💵 Want to bet on **${predictedFull}**?`, components: [row] });
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`nhlbet_${predicted}_${home}_${visitor}`)
+            .setLabel(`Bet on ${predicted}`)
+            .setStyle(ButtonStyle.Primary)
+        );
 
-
-
+        const predictedFull = predicted === home ? homeStats.fullName : awayStats.fullName;
+        await message.channel.send({ content: `💵 Want to bet on **${predictedFull}**?`, components: [row] });
       }
     } catch (err) {
       console.error('❌ [NHLPREDICT ERROR]:', err);

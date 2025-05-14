@@ -56,8 +56,7 @@ async function buildNHLTeamStats() {
       }
 
       // 🖼️ Build logo URL using known pattern
-      const logoUrl = `https://assets.nhle.com/logos/nhl/svg/${abbrev}.svg`;
-
+      const logoUrl = `https://assets.nhle.com/logos/nhl/teams/${abbrev}_light.png`;
       const gamesPlayed = team.gamesPlayed;
       const wins = team.wins;
       const goalsFor = team.goalsFor / gamesPlayed;

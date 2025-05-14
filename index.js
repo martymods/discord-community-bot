@@ -2752,6 +2752,66 @@ Power: ${awayScore.toFixed(2)}`,
   }
 });
 
+client.commands.set('mlbpredict', {
+  async execute(message) {
+    const allowedChannel = '1353730054693064819';
+    if (message.channel.id !== allowedChannel) {
+      return message.reply('⚾ This command only works in the #sports-intel channel.');
+    }
+
+    console.log("✅ Running command: mlbpredict");
+    console.log("[MLBPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
+
+    try {
+      const { buildMLBTeamStats } = require('./economy/buildMLBTeamStats');
+      const { EmbedBuilder } = require('discord.js');
+
+      const stats = await buildMLBTeamStats();
+      const teams = Object.keys(stats);
+
+      if (teams.length < 2) return message.reply("⚠️ Not enough MLB team stats available.");
+
+      // Pick 2 teams at random for now (upgrade later to today’s games)
+      const [teamA, teamB] = teams.sort(() => 0.5 - Math.random()).slice(0, 2);
+      const teamAStats = stats[teamA];
+      const teamBStats = stats[teamB];
+
+      const aScore = teamAStats.powerScore;
+      const bScore = teamBStats.powerScore;
+
+      const predicted = aScore > bScore ? teamA : teamB;
+      const confidence = Math.abs(aScore - bScore).toFixed(2);
+      const odds = (100 / (100 * (aScore / (aScore + bScore)))).toFixed(2);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`⚾ MLB Prediction: ${teamBStats.fullName} @ ${teamAStats.fullName}`)
+        .setThumbnail(predicted === teamA ? teamAStats.logo : teamBStats.logo)
+        .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${odds}x`)
+        .addFields(
+          {
+            name: `${teamAStats.fullName} Stats`,
+            value: `AVG: ${teamAStats.avg}\nOBP: ${teamAStats.obp}\nSLG: ${teamAStats.slg}\nRuns/Game: ${teamAStats.runsPerGame.toFixed(1)}\nPower: ${aScore.toFixed(2)}`,
+            inline: true
+          },
+          {
+            name: `${teamBStats.fullName} Stats`,
+            value: `AVG: ${teamBStats.avg}\nOBP: ${teamBStats.obp}\nSLG: ${teamBStats.slg}\nRuns/Game: ${teamBStats.runsPerGame.toFixed(1)}\nPower: ${bScore.toFixed(2)}`,
+            inline: true
+          }
+        )
+        .setFooter({ text: 'Dreamworld Sports Analytics - MLB' })
+        .setColor(predicted === teamA ? '#ff4500' : '#1e90ff')
+        .setTimestamp();
+
+      await message.channel.send({ embeds: [embed] });
+    } catch (err) {
+      console.error('❌ [MLBPREDICT ERROR]:', err);
+      return message.reply('⚠️ Something went wrong predicting MLB matchups.');
+    }
+  }
+});
+
+
 client.commands.set('jackpot', {
   async execute(message) {
     const amount = getJackpotAmount();
@@ -7507,7 +7567,7 @@ client.on('messageCreate', require('./events/crystalAI').execute);
 client.on('messageCreate', crystalAI.execute);
 client.commands.set('play', require('./commands/play.js'));
 client.commands.set('crystal', crystalAI);
-client.commands.set('mlbpredict', require('./commands/mlbpredict'));
+
 
 // ✅ Automatically trigger mule if player is overstocked
 async function maybeSpawnMule(client, userId, guildId, channel) {

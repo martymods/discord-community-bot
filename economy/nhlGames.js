@@ -3,19 +3,18 @@ const axios = require('axios');
 
 async function getTodayNHLGames() {
   try {
-    const res = await axios.get('https://api-web.nhle.com/v1/schedule');
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const res = await axios.get(`https://api-web.nhle.com/v1/schedule/${dateStr}`);
     const games = res.data.games || [];
 
-    const todayGames = games
-      .filter(g => g.gameType === 'R' || g.gameType === 'P') // Regular or Playoff
-      .map(g => ({
-        home: g.homeTeam?.abbrev,
-        visitor: g.awayTeam?.abbrev
-      }));
-
-    return todayGames;
+    return games.map(game => ({
+      home: game.homeTeam.abbrev,
+      visitor: game.awayTeam.abbrev
+    }));
   } catch (err) {
-    console.error("❌ Error fetching NHL games:", err.message);
+    console.error("❌ Error fetching NHL games:", err.response?.status || err.message);
     return [];
   }
 }

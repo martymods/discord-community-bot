@@ -1,5 +1,9 @@
 // 📁 /commands/mlbpredict.js
-client.commands.set('mlbpredict', {
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { buildMLBTeamStats } = require('../economy/buildMLBTeamStats');
+const { getTodayMLBGames } = require('../economy/mlbGames');
+
+module.exports = {
   async execute(message) {
     const allowedChannel = '1353730054693064819';
     if (message.channel.id !== allowedChannel) {
@@ -7,15 +11,9 @@ client.commands.set('mlbpredict', {
     }
 
     console.log("✅ Running command: mlbpredict");
-    console.log("[MLBPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
 
     try {
-      const { buildMLBTeamStats } = require('./economy/buildMLBTeamStats');
-      const { getTodayMLBGames } = require('./economy/mlbGames');
-      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-
       const games = await getTodayMLBGames();
-      console.log(`[MLBPREDICT] Games fetched: ${games.length}`);
       if (!games.length) return message.reply("📭 No MLB games to predict today.");
 
       const stats = await buildMLBTeamStats();
@@ -25,8 +23,6 @@ client.commands.set('mlbpredict', {
         const { home, visitor } = game;
         const homeStats = stats[home];
         const awayStats = stats[visitor];
-
-        console.log(`[MLBPREDICT] Analyzing game: ${visitor} @ ${home}`);
 
         if (!homeStats || !awayStats) {
           console.warn(`[MLBPREDICT] Missing stats for ${visitor} @ ${home}`);
@@ -39,27 +35,31 @@ client.commands.set('mlbpredict', {
         const predicted = homeScore > awayScore ? home : visitor;
         const confidence = Math.abs(homeScore - awayScore).toFixed(2);
 
+        // 🧮 Simulate betting odds
         const prob = (1 / (1 + Math.pow(10, (awayScore - homeScore) / 10))) * 100;
         const predictedOdds = predicted === home ? prob : 100 - prob;
         const decimalOdds = (100 / predictedOdds).toFixed(2);
 
         const embed = new EmbedBuilder()
-          .setTitle(`⚾ MLB Prediction: ${visitor} @ ${home}`)
-          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${decimalOdds}x return`)
+          .setTitle(`⚾ MLB Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
+          .setThumbnail(predicted === home ? homeStats.logo : awayStats.logo)
+          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**
+**Confidence Score:** ${confidence}
+**Simulated Odds:** ${decimalOdds}x return`)
           .addFields(
             {
-              name: `${home} Stats`,
-              value: `Win%: ${(homeStats.winPct * 100).toFixed(1)}%\nRuns/Game: ${homeStats.runsPerGame.toFixed(1)}\nAllowed: ${homeStats.runsAllowed.toFixed(1)}\nERA: ${homeStats.teamERA}\nHR: ${homeStats.homeRuns}\nSO: ${homeStats.strikeouts}\nPower: ${homeScore.toFixed(2)}`,
+              name: `${homeStats.fullName} Stats`,
+              value: `AVG: ${homeStats.avg}\nOBP: ${homeStats.obp}\nSLG: ${homeStats.slg}\nRuns/Game: ${homeStats.runsPerGame.toFixed(1)}\nPower: ${homeScore.toFixed(2)}`,
               inline: true
             },
             {
-              name: `${visitor} Stats`,
-              value: `Win%: ${(awayStats.winPct * 100).toFixed(1)}%\nRuns/Game: ${awayStats.runsPerGame.toFixed(1)}\nAllowed: ${awayStats.runsAllowed.toFixed(1)}\nERA: ${awayStats.teamERA}\nHR: ${awayStats.homeRuns}\nSO: ${awayStats.strikeouts}\nPower: ${awayScore.toFixed(2)}`,
+              name: `${awayStats.fullName} Stats`,
+              value: `AVG: ${awayStats.avg}\nOBP: ${awayStats.obp}\nSLG: ${awayStats.slg}\nRuns/Game: ${awayStats.runsPerGame.toFixed(1)}\nPower: ${awayScore.toFixed(2)}`,
               inline: true
             }
           )
           .setFooter({ text: 'Dreamworld Sports Analytics - MLB' })
-          .setColor(predicted === home ? '#f39c12' : '#2980b9')
+          .setColor(predicted === home ? '#008000' : '#0000cd')
           .setTimestamp();
 
         await message.channel.send({ embeds: [embed] });
@@ -78,4 +78,4 @@ client.commands.set('mlbpredict', {
       return message.reply('⚠️ Something went wrong predicting MLB games.');
     }
   }
-});
+};

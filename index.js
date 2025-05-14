@@ -2683,7 +2683,7 @@ client.commands.set('nhlpredict', {
 
         const embed = new EmbedBuilder()
           .setTitle(`🏒 NHL Prediction: ${visitor} @ ${home}`)
-          .setThumbnail(homeStats.logo || awayStats.logo || null)
+          .setThumbnail(predicted === home ? homeStats.logo : awayStats.logo)
           .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}`)
           .addFields(
             {

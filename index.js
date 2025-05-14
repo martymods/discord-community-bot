@@ -2658,7 +2658,8 @@ client.commands.set('nhlpredict', {
       console.log(`[NHLPREDICT] Games fetched: ${games.length}`);
       if (!games.length) return message.reply("📭 No NHL games to predict today.");
 
-      const stats = buildNHLTeamStats(games);
+      const stats = await buildNHLTeamStats(); // ✅ Fixed
+
       console.log("[NHLPREDICT] Team stats keys:", Object.keys(stats));
 
       for (const game of games) {

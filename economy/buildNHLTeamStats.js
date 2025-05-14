@@ -4,9 +4,8 @@ async function buildNHLTeamStats() {
   try {
     console.log('[NHLPREDICT][STATS] Fetching real NHL team stats...');
 
-    const currentSeason = '20232024'; // You can make this dynamic if needed
+    const currentSeason = '20232024';
     const res = await axios.get(`https://api.nhle.com/stats/rest/en/team/summary?cayenneExp=seasonId=${currentSeason}`);
-
     const teams = res.data?.data || [];
 
     const teamStats = {};
@@ -56,6 +55,9 @@ async function buildNHLTeamStats() {
         continue;
       }
 
+      // 🖼️ Build logo URL using known pattern
+      const logoUrl = `https://assets.nhle.com/logos/nhl/svg/${abbrev}.svg`;
+
       const gamesPlayed = team.gamesPlayed;
       const wins = team.wins;
       const goalsFor = team.goalsFor / gamesPlayed;
@@ -68,7 +70,7 @@ async function buildNHLTeamStats() {
         goalsFor,
         goalsAgainst,
         powerScore,
-        logo: team.teamLogo?.default || null
+        logo: logoUrl
       };
 
       console.log(`[NHL STATS] Mapped ${team.teamFullName} → ${abbrev}`);

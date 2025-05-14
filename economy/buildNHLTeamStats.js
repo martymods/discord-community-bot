@@ -64,13 +64,15 @@ async function buildNHLTeamStats() {
       const winPct = wins / gamesPlayed;
       const powerScore = winPct * 100 + goalsFor - goalsAgainst;
 
-      teamStats[abbrev] = {
-        winPct,
-        goalsFor,
-        goalsAgainst,
-        powerScore,
-        logo: logoUrl
-      };
+teamStats[abbrev] = {
+  winPct,
+  goalsFor,
+  goalsAgainst,
+  powerScore,
+  logo: logoUrl,
+  fullName: team.teamFullName
+};
+
 
       console.log(`[NHL STATS] Mapped ${team.teamFullName} → ${abbrev}`);
     }

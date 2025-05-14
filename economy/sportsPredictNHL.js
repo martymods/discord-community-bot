@@ -1,48 +1,39 @@
-// economy/sportsPredictNHL.js
 const axios = require('axios');
 
-function calculatePowerScore(stats) {
-  const { winPct, goalsFor, goalsAgainst } = stats;
-  return winPct * 100 + goalsFor - goalsAgainst;
-}
+async function buildNHLTeamStats() {
+  try {
+    console.log('[NHLPREDICT][STATS] Fetching real NHL team stats...');
 
-function parseTeamStats(data) {
-  const teamStats = {};
-  for (const team of data) {
-    const { abbreviation, stats } = team;
-    const gamesPlayed = stats.gamesPlayed;
-    const wins = stats.wins;
-    const goalsFor = stats.goalsFor / gamesPlayed;
-    const goalsAgainst = stats.goalsAgainst / gamesPlayed;
+    const res = await axios.get('https://api.nhle.com/stats/rest/en/team/summary?isAggregate=false&isGame=false&sort=teamFullName&start=0&limit=100');
+    const teams = res.data?.data || [];
 
-    const winPct = wins / gamesPlayed;
+    const teamStats = {};
 
-    teamStats[abbreviation] = {
-      winPct,
-      goalsFor,
-      goalsAgainst,
-      powerScore: calculatePowerScore({ winPct, goalsFor, goalsAgainst })
-    };
+    for (const team of teams) {
+      const abbrev = team.teamAbbrev;
+      const gamesPlayed = team.gamesPlayed;
+      const wins = team.wins;
+      const goalsFor = team.goalsFor / gamesPlayed;
+      const goalsAgainst = team.goalsAgainst / gamesPlayed;
+      const winPct = wins / gamesPlayed;
+
+      const powerScore = winPct * 100 + goalsFor - goalsAgainst;
+
+      teamStats[abbrev] = {
+        winPct,
+        goalsFor,
+        goalsAgainst,
+        powerScore
+      };
+    }
+
+    console.log('[NHLPREDICT][STATS] Team stats loaded for:', Object.keys(teamStats));
+    return teamStats;
+  } catch (err) {
+    console.error('❌ [NHLPREDICT][STATS ERROR]:', err.message);
+    return {};
   }
-  return teamStats;
-}
-
-function buildNHLTeamStats(games) {
-  const sampleStats = {
-    BOS: { wins: 52, gamesPlayed: 82, goalsFor: 270, goalsAgainst: 210 },
-    NYR: { wins: 48, gamesPlayed: 82, goalsFor: 260, goalsAgainst: 215 },
-    TOR: { wins: 46, gamesPlayed: 82, goalsFor: 250, goalsAgainst: 225 },
-    EDM: { wins: 50, gamesPlayed: 82, goalsFor: 300, goalsAgainst: 240 },
-    // Add more teams here...
-  };
-
-  // 🧠 Convert raw to parsed
-  const rawTeamArray = Object.entries(sampleStats).map(([abbr, stats]) => ({
-    abbreviation: abbr,
-    stats
-  }));
-
-  return parseTeamStats(rawTeamArray);
 }
 
 module.exports = { buildNHLTeamStats };
+

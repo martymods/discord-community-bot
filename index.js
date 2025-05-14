@@ -2583,6 +2583,11 @@ client.commands.set('nbabet', {
 
 client.commands.set('nbapredict', {
   async execute(message) {
+    const allowedChannel = '1353730054693064819';
+if (message.channel.id !== allowedChannel) {
+  return message.reply('⚠️ This command only works in the #sports-intel channel.');
+}
+
     console.log("✅ Running command: nbapredict");
     console.log("[NBAPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
 
@@ -2646,6 +2651,11 @@ client.commands.set('nbapredict', {
 
 client.commands.set('nhlpredict', {
   async execute(message) {
+    const allowedChannel = '1353730054693064819';
+if (message.channel.id !== allowedChannel) {
+  return message.reply('⚠️ This command only works in the #sports-intel channel.');
+}
+
     console.log("✅ Running command: nhlpredict");
     console.log("[NHLPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
 

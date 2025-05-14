@@ -2644,6 +2644,68 @@ client.commands.set('nbapredict', {
   }
 });
 
+client.commands.set('nhlpredict', {
+  async execute(message) {
+    console.log("✅ Running command: nhlpredict");
+    console.log("[NHLPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
+
+    try {
+      const { buildNHLTeamStats } = require('./economy/sportsPredictNHL');
+      const { getTodayNHLGames } = require('./economy/nhlGames');
+      const { EmbedBuilder } = require('discord.js');
+
+      const games = await getTodayNHLGames();
+      console.log(`[NHLPREDICT] Games fetched: ${games.length}`);
+      if (!games.length) return message.reply("📭 No NHL games to predict today.");
+
+      const stats = buildNHLTeamStats(games);
+      console.log("[NHLPREDICT] Team stats keys:", Object.keys(stats));
+
+      for (const game of games) {
+        const { home, visitor } = game;
+        const homeStats = stats[home];
+        const awayStats = stats[visitor];
+
+        console.log(`[NHLPREDICT] Analyzing game: ${visitor} @ ${home}`);
+
+        if (!homeStats || !awayStats) {
+          console.warn(`[NHLPREDICT] Missing stats for ${visitor} @ ${home}`);
+          await message.channel.send(`⚠️ Missing data for **${visitor} @ ${home}**.`);
+          continue;
+        }
+
+        const homeScore = homeStats.powerScore;
+        const awayScore = awayStats.powerScore;
+        const predicted = homeScore > awayScore ? home : visitor;
+        const confidence = Math.abs(homeScore - awayScore).toFixed(2);
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🏒 NHL Prediction: ${visitor} @ ${home}`)
+          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}`)
+          .addFields(
+            {
+              name: `${home} Stats`,
+              value: `Win%: ${(homeStats.winPct * 100).toFixed(1)}%\nGF/Game: ${homeStats.goalsFor.toFixed(1)}\nGA/Game: ${homeStats.goalsAgainst.toFixed(1)}\nPower: ${homeScore.toFixed(2)}`,
+              inline: true
+            },
+            {
+              name: `${visitor} Stats`,
+              value: `Win%: ${(awayStats.winPct * 100).toFixed(1)}%\nGF/Game: ${awayStats.goalsFor.toFixed(1)}\nGA/Game: ${awayStats.goalsAgainst.toFixed(1)}\nPower: ${awayScore.toFixed(2)}`,
+              inline: true
+            }
+          )
+          .setFooter({ text: 'Dreamworld Sports Analytics - NHL' })
+          .setColor(predicted === home ? '#008000' : '#0000cd')
+          .setTimestamp();
+
+        await message.channel.send({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.error('❌ [NHLPREDICT ERROR]:', err);
+      return message.reply('⚠️ Something went wrong predicting NHL games.');
+    }
+  }
+});
 
 client.commands.set('jackpot', {
   async execute(message) {

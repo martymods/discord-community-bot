@@ -2583,7 +2583,7 @@ client.commands.set('nbabet', {
 
 client.commands.set('nbapredict', {
   async execute(message) {
-    const allowedChannel = '1353730054693064819';
+    const allowedChannel = '1362021059150483456';
 if (message.channel.id !== allowedChannel) {
   return message.reply('⚠️ This command only works in the #sports-intel channel.');
 }
@@ -2651,7 +2651,7 @@ if (message.channel.id !== allowedChannel) {
 
 client.commands.set('nhlpredict', {
   async execute(message) {
-    const allowedChannel = '1353730054693064819';
+    const allowedChannel = '1362021059150483456';
 if (message.channel.id !== allowedChannel) {
   return message.reply('⚠️ This command only works in the #sports-intel channel.');
 }
@@ -2754,7 +2754,7 @@ Power: ${awayScore.toFixed(2)}`,
 
 client.commands.set('mlbpredict', {
   async execute(message) {
-    const allowedChannel = '1353730054693064819';
+    const allowedChannel = '1362021059150483456';
     if (message.channel.id !== allowedChannel) {
       return message.reply('⚾ This command only works in the #sports-intel channel.');
     }

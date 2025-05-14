@@ -2769,24 +2769,32 @@ client.commands.set('mlbpredict', {
       const stats = await buildMLBTeamStats();
       const teams = Object.keys(stats);
 
-      if (teams.length < 2) return message.reply("⚠️ Not enough MLB team stats available.");
+      console.log(`[MLBPREDICT] Loaded ${teams.length} valid MLB teams`);
 
-      // Pick 2 teams at random for now (upgrade later to today’s games)
+      if (teams.length < 2) {
+        console.warn("[MLBPREDICT] Not enough valid MLB teams to simulate a matchup.");
+        return message.reply("⚠️ Not enough MLB team stats available.");
+      }
+
+      // Pick 2 random MLB teams for prediction
       const [teamA, teamB] = teams.sort(() => 0.5 - Math.random()).slice(0, 2);
       const teamAStats = stats[teamA];
       const teamBStats = stats[teamB];
 
       const aScore = teamAStats.powerScore;
       const bScore = teamBStats.powerScore;
-
       const predicted = aScore > bScore ? teamA : teamB;
+      const predictedStats = aScore > bScore ? teamAStats : teamBStats;
+
       const confidence = Math.abs(aScore - bScore).toFixed(2);
-      const odds = (100 / (100 * (aScore / (aScore + bScore)))).toFixed(2);
+      const prob = (aScore / (aScore + bScore)) * 100;
+      const predictedOdds = predicted === teamA ? prob : 100 - prob;
+      const decimalOdds = (100 / predictedOdds).toFixed(2);
 
       const embed = new EmbedBuilder()
         .setTitle(`⚾ MLB Prediction: ${teamBStats.fullName} @ ${teamAStats.fullName}`)
-        .setThumbnail(predicted === teamA ? teamAStats.logo : teamBStats.logo)
-        .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${odds}x`)
+        .setThumbnail(predictedStats.logo)
+        .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${decimalOdds}x return`)
         .addFields(
           {
             name: `${teamAStats.fullName} Stats`,
@@ -2810,7 +2818,6 @@ client.commands.set('mlbpredict', {
     }
   }
 });
-
 
 client.commands.set('jackpot', {
   async execute(message) {

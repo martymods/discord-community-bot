@@ -1,37 +1,37 @@
+
 const axios = require('axios');
 
 async function buildMLBTeamStats() {
   try {
-    console.log('[MLBPREDICT][STATS] Fetching team stats...');
+    console.log('[MLBPREDICT][STATS] Fetching team list...');
 
-    const url = 'https://statsapi.mlb.com/api/v1/teams/stats?season=2024&group=hitting,pitching&stats=season';
-    const res = await axios.get(url);
-    const teams = res.data?.stats?.[0]?.splits || [];
+    // Step 1: Get all MLB teams (sportId 1 = MLB)
+    const teamRes = await axios.get('https://statsapi.mlb.com/api/v1/teams?sportId=1');
+    const teams = teamRes.data.teams;
 
     const teamStats = {};
 
-    const officialMLBTeamIds = [
-      108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
-      118, 119, 120, 121, 133, 134, 135, 136, 137, 138,
-      139, 140, 141, 142, 143, 144, 145, 146, 147, 158
-    ];
+    for (const team of teams) {
+      const teamId = team.id;
+      const teamName = team.name;
+      const abbrev = team.abbreviation || team.triCode;
 
-    for (const teamData of teams) {
-      const team = teamData.team;
-      const teamId = team?.id;
-
-      if (!officialMLBTeamIds.includes(teamId)) {
-        console.warn('[MLB STATS WARNING] Skipping non-MLB team:', team?.name);
-        continue;
-      }
-
-      const abbrev = team.abbreviation || team.triCode || team.teamTricode;
       if (!abbrev) {
-        console.warn('[MLB STATS WARNING] Missing abbrev for:', team.name);
+        console.warn('[MLB STATS WARNING] Missing abbrev for:', teamName);
         continue;
       }
 
-      const hitting = teamData.stat;
+      console.log(`[MLB STATS] Fetching stats for: ${abbrev} (${teamName})`);
+
+      const statsUrl = `https://statsapi.mlb.com/api/v1/teams/${teamId}/stats?season=2024&group=hitting&stats=season`;
+      const statsRes = await axios.get(statsUrl);
+      const hitting = statsRes.data.stats?.[0]?.splits?.[0]?.stat;
+
+      if (!hitting) {
+        console.warn('[MLB STATS WARNING] No hitting stats for:', teamName);
+        continue;
+      }
+
       const avg = parseFloat(hitting.avg || 0);
       const obp = parseFloat(hitting.obp || 0);
       const slg = parseFloat(hitting.slg || 0);
@@ -43,7 +43,7 @@ async function buildMLBTeamStats() {
       const logoUrl = `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
 
       teamStats[abbrev] = {
-        fullName: team.name,
+        fullName: teamName,
         avg,
         obp,
         slg,
@@ -52,7 +52,7 @@ async function buildMLBTeamStats() {
         logo: logoUrl
       };
 
-      console.log(`[MLB STATS] ${abbrev} (${team.name}) → Power: ${powerScore.toFixed(2)}`);
+      console.log(`[MLB STATS] ${abbrev} (${teamName}) → Power: ${powerScore.toFixed(2)}`);
     }
 
     console.log(`[MLBPREDICT][STATS] Loaded team count: ${Object.keys(teamStats).length}`);

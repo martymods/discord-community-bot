@@ -22,6 +22,8 @@ async function loadStandingsData() {
     });
     const json = await res.json();
 
+    console.log("📦 Raw standings API response:", JSON.stringify(json, null, 2)); // Debug patch
+
     const teamList = json.response;
     if (!teamList || !Array.isArray(teamList)) {
       console.warn('⚠️ Standings response is not an array.');

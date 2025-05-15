@@ -1,11 +1,11 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
-const BASE_URL = 'https://api-basketball.p.rapidapi.com';
+const STANDINGS_URL = 'https://api-basketball.p.rapidapi.com/standings?league=12&season=2024-2025';
 
-async function getTeamStats(teamId) {
-  const url = `${BASE_URL}/teams/statistics?season=2024-2025&team=${teamId}&league=12`;
+let cachedStats = new Map();
 
+async function loadStandingsData() {
   const options = {
     method: 'GET',
     headers: {
@@ -15,27 +15,50 @@ async function getTeamStats(teamId) {
   };
 
   try {
-    const res = await fetch(url, options);
-    if (!res.ok) throw new Error(`API status ${res.status}: ${await res.text()}`);
-
+    const res = await fetch(STANDINGS_URL, options);
     const json = await res.json();
-    const stats = json.response;
 
-    console.log(`📊 Fetched stats for team ${teamId}`);
-    console.log(`• Games Played: ${stats.games.played}`);
-    console.log(`• Wins: ${stats.games.wins.total}`);
-    console.log(`• PPG For: ${stats.points.for.average}`);
-    console.log(`• PPG Against: ${stats.points.against.average}`);
+    if (!json.response || !Array.isArray(json.response)) {
+      console.warn('⚠️ No standings data found.');
+      return;
+    }
 
-    return {
-      wins: stats.games.wins.total,
-      losses: stats.games.played - stats.games.wins.total,
-      pointsPerGame: stats.points.for.average,
-      pointsAllowed: stats.points.against.average
-    };
+    json.response.forEach(entry => {
+      const id = entry.team.id;
+      const name = entry.team.name;
+      const gamesPlayed = entry.games.played || 82;
+      const wins = entry.win.total;
+      const losses = gamesPlayed - wins;
+      const ppg = parseFloat((entry.points.for / gamesPlayed).toFixed(1));
+      const papg = parseFloat((entry.points.against / gamesPlayed).toFixed(1));
 
+      cachedStats.set(id, {
+        name,
+        wins,
+        losses,
+        pointsPerGame: ppg,
+        pointsAllowed: papg
+      });
+    });
+
+    console.log(`📊 Cached ${cachedStats.size} team records from standings.`);
   } catch (err) {
-    console.warn(`⚠️ getTeamStats fallback for team ${teamId}: ${err.message}`);
+    console.error('❌ Error loading standings data:', err.message);
+  }
+}
+
+async function getTeamStats(teamId) {
+  if (!cachedStats.size) {
+    console.log('⏳ Loading team stats from standings API...');
+    await loadStandingsData();
+  }
+
+  if (cachedStats.has(teamId)) {
+    const team = cachedStats.get(teamId);
+    console.log(`📈 Found stats for team ${team.name}:`, team);
+    return team;
+  } else {
+    console.warn(`⚠️ Team ID ${teamId} not found in standings. Returning fallback.`);
     return {
       wins: 40,
       losses: 30,

@@ -1,53 +1,51 @@
-function buildRealTeamStats(games, injuryReport = {}, playoffSeeds = {}) {
-  const stats = {};
+function buildRealTeamStats(games) {
+  const statsMap = {};
+  const powerScores = {};
 
   for (const game of games) {
-    const { home, visitor, homeStats, visitorStats } = game;
+    const home = game.home;
+    const away = game.visitor;
 
-    if (!home || !visitor || !homeStats || !visitorStats) {
-      console.warn("[STATSKIP] Incomplete stat block:", { home, visitor, homeStats, visitorStats });
-      continue;
-    }
+    const homeRaw = game.homeStats;
+    const awayRaw = game.visitorStats;
 
-    if (!stats[home]) {
-      const homeWinPct = homeStats.wins / (homeStats.wins + homeStats.losses);
-      const homeDiff = homeStats.pointsPerGame - homeStats.pointsAllowed;
-      stats[home] = {
-        wins: homeStats.wins,
-        losses: homeStats.losses,
-        winPct: homeWinPct,
-        pointsPerGame: homeStats.pointsPerGame,
-        pointDiff: homeDiff,
-        powerScore: calculatePower(homeWinPct, homeStats.pointsPerGame, homeDiff)
-      };
-    }
+    // ✅ Ensure valid fallback protection
+    if (!homeRaw || !awayRaw) continue;
 
-    if (!stats[visitor]) {
-      const visitorWinPct = visitorStats.wins / (visitorStats.wins + visitorStats.losses);
-      const visitorDiff = visitorStats.pointsPerGame - visitorStats.pointsAllowed;
-      stats[visitor] = {
-        wins: visitorStats.wins,
-        losses: visitorStats.losses,
-        winPct: visitorWinPct,
-        pointsPerGame: visitorStats.pointsPerGame,
-        pointDiff: visitorDiff,
-        powerScore: calculatePower(visitorWinPct, visitorStats.pointsPerGame, visitorDiff)
-      };
-    }
+    const homeWinPct = homeRaw.wins / (homeRaw.wins + homeRaw.losses);
+    const awayWinPct = awayRaw.wins / (awayRaw.wins + awayRaw.losses);
+
+    const homeDiff = homeRaw.pointsPerGame - homeRaw.pointsAllowed;
+    const awayDiff = awayRaw.pointsPerGame - awayRaw.pointsAllowed;
+
+    // 🧠 Power formula = Win% * 100 + PPG - Opponent PPG + Diff
+    const homePower = (homeWinPct * 100) + homeRaw.pointsPerGame - homeRaw.pointsAllowed + homeDiff;
+    const awayPower = (awayWinPct * 100) + awayRaw.pointsPerGame - awayRaw.pointsAllowed + awayDiff;
+
+    statsMap[home] = {
+      winPct: homeWinPct,
+      pointsPerGame: homeRaw.pointsPerGame,
+      pointDiff: homeDiff,
+      powerScore: homePower
+    };
+
+    statsMap[away] = {
+      winPct: awayWinPct,
+      pointsPerGame: awayRaw.pointsPerGame,
+      pointDiff: awayDiff,
+      powerScore: awayPower
+    };
+
+    powerScores[home] = homePower;
+    powerScores[away] = awayPower;
   }
 
-  stats._powerRankings = Object.entries(stats).map(([team, stat]) => ({
-    team,
-    powerScore: stat.powerScore,
-    winPct: stat.winPct,
-    pointDiff: stat.pointDiff
-  })).sort((a, b) => b.powerScore - a.powerScore);
+  // Attach power rankings if needed
+  statsMap._powerRankings = Object.fromEntries(
+    Object.entries(powerScores).sort((a, b) => b[1] - a[1])
+  );
 
-  return stats;
-}
-
-function calculatePower(winPct, ppg, diff) {
-  return (winPct * 100) + ppg + (diff * 1.5);
+  return statsMap;
 }
 
 module.exports = { buildRealTeamStats };

@@ -1,7 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const recentGames = new Map(); // gameId → { home, visitor }
-
-const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
+const recentGames = new Map();
+const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f'; // ✅ Your actual API key
 const { getTeamStats } = require('./getTeamStats');
 
 async function getTodayGames() {
@@ -53,14 +52,16 @@ async function getTodayGames() {
       });
     }
 
-    // 🧠 Parallel map with async team stat fetch
     const enrichedGames = await Promise.all(
       filteredGames.map(async (game) => {
         const home = game.teams.home.name;
         const visitor = game.teams.away.name;
 
-        const homeStats = await getTeamStats(game.teams.home.id);
-        const visitorStats = await getTeamStats(game.teams.away.id);
+        const homeTeamId = game.teams.home.id;
+        const visitorTeamId = game.teams.away.id;
+
+        const homeStats = await getTeamStats(homeTeamId);
+        const visitorStats = await getTeamStats(visitorTeamId);
 
         const series = parseSeries(game);
         const scores = {
@@ -80,6 +81,8 @@ async function getTodayGames() {
           gameTime,
           homeStats,
           visitorStats,
+          homeLogo: homeStats.logo || null,
+          visitorLogo: visitorStats.logo || null,
           series,
           scores
         };

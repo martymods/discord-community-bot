@@ -18,51 +18,41 @@ async function loadStandingsData() {
     const res = await fetch(STANDINGS_URL, options);
     const json = await res.json();
 
-    const raw = json.response;
-    if (!raw || !Array.isArray(raw) || !raw.length) {
-      console.warn('⚠️ No standings root array returned.');
+    const teamList = json.response;
+    if (!teamList || !Array.isArray(teamList)) {
+      console.warn('⚠️ Standings response is not an array.');
       return;
     }
 
-    const standingsGroups = raw[0]?.standings;
-    if (!standingsGroups || !Array.isArray(standingsGroups)) {
-      console.warn('⚠️ No valid standings container in response[0].standings');
-      return;
-    }
+    teamList.forEach(entry => {
+      const id = entry.team?.id;
+      const name = entry.team?.name;
+      const played = entry.games?.played;
+      const wins = entry.win?.total;
+      const ppgRaw = entry.points?.for;
+      const papgRaw = entry.points?.against;
 
-    standingsGroups.forEach((group, i) => {
-      if (!Array.isArray(group)) {
-        console.warn(`⚠️ Standings group [${i}] is not an array.`);
-        return;
-      }
+      if (!id || !played || !wins || !ppgRaw || !papgRaw) return;
 
-      group.forEach(entry => {
-        const id = entry.team?.id;
-        const name = entry.team?.name;
+      const losses = played - wins;
+      const ppg = parseFloat((ppgRaw / played).toFixed(1));
+      const papg = parseFloat((papgRaw / played).toFixed(1));
 
-        if (!id || !name) return;
-
-        const gamesPlayed = entry.all?.played ?? 82;
-        const wins = entry.all?.win ?? 40;
-        const losses = gamesPlayed - wins;
-        const ppg = entry.points?.for ? parseFloat((entry.points.for / gamesPlayed).toFixed(1)) : 100;
-        const papg = entry.points?.against ? parseFloat((entry.points.against / gamesPlayed).toFixed(1)) : 100;
-
-        cachedStats.set(id, {
-          name,
-          wins,
-          losses,
-          pointsPerGame: ppg,
-          pointsAllowed: papg
-        });
+      cachedStats.set(id, {
+        name,
+        wins,
+        losses,
+        pointsPerGame: ppg,
+        pointsAllowed: papg
       });
     });
 
-    console.log(`📊 Cached ${cachedStats.size} team records from standings.`);
+    console.log(`📊 Cached ${cachedStats.size} real team records from standings.`);
   } catch (err) {
     console.error('❌ Error loading standings data:', err.message);
   }
 }
+
 
 async function getTeamStats(teamId) {
   if (!cachedStats.size) {

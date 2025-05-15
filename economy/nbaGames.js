@@ -16,7 +16,6 @@ async function getTodayGames() {
       }
     };
 
-    // Try fetching both today and tomorrow
     for (let offset = 0; offset <= 1; offset++) {
       const date = new Date();
       date.setDate(date.getDate() + offset);
@@ -25,66 +24,47 @@ async function getTodayGames() {
 
       console.log(`🌐 Fetching NBA games for: ${dateStr}`);
       const res = await fetch(url, options);
-
-      if (!res.ok) {
-        throw new Error(`API error on ${dateStr}: ${res.status} — ${await res.text()}`);
-      }
-
       const json = await res.json();
-      if (!json.response || json.response.length === 0) {
+
+      if (!json.response?.length) {
         console.log(`🟡 No games found for ${dateStr}`);
         continue;
       }
 
-      console.log(`📦 Raw games from ${dateStr}:`);
-      json.response.forEach(game => {
-        console.log(`🧪 ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
-      });
-
       allGames.push(...json.response);
     }
 
-    if (allGames.length === 0) {
-      console.log("🟠 No NBA games found in either date window.");
-      return [];
-    }
+    console.log("🧪 Detected statuses:", [...new Set(allGames.map(g => g.status.long))]);
 
-    // Filter out completed games
-    const filteredGames = allGames.filter(game => !skippedStatuses.includes(game.status.long));
-    const skippedGames = allGames.filter(game => skippedStatuses.includes(game.status.long));
+    const filteredGames = allGames.filter(g => !skippedStatuses.includes(g.status.long));
+    const skippedGames = allGames.filter(g => skippedStatuses.includes(g.status.long));
 
-    console.log(`📊 Total games fetched (combined): ${allGames.length}`);
-    console.log(`✅ Included games (${filteredGames.length}):`);
-    filteredGames.forEach(game => {
-      console.log(`→ ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
+    console.log(`📊 Total games fetched: ${allGames.length}`);
+    console.log(`✅ Games included (${filteredGames.length}):`);
+    filteredGames.forEach(g => {
+      console.log(`→ ${g.teams.away.name} @ ${g.teams.home.name} — Status: ${g.status.long}`);
     });
 
     if (skippedGames.length > 0) {
       console.log(`⚠️ Skipped games (${skippedGames.length}):`);
-      skippedGames.forEach(game => {
-        console.log(`× ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
+      skippedGames.forEach(g => {
+        console.log(`× ${g.teams.away.name} @ ${g.teams.home.name} — Status: ${g.status.long}`);
       });
     }
 
-    // Convert to internal format
     return filteredGames.map(game => {
       const home = game.teams.home.name;
       const visitor = game.teams.away.name;
+      const homeStats = mockStats(); // Replace with real stats later
+      const visitorStats = mockStats();
 
-      // Mock stats — replace later with real team stats if available
-      const homeStats = {
-        wins: Math.floor(Math.random() * 50) + 10,
-        losses: Math.floor(Math.random() * 30) + 10,
-        pointsPerGame: Math.random() * 30 + 90,
-        pointsAllowed: Math.random() * 15 + 95
+      // 🧠 Parse new fields
+      const series = parseSeries(game);
+      const scores = {
+        home: game.scores?.home?.total ?? null,
+        away: game.scores?.away?.total ?? null
       };
-
-      const visitorStats = {
-        wins: Math.floor(Math.random() * 50) + 10,
-        losses: Math.floor(Math.random() * 30) + 10,
-        pointsPerGame: Math.random() * 30 + 90,
-        pointsAllowed: Math.random() * 15 + 95
-      };
+      const gameTime = new Date(game.date);
 
       recentGames.set(String(game.id), { home, visitor });
 
@@ -92,17 +72,46 @@ async function getTodayGames() {
         id: game.id,
         home,
         visitor,
+        status: game.status.long,
+        date: game.date,
+        gameTime,
         homeStats,
         visitorStats,
-        status: game.status.long,
-        date: game.date
+        series,
+        scores
       };
     });
 
   } catch (err) {
-    console.error("❌ [NBA FETCH ERROR]:", err.message);
+    console.error("❌ Error fetching NBA games:", err.message);
     return [];
   }
+}
+
+function mockStats() {
+  return {
+    wins: Math.floor(Math.random() * 50) + 10,
+    losses: Math.floor(Math.random() * 30) + 10,
+    pointsPerGame: Math.random() * 30 + 90,
+    pointsAllowed: Math.random() * 15 + 95
+  };
+}
+
+function parseSeries(game) {
+  const seriesData = game.series ?? {};
+  if (!seriesData?.name || !seriesData.games) return null;
+
+  const leader = seriesData.name.split(' ')[0];
+  const score = `${seriesData.win.home}-${seriesData.win.away}`;
+  const number = seriesData.games;
+  const isElimination = number >= 6 && (seriesData.win.home === 3 || seriesData.win.away === 3);
+
+  return {
+    leader,
+    score,
+    number,
+    isElimination
+  };
 }
 
 module.exports = {

@@ -18,16 +18,18 @@ async function loadStandingsData() {
     const res = await fetch(STANDINGS_URL, options);
     const json = await res.json();
 
-    if (!json.response || !Array.isArray(json.response)) {
-      console.warn('⚠️ No standings data found.');
+    const rawStandings = json.response?.[0]?.standings?.[0]; // 🛠️ the true list
+
+    if (!rawStandings || !Array.isArray(rawStandings)) {
+      console.warn('⚠️ No valid standings data structure found.');
       return;
     }
 
-    json.response.forEach(entry => {
+    rawStandings.forEach(entry => {
       const id = entry.team.id;
       const name = entry.team.name;
-      const gamesPlayed = entry.games.played || 82;
-      const wins = entry.win.total;
+      const gamesPlayed = entry.all.played || 82;
+      const wins = entry.all.win;
       const losses = gamesPlayed - wins;
       const ppg = parseFloat((entry.points.for / gamesPlayed).toFixed(1));
       const papg = parseFloat((entry.points.against / gamesPlayed).toFixed(1));
@@ -46,6 +48,7 @@ async function loadStandingsData() {
     console.error('❌ Error loading standings data:', err.message);
   }
 }
+
 
 async function getTeamStats(teamId) {
   if (!cachedStats.size) {
@@ -69,3 +72,4 @@ async function getTeamStats(teamId) {
 }
 
 module.exports = { getTeamStats };
+

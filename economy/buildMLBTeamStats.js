@@ -1,4 +1,3 @@
-// 📁 /economy/buildMLBTeamStats.js
 const axios = require('axios');
 
 async function buildMLBTeamStats() {
@@ -13,38 +12,35 @@ async function buildMLBTeamStats() {
     for (const team of teams) {
       const id = team.id;
       const name = team.name;
-      const abbrev = team.abbreviation;
-      const logo = `https://www.mlbstatic.com/team-logos/${id}.svg`;
+      const abbrev = team.abbreviation || team.teamCode || team.triCode;
+      const s = team.teamStats?.[0]?.splits?.[0]?.stat;
 
-      const stat = team.teamStats?.[0]?.splits?.[0]?.stat;
-      if (!stat || !abbrev) {
+      if (!s || !abbrev) {
         console.warn(`[MLBPREDICT][WARN] Missing stats or abbrev for: ${name}`);
         continue;
       }
 
-      const avg = parseFloat(stat.battingAverage || 0);
-      const obp = parseFloat(stat.onBasePercentage || 0);
-      const slg = parseFloat(stat.sluggingPercentage || 0);
-      const runs = parseFloat(stat.runs || 0);
-      const gamesPlayed = parseFloat(stat.gamesPlayed || 1);
-      const runsPerGame = runs / gamesPlayed;
+      const avg = parseFloat(s.battingAvg || 0);
+      const obp = parseFloat(s.onBasePct || 0);
+      const slg = parseFloat(s.sluggingPct || 0);
+      const runs = parseFloat(s.runsPerGame || 0);
 
       const powerScore =
         avg * 100 +
         obp * 100 +
         slg * 100 +
-        runsPerGame * 10;
+        runs * 10;
 
       stats[id] = {
         id,
-        abbrev,
         fullName: name,
+        abbreviation: abbrev,
         avg,
         obp,
         slg,
-        runsPerGame,
+        runsPerGame: runs,
         powerScore,
-        logo
+        logo: `https://www.mlbstatic.com/team-logos/${id}.svg`
       };
 
       console.log(`[MLB STATS] ${abbrev} (${name}) → Power: ${powerScore.toFixed(2)}`);

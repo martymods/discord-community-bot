@@ -2776,8 +2776,7 @@ client.commands.set('mlbpredict', {
       if (!games.length) return message.reply("📭 No MLB games to predict today.");
 
       for (const game of games) {
-        const home = game.home;
-        const visitor = game.visitor;
+        const { home, visitor } = game;
         const homeStats = stats[home];
         const awayStats = stats[visitor];
 
@@ -2798,7 +2797,9 @@ client.commands.set('mlbpredict', {
         const embed = new EmbedBuilder()
           .setTitle(`⚾ MLB Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
           .setThumbnail(predictedStats.logo)
-          .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${decimalOdds}x return`)
+          .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**
+**Confidence Score:** ${confidence}
+**Simulated Odds:** ${decimalOdds}x return`)
           .addFields(
             {
               name: `${homeStats.fullName} Stats`,
@@ -2816,13 +2817,25 @@ client.commands.set('mlbpredict', {
           .setTimestamp();
 
         await message.channel.send({ embeds: [embed] });
+
+        // 🧠 Fake Parlay Logic (will improve with player data)
+        const totalBasesPick = predictedStats.slg > 0.5 ? `Over 2.5 Total Bases` : `Over 1.5 Total Bases`;
+        const hrPick = predictedStats.slg > 0.525 ? `💣 Home Run (+500)` : `–`;
+        const strikeoutPick = `🎯 Pitcher (Name TBD) — 5+ Strikeouts`;
+        const firstInningRuns = (homeStats.runsPerGame + awayStats.runsPerGame) / 9;
+        const firstInningPick = firstInningRuns > 1 ? '🕒 1st Inning Over 0.5 Runs ✅' : '🧊 1st Inning Under 0.5';
+
+        const parlay = `**Parlay Picks:**\n- 🔥 ${predictedStats.fullName} — ${totalBasesPick}\n- ${hrPick}\n- ${strikeoutPick}\n- ${firstInningPick}`;
+        await message.channel.send(parlay);
       }
+
     } catch (err) {
       console.error('❌ [MLBPREDICT ERROR]:', err);
       return message.reply('⚠️ Something went wrong predicting MLB matchups.');
     }
   }
 });
+
 
 
 client.commands.set('jackpot', {

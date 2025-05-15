@@ -98,10 +98,6 @@ const {
   getTrackedTickers,
   getSniperRotation
 } = require('./economy/sniperTargets');
-const { getTeamStats } = require('./getTeamStats');
-
-const homeStats = await getTeamStats(game.teams.home.id);
-const visitorStats = await getTeamStats(game.teams.away.id);
 
 
 

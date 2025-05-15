@@ -2584,9 +2584,9 @@ client.commands.set('nbabet', {
 client.commands.set('nbapredict', {
   async execute(message) {
     const allowedChannel = '1362021059150483456';
-if (message.channel.id !== allowedChannel) {
-  return message.reply('⚠️ This command only works in the #sports-intel channel.');
-}
+    if (message.channel.id !== allowedChannel) {
+      return message.reply('⚠️ This command only works in the #sports-intel channel.');
+    }
 
     console.log("✅ Running command: nbapredict");
     console.log("[NBAPREDICT] Triggered by", message.author.username, `(${message.author.id})`);
@@ -2621,9 +2621,17 @@ if (message.channel.id !== allowedChannel) {
         const predicted = homeScore > awayScore ? home : visitor;
         const confidence = Math.abs(homeScore - awayScore).toFixed(2);
 
+        // ⭐ Confidence Tier
+        const starTier = homeScore > awayScore ? homeScore : awayScore;
+        const stars = starTier > 180 ? '⭐️⭐️⭐️⭐️⭐️' :
+                      starTier > 165 ? '⭐️⭐️⭐️⭐️' :
+                      starTier > 150 ? '⭐️⭐️⭐️' :
+                      starTier > 135 ? '⭐️⭐️' : '⭐️';
+
         const embed = new EmbedBuilder()
           .setTitle(`📊 NBA Prediction: ${visitor} @ ${home}`)
-          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**\n**Confidence Score:** ${confidence}`)
+          .setDescription(`**Predicted Winner:** 🏆 **${predicted}**
+**Confidence Score:** ${confidence} (${stars})`)
           .addFields(
             {
               name: `${home} Stats`,
@@ -2641,13 +2649,25 @@ if (message.channel.id !== allowedChannel) {
           .setTimestamp();
 
         await message.channel.send({ embeds: [embed] });
+
+        // 🧠 Parlay Picks
+        const spreadPick = predicted === home ? `${home} -4.5` : `${visitor} +4.5`;
+        const starPlayerPick = `⭐ Top Scorer — ${predicted} star 20+ pts`;
+        const quarterOverUnder = (homeStats.pointsPerGame + awayStats.pointsPerGame) / 2 > 112
+          ? '🕒 1st Q Over 56.5'
+          : '🧊 1st Q Under 56.5';
+
+        const parlay = `**Parlay Picks (${stars}):**\n- ✅ ${spreadPick} Spread\n- 🎯 ${starPlayerPick}\n- ${quarterOverUnder}`;
+        await message.channel.send(parlay);
       }
+
     } catch (err) {
       console.error('❌ [NBAPREDICT ERROR]:', err);
       return message.reply('⚠️ Something went wrong predicting games.');
     }
   }
 });
+
 
 client.commands.set('nhlpredict', {
   async execute(message) {

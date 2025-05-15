@@ -10,8 +10,8 @@ async function getTodayMLBGames() {
     const games = res.data.dates[0]?.games || [];
 
     return games.map(g => ({
-      home: g.teams.home.team.name,
-      visitor: g.teams.away.team.name
+      home: g.teams.home.team.id,
+      visitor: g.teams.away.team.id
     }));
   } catch (err) {
     console.error('[MLBPREDICT][GAMES ERROR]', err.message);

@@ -1,21 +1,25 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
-const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
 const STANDINGS_URL = 'https://api-basketball.p.rapidapi.com/standings?league=12&season=2024-2025';
+const API_KEY = process.env.RAPIDAPI_KEY || 'YOUR_KEY_HERE';
 
-let cachedStats = new Map();
+const cachedStats = new Map();
+let lastFetchDate = null;
 
 async function loadStandingsData() {
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-RapidAPI-Key': API_KEY,
-      'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
-    }
-  };
+  const today = new Date().toISOString().slice(0, 10);
+  if (lastFetchDate === today && cachedStats.size > 0) return; // avoid re-fetch
+
+  console.log("⏳ Loading team stats from standings API...");
+  lastFetchDate = today;
 
   try {
-    const res = await fetch(STANDINGS_URL, options);
+    const res = await fetch(STANDINGS_URL, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': API_KEY,
+        'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
+      }
+    });
     const json = await res.json();
 
     const teamList = json.response;
@@ -24,9 +28,12 @@ async function loadStandingsData() {
       return;
     }
 
+    cachedStats.clear();
+
     teamList.forEach(entry => {
       const id = entry.team?.id;
       const name = entry.team?.name;
+      const logo = entry.team?.logo;
       const played = entry.games?.played;
       const wins = entry.win?.total;
       const ppgRaw = entry.points?.for;
@@ -43,7 +50,8 @@ async function loadStandingsData() {
         wins,
         losses,
         pointsPerGame: ppg,
-        pointsAllowed: papg
+        pointsAllowed: papg,
+        logo
       });
     });
 
@@ -53,26 +61,23 @@ async function loadStandingsData() {
   }
 }
 
-
 async function getTeamStats(teamId) {
-  if (!cachedStats.size) {
-    console.log('⏳ Loading team stats from standings API...');
-    await loadStandingsData();
-  }
+  if (!cachedStats.has(teamId)) await loadStandingsData();
+  const stats = cachedStats.get(teamId);
 
-  if (cachedStats.has(teamId)) {
-    const team = cachedStats.get(teamId);
-    console.log(`📈 Found stats for team ${team.name}:`, team);
-    return team;
-  } else {
+  if (!stats) {
     console.warn(`⚠️ Team ID ${teamId} not found in standings. Returning fallback.`);
     return {
+      name: `Team ${teamId}`,
       wins: 40,
       losses: 30,
       pointsPerGame: 100,
-      pointsAllowed: 100
+      pointsAllowed: 100,
+      logo: null
     };
   }
+
+  return stats;
 }
 
 module.exports = { getTeamStats };

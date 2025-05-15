@@ -10,11 +10,11 @@ async function buildMLBTeamStats() {
     const teams = res.data.teams || [];
 
     const stats = {};
-
     for (const team of teams) {
-      const teamId = team.id;
+      const id = team.id;
       const name = team.name;
       const abbrev = team.abbreviation;
+      const logo = `https://www.mlbstatic.com/team-logos/${id}.svg`;
 
       const stat = team.teamStats?.[0]?.splits?.[0]?.stat;
       if (!stat || !abbrev) {
@@ -35,9 +35,9 @@ async function buildMLBTeamStats() {
         slg * 100 +
         runsPerGame * 10;
 
-      const logo = `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
-
-      stats[name] = {
+      stats[id] = {
+        id,
+        abbrev,
         fullName: name,
         avg,
         obp,

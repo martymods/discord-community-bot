@@ -2767,6 +2767,7 @@ client.commands.set('mlbpredict', {
       const { getTodayMLBGames } = require('./economy/mlbGames');
       const { getTodayMLBPlayers } = require('./economy/getTodayMLBPlayers');
       const { getPlayerStats } = require('./economy/getPlayerStats');
+      const { getTeamLineup } = require('./economy/getLineupPlayers');
       const { EmbedBuilder } = require('discord.js');
 
       const games = await getTodayMLBGames();
@@ -2794,17 +2795,16 @@ client.commands.set('mlbpredict', {
         const predictedOdds = homeScore > awayScore ? prob : 100 - prob;
         const decimalOdds = (100 / predictedOdds).toFixed(2);
 
-        const confidenceTag = predictedStats.powerScore > 155
-          ? '💰 Lock'
-          : predictedStats.powerScore > 140
-          ? '✅ Lean'
-          : '⚠️ Risky';
+        const stars = predictedStats.powerScore > 155 ? '⭐️⭐️⭐️⭐️⭐️' :
+                      predictedStats.powerScore > 145 ? '⭐️⭐️⭐️⭐️' :
+                      predictedStats.powerScore > 135 ? '⭐️⭐️⭐️' :
+                      predictedStats.powerScore > 125 ? '⭐️⭐️' : '⭐️';
 
         const embed = new EmbedBuilder()
           .setTitle(`⚾ MLB Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
           .setThumbnail(predictedStats.logo)
           .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**
-**Confidence Score:** ${confidence} (${confidenceTag})
+**Confidence Score:** ${confidence} (${stars})
 **Simulated Odds:** ${decimalOdds}x return`)
           .addFields(
             {
@@ -2824,13 +2824,12 @@ client.commands.set('mlbpredict', {
 
         await message.channel.send({ embeds: [embed] });
 
-        // 🔍 Pull matchup & probable pitcher info
+        // 🎯 Pitcher logic
         const matchup = players.find(p => p.homeTeamId === home && p.awayTeamId === visitor);
         const isHomePredicted = predictedStats.id === matchup?.homeTeamId;
         const pitcherName = isHomePredicted ? matchup?.homeProbablePitcher : matchup?.awayProbablePitcher;
         const pitcherId = isHomePredicted ? matchup?.homePitcherId : matchup?.awayPitcherId;
 
-        // 🧠 Pull pitcher stats
         let strikeoutPick = `🎯 Pitcher (Name TBD) — 5+ Strikeouts`;
         if (pitcherId) {
           const pitcherStats = await getPlayerStats(pitcherId, 'pitching');
@@ -2841,32 +2840,36 @@ client.commands.set('mlbpredict', {
           else strikeoutPick = `🎯 ${pitcherName} — Tough to Predict`;
         }
 
-        // 💣 Find a random batter on predicted team (for now we simulate)
-        const hitterId = Math.floor(Math.random() * 500000) + 500000; // ⚠️ Replace with real ID lookup later
+        // 🔥 Batter pick from real lineup
+        const batterTeamId = predictedStats.id;
+        const lineup = await getTeamLineup(batterTeamId);
+        const batter = lineup[Math.floor(Math.random() * lineup.length)];
+
         let hrPick = '–';
-        try {
-          const batterStats = await getPlayerStats(hitterId, 'hitting');
-          const slug = parseFloat(batterStats?.slg || 0);
-          const hr = parseInt(batterStats?.homeRuns || 0);
-          const hits = parseInt(batterStats?.hits || 0);
-          const games = parseInt(batterStats?.gamesPlayed || 1);
+        if (batter) {
+          try {
+            const batterStats = await getPlayerStats(batter.id, 'hitting');
+            const slug = parseFloat(batterStats?.slg || 0);
+            const hr = parseInt(batterStats?.homeRuns || 0);
+            const hits = parseInt(batterStats?.hits || 0);
+            const games = parseInt(batterStats?.gamesPlayed || 1);
+            const hitsPerGame = hits / games;
 
-          const hitsPerGame = hits / games;
-
-          if (slug > 0.525 && hr >= 10) {
-            hrPick = `💣 (Sim) Player X — Home Run (+500)`;
-          } else if (hitsPerGame > 1.5) {
-            hrPick = `🔥 (Sim) Player X — 2+ Hits`;
+            if (slug > 0.525 && hr >= 10) {
+              hrPick = `💣 ${batter.name} — Home Run (+500)`;
+            } else if (hitsPerGame > 1.5) {
+              hrPick = `🔥 ${batter.name} — 2+ Hits`;
+            }
+          } catch {
+            hrPick = '–';
           }
-        } catch {
-          hrPick = '–';
         }
 
         const totalBasesPick = predictedStats.slg > 0.5 ? `Over 2.5 Total Bases` : `Over 1.5 Total Bases`;
         const firstInningRuns = (homeStats.runsPerGame + awayStats.runsPerGame) / 9;
         const firstInningPick = firstInningRuns > 1 ? '🕒 1st Inning Over 0.5 Runs ✅' : '🧊 1st Inning Under 0.5';
 
-        const parlay = `**Parlay Picks (${confidenceTag}):**\n- 🔥 ${predictedStats.fullName} — ${totalBasesPick}\n- ${hrPick}\n- ${strikeoutPick}\n- ${firstInningPick}`;
+        const parlay = `**Parlay Picks (${stars}):**\n- 🔥 ${predictedStats.fullName} — ${totalBasesPick}\n- ${hrPick}\n- ${strikeoutPick}\n- ${firstInningPick}`;
         await message.channel.send(parlay);
       }
 

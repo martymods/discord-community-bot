@@ -2604,7 +2604,7 @@ client.commands.set('nbapredict', {
       console.log("[NBAPREDICT] Team stats keys:", Object.keys(stats));
 
       for (const game of games) {
-        const { home, visitor, date, status, gameTime, series, scores, homeStats: rawHomeStats, visitorStats: rawVisitorStats } = game;
+        const { home, visitor, date, status, gameTime, series, scores, homeStats: rawHomeStats, visitorStats: rawVisitorStats, homeLogo, visitorLogo } = game;
         const homeStats = stats[home];
         const awayStats = stats[visitor];
 
@@ -2647,6 +2647,7 @@ client.commands.set('nbapredict', {
 
         const embed = new EmbedBuilder()
           .setTitle(`📊 NBA Prediction: ${visitor} @ ${home}`)
+          .setThumbnail(predicted === home ? homeLogo : visitorLogo)
           .setDescription(
             `**Predicted Winner:** 🏆 **${predicted}**\n` +
             `**Confidence Score:** ${confidence} (${stars})\n\n` +
@@ -2688,6 +2689,7 @@ client.commands.set('nbapredict', {
     }
   }
 });
+
 
 client.commands.set('nhlpredict', {
   async execute(message) {

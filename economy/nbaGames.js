@@ -90,10 +90,34 @@ async function getTodayGames() {
 
 function extractTeamStats(teamObj) {
   const stats = teamObj.statistics || {};
-  const wins = stats.wins?.total || 0;
-  const losses = stats.games?.played ? stats.games.played - wins : 0;
-  const pointsPerGame = stats.averages?.points?.for || 100;
-  const pointsAllowed = stats.averages?.points?.against || 100;
+  const teamName = teamObj.name || 'Unknown Team';
+
+  const wins = stats.wins?.total ?? null;
+  const gamesPlayed = stats.games?.played ?? null;
+  const pointsPerGame = stats.averages?.points?.for ?? null;
+  const pointsAllowed = stats.averages?.points?.against ?? null;
+
+  console.log(`📊 Stats for ${teamName}:`);
+  console.log(`• Wins: ${wins}`);
+  console.log(`• Games Played: ${gamesPlayed}`);
+  console.log(`• PPG (For): ${pointsPerGame}`);
+  console.log(`• PPG Allowed: ${pointsAllowed}`);
+
+  // If missing any, fallback to safe defaults
+  if (
+    wins == null || gamesPlayed == null ||
+    pointsPerGame == null || pointsAllowed == null
+  ) {
+    console.warn(`⚠️ Missing stats for ${teamName}, applying fallback defaults.`);
+    return {
+      wins: 40,
+      losses: 30,
+      pointsPerGame: 100,
+      pointsAllowed: 100
+    };
+  }
+
+  const losses = gamesPlayed - wins;
 
   return {
     wins,
@@ -102,6 +126,7 @@ function extractTeamStats(teamObj) {
     pointsAllowed
   };
 }
+
 
 function parseSeries(game) {
   const seriesData = game.series ?? {};

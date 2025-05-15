@@ -2,6 +2,7 @@ const axios = require('axios');
 
 async function buildMLBTeamStats() {
   console.log('[MLBPREDICT][STATS] Fetching MLB team stats...');
+
   const url = 'https://statsapi.mlb.com/api/v1/teams?sportId=1&season=2024&hydrate=teamStats(type=season)';
 
   try {
@@ -20,16 +21,17 @@ async function buildMLBTeamStats() {
         continue;
       }
 
+      // Use official stat keys from MLB API
       const avg = parseFloat(s.battingAvg || 0);
       const obp = parseFloat(s.onBasePct || 0);
       const slg = parseFloat(s.sluggingPct || 0);
-      const runs = parseFloat(s.runsPerGame || 0);
+      const runsPerGame = parseFloat(s.runsPerGame || 0);
 
       const powerScore =
         avg * 100 +
         obp * 100 +
         slg * 100 +
-        runs * 10;
+        runsPerGame * 10;
 
       stats[id] = {
         id,
@@ -38,12 +40,12 @@ async function buildMLBTeamStats() {
         avg,
         obp,
         slg,
-        runsPerGame: runs,
+        runsPerGame,
         powerScore,
         logo: `https://www.mlbstatic.com/team-logos/${id}.svg`
       };
 
-      console.log(`[MLB STATS] ${abbrev} (${name}) → Power: ${powerScore.toFixed(2)}`);
+      console.log(`[MLB STATS] ✅ ${abbrev} (${name}) → Power: ${powerScore.toFixed(2)}`);
     }
 
     console.log('[MLBPREDICT][STATS] Loaded:', Object.keys(stats).length, 'teams');

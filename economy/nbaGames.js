@@ -55,10 +55,10 @@ async function getTodayGames() {
     return filteredGames.map(game => {
       const home = game.teams.home.name;
       const visitor = game.teams.away.name;
-      const homeStats = mockStats(); // Replace with real stats later
-      const visitorStats = mockStats();
 
-      // 🧠 Parse new fields
+      const homeStats = extractTeamStats(game.teams.home);
+      const visitorStats = extractTeamStats(game.teams.away);
+
       const series = parseSeries(game);
       const scores = {
         home: game.scores?.home?.total ?? null,
@@ -88,12 +88,18 @@ async function getTodayGames() {
   }
 }
 
-function mockStats() {
+function extractTeamStats(teamObj) {
+  const stats = teamObj.statistics || {};
+  const wins = stats.wins?.total || 0;
+  const losses = stats.games?.played ? stats.games.played - wins : 0;
+  const pointsPerGame = stats.averages?.points?.for || 100;
+  const pointsAllowed = stats.averages?.points?.against || 100;
+
   return {
-    wins: Math.floor(Math.random() * 50) + 10,
-    losses: Math.floor(Math.random() * 30) + 10,
-    pointsPerGame: Math.random() * 30 + 90,
-    pointsAllowed: Math.random() * 15 + 95
+    wins,
+    losses,
+    pointsPerGame,
+    pointsAllowed
   };
 }
 

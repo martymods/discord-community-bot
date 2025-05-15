@@ -24,20 +24,20 @@ async function loadStandingsData() {
       return;
     }
 
-    const innerArray = raw[0]?.standings?.[0];
-    if (!innerArray || !Array.isArray(innerArray)) {
+    const standingsList = raw[0]?.standings?.[0];
+    if (!standingsList || !Array.isArray(standingsList)) {
       console.warn('⚠️ No valid standings data structure found inside response[0].standings[0]');
       return;
     }
 
-    innerArray.forEach(entry => {
+    standingsList.forEach(entry => {
       const id = entry.team.id;
       const name = entry.team.name;
-      const gamesPlayed = entry.all.played || 82;
-      const wins = entry.all.win;
+      const gamesPlayed = entry.all?.played ?? 82;
+      const wins = entry.all?.win ?? 40;
       const losses = gamesPlayed - wins;
-      const ppg = parseFloat((entry.points.for / gamesPlayed).toFixed(1));
-      const papg = parseFloat((entry.points.against / gamesPlayed).toFixed(1));
+      const ppg = entry.points?.for ? parseFloat((entry.points.for / gamesPlayed).toFixed(1)) : 100;
+      const papg = entry.points?.against ? parseFloat((entry.points.against / gamesPlayed).toFixed(1)) : 100;
 
       cachedStats.set(id, {
         name,
@@ -53,6 +53,7 @@ async function loadStandingsData() {
     console.error('❌ Error loading standings data:', err.message);
   }
 }
+
 
 
 async function getTeamStats(teamId) {

@@ -28,7 +28,10 @@ async function getTodayGames() {
       return [];
     }
 
-    return json.response.map(game => {
+return json.response
+  .filter(game => game.status.long !== 'Finished' && game.status.long !== 'After OT')
+  .map(game => {
+
       const home = game.teams.home.name;
       const visitor = game.teams.away.name;
 

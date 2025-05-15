@@ -2,6 +2,11 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 const recentGames = new Map(); // gameId → { home, visitor }
 
 const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
+const { getTeamStats } = require('./getTeamStats');
+
+const homeStats = await getTeamStats(game.teams.home.id);
+const visitorStats = await getTeamStats(game.teams.away.id);
+
 
 async function getTodayGames() {
   const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];

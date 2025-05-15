@@ -4,10 +4,6 @@ const recentGames = new Map(); // gameId → { home, visitor }
 const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
 const { getTeamStats } = require('./getTeamStats');
 
-const homeStats = await getTeamStats(game.teams.home.id);
-const visitorStats = await getTeamStats(game.teams.away.id);
-
-
 async function getTodayGames() {
   const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];
   const allGames = [];
@@ -57,81 +53,46 @@ async function getTodayGames() {
       });
     }
 
-    return filteredGames.map(game => {
-      const home = game.teams.home.name;
-      const visitor = game.teams.away.name;
+    // 🧠 Parallel map with async team stat fetch
+    const enrichedGames = await Promise.all(
+      filteredGames.map(async (game) => {
+        const home = game.teams.home.name;
+        const visitor = game.teams.away.name;
 
-      const homeStats = extractTeamStats(game.teams.home);
-      const visitorStats = extractTeamStats(game.teams.away);
+        const homeStats = await getTeamStats(game.teams.home.id);
+        const visitorStats = await getTeamStats(game.teams.away.id);
 
-      const series = parseSeries(game);
-      const scores = {
-        home: game.scores?.home?.total ?? null,
-        away: game.scores?.away?.total ?? null
-      };
-      const gameTime = new Date(game.date);
+        const series = parseSeries(game);
+        const scores = {
+          home: game.scores?.home?.total ?? null,
+          away: game.scores?.away?.total ?? null
+        };
+        const gameTime = new Date(game.date);
 
-      recentGames.set(String(game.id), { home, visitor });
+        recentGames.set(String(game.id), { home, visitor });
 
-      return {
-        id: game.id,
-        home,
-        visitor,
-        status: game.status.long,
-        date: game.date,
-        gameTime,
-        homeStats,
-        visitorStats,
-        series,
-        scores
-      };
-    });
+        return {
+          id: game.id,
+          home,
+          visitor,
+          status: game.status.long,
+          date: game.date,
+          gameTime,
+          homeStats,
+          visitorStats,
+          series,
+          scores
+        };
+      })
+    );
+
+    return enrichedGames;
 
   } catch (err) {
     console.error("❌ Error fetching NBA games:", err.message);
     return [];
   }
 }
-
-function extractTeamStats(teamObj) {
-  const stats = teamObj.statistics || {};
-  const teamName = teamObj.name || 'Unknown Team';
-
-  const wins = stats.wins?.total ?? null;
-  const gamesPlayed = stats.games?.played ?? null;
-  const pointsPerGame = stats.averages?.points?.for ?? null;
-  const pointsAllowed = stats.averages?.points?.against ?? null;
-
-  console.log(`📊 Stats for ${teamName}:`);
-  console.log(`• Wins: ${wins}`);
-  console.log(`• Games Played: ${gamesPlayed}`);
-  console.log(`• PPG (For): ${pointsPerGame}`);
-  console.log(`• PPG Allowed: ${pointsAllowed}`);
-
-  // If missing any, fallback to safe defaults
-  if (
-    wins == null || gamesPlayed == null ||
-    pointsPerGame == null || pointsAllowed == null
-  ) {
-    console.warn(`⚠️ Missing stats for ${teamName}, applying fallback defaults.`);
-    return {
-      wins: 40,
-      losses: 30,
-      pointsPerGame: 100,
-      pointsAllowed: 100
-    };
-  }
-
-  const losses = gamesPlayed - wins;
-
-  return {
-    wins,
-    losses,
-    pointsPerGame,
-    pointsAllowed
-  };
-}
-
 
 function parseSeries(game) {
   const seriesData = game.series ?? {};

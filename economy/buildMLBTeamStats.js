@@ -22,7 +22,6 @@ async function buildMLBTeamStats() {
         continue;
       }
 
-      // These are the keys expected in your embed
       const avg = parseFloat(stat.battingAverage || 0);
       const obp = parseFloat(stat.onBasePercentage || 0);
       const slg = parseFloat(stat.sluggingPercentage || 0);
@@ -51,7 +50,7 @@ async function buildMLBTeamStats() {
       console.log(`[MLB STATS] ${abbrev} (${name}) → Power: ${powerScore.toFixed(2)}`);
     }
 
-    console.log(`[MLBPREDICT][STATS] Loaded: ${Object.keys(stats).length} teams`);
+    console.log('[MLBPREDICT][STATS] Loaded:', Object.keys(stats).length, 'teams');
     return stats;
   } catch (err) {
     console.error('❌ [MLBPREDICT][STATS ERROR]:', err.message);

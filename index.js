@@ -2764,60 +2764,66 @@ client.commands.set('mlbpredict', {
 
     try {
       const { buildMLBTeamStats } = require('./economy/buildMLBTeamStats');
+      const { getTodayMLBGames } = require('./economy/mlbGames');
       const { EmbedBuilder } = require('discord.js');
 
+      const games = await getTodayMLBGames();
+      console.log(`[MLBPREDICT] Fetched ${games.length} games from today's schedule.`);
+
       const stats = await buildMLBTeamStats();
-      const teams = Object.keys(stats);
+      console.log(`[MLBPREDICT] Loaded team stats for:`, Object.keys(stats));
 
-      console.log(`[MLBPREDICT] Loaded ${teams.length} valid MLB teams`);
+      if (!games.length) return message.reply("📭 No MLB games to predict today.");
 
-      if (teams.length < 2) {
-        console.warn("[MLBPREDICT] Not enough valid MLB teams to simulate a matchup.");
-        return message.reply("⚠️ Not enough MLB team stats available.");
+      for (const game of games) {
+        const home = game.home;
+        const visitor = game.visitor;
+        const homeStats = stats[home];
+        const awayStats = stats[visitor];
+
+        if (!homeStats || !awayStats) {
+          console.warn(`[MLBPREDICT] Missing stats for ${home} or ${visitor}`);
+          continue;
+        }
+
+        const homeScore = homeStats.powerScore;
+        const awayScore = awayStats.powerScore;
+        const predictedStats = homeScore > awayScore ? homeStats : awayStats;
+
+        const confidence = Math.abs(homeScore - awayScore).toFixed(2);
+        const prob = (1 / (1 + Math.pow(10, (awayScore - homeScore) / 10))) * 100;
+        const predictedOdds = homeScore > awayScore ? prob : 100 - prob;
+        const decimalOdds = (100 / predictedOdds).toFixed(2);
+
+        const embed = new EmbedBuilder()
+          .setTitle(`⚾ MLB Prediction: ${awayStats.fullName} @ ${homeStats.fullName}`)
+          .setThumbnail(predictedStats.logo)
+          .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${decimalOdds}x return`)
+          .addFields(
+            {
+              name: `${homeStats.fullName} Stats`,
+              value: `AVG: ${homeStats.avg.toFixed(3)}\nOBP: ${homeStats.obp.toFixed(3)}\nSLG: ${homeStats.slg.toFixed(3)}\nRuns/Game: ${homeStats.runsPerGame.toFixed(1)}\nPower: ${homeScore.toFixed(2)}`,
+              inline: true
+            },
+            {
+              name: `${awayStats.fullName} Stats`,
+              value: `AVG: ${awayStats.avg.toFixed(3)}\nOBP: ${awayStats.obp.toFixed(3)}\nSLG: ${awayStats.slg.toFixed(3)}\nRuns/Game: ${awayStats.runsPerGame.toFixed(1)}\nPower: ${awayScore.toFixed(2)}`,
+              inline: true
+            }
+          )
+          .setFooter({ text: 'Dreamworld Sports Analytics - MLB' })
+          .setColor(homeScore > awayScore ? '#008000' : '#0000cd')
+          .setTimestamp();
+
+        await message.channel.send({ embeds: [embed] });
       }
-
-      // Pick 2 random MLB teams for prediction
-      const [teamA, teamB] = teams.sort(() => 0.5 - Math.random()).slice(0, 2);
-      const teamAStats = stats[teamA];
-      const teamBStats = stats[teamB];
-
-      const aScore = teamAStats.powerScore;
-      const bScore = teamBStats.powerScore;
-      const predicted = aScore > bScore ? teamA : teamB;
-      const predictedStats = aScore > bScore ? teamAStats : teamBStats;
-
-      const confidence = Math.abs(aScore - bScore).toFixed(2);
-      const prob = (aScore / (aScore + bScore)) * 100;
-      const predictedOdds = predicted === teamA ? prob : 100 - prob;
-      const decimalOdds = (100 / predictedOdds).toFixed(2);
-
-      const embed = new EmbedBuilder()
-        .setTitle(`⚾ MLB Prediction: ${teamBStats.fullName} @ ${teamAStats.fullName}`)
-        .setThumbnail(predictedStats.logo)
-        .setDescription(`**Predicted Winner:** 🏆 **${predictedStats.fullName}**\n**Confidence Score:** ${confidence}\n**Simulated Odds:** ${decimalOdds}x return`)
-        .addFields(
-          {
-            name: `${teamAStats.fullName} Stats`,
-            value: `AVG: ${teamAStats.avg}\nOBP: ${teamAStats.obp}\nSLG: ${teamAStats.slg}\nRuns/Game: ${teamAStats.runsPerGame.toFixed(1)}\nPower: ${aScore.toFixed(2)}`,
-            inline: true
-          },
-          {
-            name: `${teamBStats.fullName} Stats`,
-            value: `AVG: ${teamBStats.avg}\nOBP: ${teamBStats.obp}\nSLG: ${teamBStats.slg}\nRuns/Game: ${teamBStats.runsPerGame.toFixed(1)}\nPower: ${bScore.toFixed(2)}`,
-            inline: true
-          }
-        )
-        .setFooter({ text: 'Dreamworld Sports Analytics - MLB' })
-        .setColor(predicted === teamA ? '#ff4500' : '#1e90ff')
-        .setTimestamp();
-
-      await message.channel.send({ embeds: [embed] });
     } catch (err) {
       console.error('❌ [MLBPREDICT ERROR]:', err);
       return message.reply('⚠️ Something went wrong predicting MLB matchups.');
     }
   }
 });
+
 
 client.commands.set('jackpot', {
   async execute(message) {

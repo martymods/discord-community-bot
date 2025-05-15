@@ -18,14 +18,19 @@ async function loadStandingsData() {
     const res = await fetch(STANDINGS_URL, options);
     const json = await res.json();
 
-    const rawStandings = json.response?.[0]?.standings?.[0]; // 🛠️ the true list
-
-    if (!rawStandings || !Array.isArray(rawStandings)) {
-      console.warn('⚠️ No valid standings data structure found.');
+    const raw = json.response;
+    if (!raw || !Array.isArray(raw) || !raw.length) {
+      console.warn('⚠️ No standings root array returned.');
       return;
     }
 
-    rawStandings.forEach(entry => {
+    const innerArray = raw[0]?.standings?.[0];
+    if (!innerArray || !Array.isArray(innerArray)) {
+      console.warn('⚠️ No valid standings data structure found inside response[0].standings[0]');
+      return;
+    }
+
+    innerArray.forEach(entry => {
       const id = entry.team.id;
       const name = entry.team.name;
       const gamesPlayed = entry.all.played || 82;
@@ -72,4 +77,3 @@ async function getTeamStats(teamId) {
 }
 
 module.exports = { getTeamStats };
-

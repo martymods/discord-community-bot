@@ -2765,13 +2765,13 @@ client.commands.set('mlbpredict', {
     try {
       const { buildMLBTeamStats } = require('./economy/buildMLBTeamStats');
       const { getTodayMLBGames } = require('./economy/mlbGames');
+      const { getTodayMLBPlayers } = require('./economy/getTodayMLBPlayers');
+      const { getPlayerStats } = require('./economy/getPlayerStats');
       const { EmbedBuilder } = require('discord.js');
 
       const games = await getTodayMLBGames();
-      console.log(`[MLBPREDICT] Fetched ${games.length} games from today's schedule.`);
-
       const stats = await buildMLBTeamStats();
-      console.log(`[MLBPREDICT] Loaded team stats for:`, Object.keys(stats));
+      const players = await getTodayMLBPlayers();
 
       if (!games.length) return message.reply("📭 No MLB games to predict today.");
 
@@ -2818,10 +2818,26 @@ client.commands.set('mlbpredict', {
 
         await message.channel.send({ embeds: [embed] });
 
-        // 🧠 Fake Parlay Logic (will improve with player data)
+        // Find real pitcher for predicted team
+        const matchup = players.find(p =>
+          (p.homeTeamId === home && p.awayTeamId === visitor)
+        );
+        const pitcherName = (predictedStats.id === matchup?.homeTeamId)
+          ? matchup?.homeProbablePitcher
+          : matchup?.awayProbablePitcher;
+
+        const pitcherId = (predictedStats.id === matchup?.homeTeamId)
+          ? matchup?.homePitcherId
+          : matchup?.awayPitcherId;
+
+        // Placeholder: We can fetch and use pitcher stats later
+        const strikeoutPick = pitcherName && pitcherName !== 'Unknown'
+          ? `🎯 ${pitcherName} — 5+ Strikeouts`
+          : `🎯 Pitcher (Name TBD) — 5+ Strikeouts`;
+
         const totalBasesPick = predictedStats.slg > 0.5 ? `Over 2.5 Total Bases` : `Over 1.5 Total Bases`;
         const hrPick = predictedStats.slg > 0.525 ? `💣 Home Run (+500)` : `–`;
-        const strikeoutPick = `🎯 Pitcher (Name TBD) — 5+ Strikeouts`;
+
         const firstInningRuns = (homeStats.runsPerGame + awayStats.runsPerGame) / 9;
         const firstInningPick = firstInningRuns > 1 ? '🕒 1st Inning Over 0.5 Runs ✅' : '🧊 1st Inning Under 0.5';
 
@@ -2835,7 +2851,6 @@ client.commands.set('mlbpredict', {
     }
   }
 });
-
 
 
 client.commands.set('jackpot', {

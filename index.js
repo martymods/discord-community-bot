@@ -2604,7 +2604,7 @@ client.commands.set('nbapredict', {
       console.log("[NBAPREDICT] Team stats keys:", Object.keys(stats));
 
       for (const game of games) {
-        const { home, visitor, date, status, gameTime, series, scores } = game;
+        const { home, visitor, date, status, gameTime, series, scores, homeStats: rawHomeStats, visitorStats: rawVisitorStats } = game;
         const homeStats = stats[home];
         const awayStats = stats[visitor];
 
@@ -2612,6 +2612,8 @@ client.commands.set('nbapredict', {
 
         if (!homeStats || !awayStats) {
           console.warn(`[NBAPREDICT] Missing stats for ${visitor} @ ${home}`);
+          console.warn(`[NBAPREDICT] Raw home fallback:`, rawHomeStats);
+          console.warn(`[NBAPREDICT] Raw away fallback:`, rawVisitorStats);
           await message.channel.send(`⚠️ Missing data for **${visitor} @ ${home}**.`);
           continue;
         }
@@ -2621,29 +2623,24 @@ client.commands.set('nbapredict', {
         const predicted = homeScore > awayScore ? home : visitor;
         const confidence = Math.abs(homeScore - awayScore).toFixed(2);
 
-        // 🟨 Star Rating (Tiered)
         const scoreTier = Math.max(homeScore, awayScore);
         const stars = scoreTier > 180 ? '⭐️⭐️⭐️⭐️⭐️' :
                       scoreTier > 165 ? '⭐️⭐️⭐️⭐️' :
                       scoreTier > 150 ? '⭐️⭐️⭐️' :
                       scoreTier > 135 ? '⭐️⭐️' : '⭐️';
 
-        // 📈 Vegas Line Simulation
         const vegasLine = Math.round((homeScore - awayScore) * 0.1 * 10) / 10;
         const vegasStr = `Vegas Line: ${predicted} ${vegasLine > 0 ? '-' : '+'}${Math.abs(vegasLine)}`;
-        const botEdge = (Math.abs(vegasLine) + 3).toFixed(1); // Fake edge
+        const botEdge = (Math.abs(vegasLine) + 3).toFixed(1);
         const edgeStr = `Bot Edge: +${botEdge} pts`;
 
-        // 🕒 Game Time
         const utcTime = new Date(gameTime).toUTCString();
 
-        // 🔁 Game/Series Info
         let seriesInfo = '';
         if (series) {
           seriesInfo = `Series Score: ${series.leader} leads ${series.score}\nGame ${series.number}${series.isElimination ? ' (Elimination)' : ''}`;
         }
 
-        // 🔢 Score Line
         const scoreStr = scores?.home != null && scores?.away != null
           ? `Live Score: ${visitor} ${scores.away} — ${home} ${scores.home}`
           : 'Game Not Started Yet';
@@ -2676,7 +2673,6 @@ client.commands.set('nbapredict', {
 
         await message.channel.send({ embeds: [embed] });
 
-        // 🧠 Parlay Picks
         const spreadPick = predicted === home ? `${home} -4.5` : `${visitor} +4.5`;
         const topScorer = `⭐ Top Scorer — ${predicted} star 20+ pts`;
         const q1Pick = (homeStats.pointsPerGame + awayStats.pointsPerGame) / 2 > 112

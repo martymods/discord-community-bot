@@ -4,55 +4,74 @@ const recentGames = new Map(); // gameId → { home, visitor }
 const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
 
 async function getTodayGames() {
-  const today = new Date().toISOString().slice(0, 10);
-  const url = `https://api-basketball.p.rapidapi.com/games?date=${today}&league=12&season=2024-2025`;
-
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-RapidAPI-Key': API_KEY,
-      'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
-    }
-  };
+  const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];
+  const allGames = [];
 
   try {
-    const res = await fetch(url, options);
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': API_KEY,
+        'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
+      }
+    };
 
-    if (!res.ok) {
-      throw new Error(`API returned status ${res.status}: ${await res.text()}`);
+    // Try fetching both today and tomorrow
+    for (let offset = 0; offset <= 1; offset++) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      const dateStr = date.toISOString().slice(0, 10);
+      const url = `https://api-basketball.p.rapidapi.com/games?date=${dateStr}&league=12&season=2024-2025`;
+
+      console.log(`🌐 Fetching NBA games for: ${dateStr}`);
+      const res = await fetch(url, options);
+
+      if (!res.ok) {
+        throw new Error(`API error on ${dateStr}: ${res.status} — ${await res.text()}`);
+      }
+
+      const json = await res.json();
+      if (!json.response || json.response.length === 0) {
+        console.log(`🟡 No games found for ${dateStr}`);
+        continue;
+      }
+
+      console.log(`📦 Raw games from ${dateStr}:`);
+      json.response.forEach(game => {
+        console.log(`🧪 ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
+      });
+
+      allGames.push(...json.response);
     }
 
-    const json = await res.json();
-    if (!json.response || json.response.length === 0) {
-      console.log("🟡 No games found for today.");
+    if (allGames.length === 0) {
+      console.log("🟠 No NBA games found in either date window.");
       return [];
     }
 
-    // 🧪 Log all unique status strings
-    console.log("🧪 Detected statuses:", [...new Set(json.response.map(g => g.status.long))]);
+    // Filter out completed games
+    const filteredGames = allGames.filter(game => !skippedStatuses.includes(game.status.long));
+    const skippedGames = allGames.filter(game => skippedStatuses.includes(game.status.long));
 
-    const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];
-    const filteredGames = json.response.filter(game => !skippedStatuses.includes(game.status.long));
-
-    console.log(`📊 Total games fetched: ${json.response.length}`);
-    console.log(`✅ Games included (${filteredGames.length}):`);
+    console.log(`📊 Total games fetched (combined): ${allGames.length}`);
+    console.log(`✅ Included games (${filteredGames.length}):`);
     filteredGames.forEach(game => {
       console.log(`→ ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
     });
 
-    const skippedGames = json.response.filter(game => skippedStatuses.includes(game.status.long));
-    if (skippedGames.length) {
+    if (skippedGames.length > 0) {
       console.log(`⚠️ Skipped games (${skippedGames.length}):`);
       skippedGames.forEach(game => {
         console.log(`× ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
       });
     }
 
+    // Convert to internal format
     return filteredGames.map(game => {
       const home = game.teams.home.name;
       const visitor = game.teams.away.name;
 
-      // Mock stats (replace with real API stats if available)
+      // Mock stats — replace later with real team stats if available
       const homeStats = {
         wins: Math.floor(Math.random() * 50) + 10,
         losses: Math.floor(Math.random() * 30) + 10,
@@ -80,8 +99,8 @@ async function getTodayGames() {
       };
     });
 
-  } catch (error) {
-    console.error("❌ Error fetching NBA games:", error);
+  } catch (err) {
+    console.error("❌ [NBA FETCH ERROR]:", err.message);
     return [];
   }
 }

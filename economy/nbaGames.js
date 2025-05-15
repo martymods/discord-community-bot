@@ -28,14 +28,28 @@ async function getTodayGames() {
       return [];
     }
 
-return json.response
-  .filter(game => game.status.long !== 'Finished' && game.status.long !== 'After OT')
-  .map(game => {
+    const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT'];
+    const filteredGames = json.response.filter(game => !skippedStatuses.includes(game.status.long));
 
+    console.log(`📊 Total games fetched: ${json.response.length}`);
+    console.log(`✅ Games included (${filteredGames.length}):`);
+    filteredGames.forEach(game => {
+      console.log(`→ ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
+    });
+
+    const skippedGames = json.response.filter(game => skippedStatuses.includes(game.status.long));
+    if (skippedGames.length) {
+      console.log(`⚠️ Skipped games (${skippedGames.length}):`);
+      skippedGames.forEach(game => {
+        console.log(`× ${game.teams.away.name} @ ${game.teams.home.name} — Status: ${game.status.long}`);
+      });
+    }
+
+    return filteredGames.map(game => {
       const home = game.teams.home.name;
       const visitor = game.teams.away.name;
 
-      // Mock stats until real ones are pulled from API
+      // Mock stats (replace with real API stats if available)
       const homeStats = {
         wins: Math.floor(Math.random() * 50) + 10,
         losses: Math.floor(Math.random() * 30) + 10,

@@ -28,7 +28,10 @@ async function getTodayGames() {
       return [];
     }
 
-    const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT'];
+    // 🧪 Log all unique status strings
+    console.log("🧪 Detected statuses:", [...new Set(json.response.map(g => g.status.long))]);
+
+    const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];
     const filteredGames = json.response.filter(game => !skippedStatuses.includes(game.status.long));
 
     console.log(`📊 Total games fetched: ${json.response.length}`);

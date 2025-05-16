@@ -100,7 +100,8 @@ const {
 } = require('./economy/sniperTargets');
 const newReferralRoute = require('./api/newReferral'); // ✅ this line
 const path = require('path');
-
+const { resolveMatch } = require('../systems/matchManager');
+const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 
 
 
@@ -7739,6 +7740,9 @@ client.commands.set('crystal', crystalAI);
 client.commands.set('myreferral', require('./commands/myreferral'));
 client.commands.set('referrals', require('./commands/referrals'));
 client.commands.set('topreferrals', require('./commands/topreferrals'));
+client.commands.set('linkpsn', require('./commands/linkpsn'));
+client.commands.set('nba2kbet', require('./commands/nba2kbet'));
+
 
 
 // ✅ Automatically trigger mule if player is overstocked
@@ -7761,6 +7765,18 @@ async function maybeSpawnMule(client, userId, guildId, channel) {
 
   // Now trigger spawn using actual inventory
   trySpawnMule(userId, guildId, inventory, channel);
+}
+
+async function autoResolveMatch(matchId, winnerId) {
+  const match = resolveMatch(matchId, winnerId);
+  if (!match) return console.log("❌ Match not found or already resolved.");
+
+  const loserId = match.challengerId === winnerId ? match.opponentId : match.challengerId;
+  const winnings = match.bet * 2;
+
+  await addCash(winnerId, match.guildId, winnings);
+
+  console.log(`🏆 Match ${matchId} resolved: Winner <@${winnerId}> wins ${winnings} DreamTokens.`);
 }
 
 console.log("adjustMood:", typeof adjustMood);
@@ -7801,6 +7817,9 @@ setInterval(() => {
 
   // Every 15 minutes peeny
 setInterval(() => checkForPriceSpikes(client), 15 * 60 * 1000);
+
+startMatchVerificationInterval(300000); // every 5 mins
+
 
 app.use('/api/newReferral', newReferralRoute); // ✅ this line
 app.use('/stripe/webhook', stripeWebhook);

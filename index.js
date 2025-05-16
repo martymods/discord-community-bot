@@ -2433,7 +2433,8 @@ client.commands.set('nbagames', {
       const MAX_CHARS = 1900;
       let currentMessage = "📅 **Today's NBA Games & Predictions**\n\n";
 
-      const stats = buildRealTeamStats(games);
+      const stats = await buildRealTeamStats(games);
+
       console.log("[NBAGAMES] Team stats built:", Object.keys(stats).length);
 
       for (const game of games) {
@@ -2521,7 +2522,8 @@ client.commands.set('nbabet', {
       console.log(`[NBABET] Games fetched: ${games.length}`);
       if (!games.length) return message.reply("📭 No NBA games today.");
 
-      const stats = buildRealTeamStats(games);
+      const stats = await buildRealTeamStats(games);
+
       console.log("[NBABET] Stats built");
 
       const gameId = args[0];
@@ -2600,7 +2602,8 @@ client.commands.set('nbapredict', {
       console.log(`[NBAPREDICT] Games fetched: ${games.length}`);
       if (!games.length) return message.reply("📭 No games to predict today.");
 
-      const stats = buildRealTeamStats(games);
+      const stats = await buildRealTeamStats(games);
+
       console.log("[NBAPREDICT] Team stats keys:", Object.keys(stats));
 
       for (const game of games) {

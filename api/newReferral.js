@@ -1,11 +1,9 @@
-// inside server.js or your main Express app
+// /api/newReferral.js
 const express = require('express');
-const { registerReferral } = require('./utils/registerReferral');
-const app = express();
+const router = express.Router();
+const { registerReferral } = require('../utils/registerReferral');
 
-app.use(express.json());
-
-app.post('/api/newReferral', async (req, res) => {
+router.post('/', async (req, res) => {
   const { referral, discordUser, guildId } = req.body;
 
   if (!referral || !discordUser || !guildId) {
@@ -15,3 +13,5 @@ app.post('/api/newReferral', async (req, res) => {
   const success = await registerReferral(referral, discordUser, guildId);
   res.json({ success });
 });
+
+module.exports = router;

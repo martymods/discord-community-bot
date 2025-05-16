@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// SAFELY reuse model
 const schema = new mongoose.Schema({
   userId: String,
   guildId: String,
@@ -9,7 +10,7 @@ const schema = new mongoose.Schema({
   tokensLost: { type: Number, default: 0 }
 });
 
-const BettingStats = mongoose.model('BettingStats', schema);
+const BettingStats = mongoose.models.BettingStats || mongoose.model('BettingStats', schema);
 
 module.exports = {
   BettingStats,

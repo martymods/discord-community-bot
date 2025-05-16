@@ -1,7 +1,7 @@
 // economy/sportsPredict.js
 const { getTeamStats } = require('./nbaStats');
 
-function buildRealTeamStats(games) {
+async function buildRealTeamStats(games) {
   const teamStatsMap = {};
 
   for (const game of games) {
@@ -9,24 +9,19 @@ function buildRealTeamStats(games) {
     const awayId = game.visitorStats.id;
 
     if (!teamStatsMap[game.home]) {
-      teamStatsMap[game.home] = { ...getTeamStatsSync(homeId) };
+      const stats = await getTeamStats(homeId);
+      teamStatsMap[game.home] = stats;
+      console.log(`📈 Loaded stats for ${game.home}:`, stats);
     }
+
     if (!teamStatsMap[game.visitor]) {
-      teamStatsMap[game.visitor] = { ...getTeamStatsSync(awayId) };
+      const stats = await getTeamStats(awayId);
+      teamStatsMap[game.visitor] = stats;
+      console.log(`📈 Loaded stats for ${game.visitor}:`, stats);
     }
   }
 
   return teamStatsMap;
 }
 
-function getTeamStatsSync(teamId) {
-  // Ideally, cache these to avoid double API calls — but we simulate sync here
-  const stats = require('./nbaStats');
-  let output = {};
-
-  stats.getTeamStats(teamId).then(data => {
-    output = data;
-  });
-
-  return output;
-}
+module.exports = { buildRealTeamStats };

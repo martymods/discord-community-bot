@@ -8,21 +8,30 @@ const psnSchema = new mongoose.Schema({
 
 const PSNLink = mongoose.model('PSNLink', psnSchema);
 
+async function setPSN(userId, guildId, psnId) {
+  await PSNLink.findOneAndUpdate(
+    { userId, guildId },
+    { psnId },
+    { upsert: true, new: true }
+  );
+}
+
+async function getPSN(userId, guildId) {
+  const record = await PSNLink.findOne({ userId, guildId });
+  return record?.psnId || null;
+}
+
+async function getAllLinks() {
+  return await PSNLink.find();
+}
+
+async function removePSN(userId, guildId) {
+  await PSNLink.deleteOne({ userId, guildId });
+}
+
 module.exports = {
-  async setPSN(userId, guildId, psnId) {
-    await PSNLink.findOneAndUpdate(
-      { userId, guildId },
-      { psnId },
-      { upsert: true, new: true }
-    );
-  },
-
-  async getPSN(userId, guildId) {
-    const record = await PSNLink.findOne({ userId, guildId });
-    return record?.psnId || null;
-  },
-
-  async getAllLinks() {
-    return await PSNLink.find();
-  }
+  setPSN,
+  getPSN,
+  getAllLinks,
+  removePSN
 };

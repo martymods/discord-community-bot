@@ -460,7 +460,7 @@ const { scanTicker } = require('./economy/financeIntel');
 const { scanOptionsFlow } = require('./economy/flowIntel');
 const { scanAllSnipers } = require('./economy/flowIntel');
 const realShopItems = require('./economy/realShopItems');
-const TokenModel = require('./economy/bettingStatsModel');
+const TokenModel = require('./economy/bettingStats');
 const { startRandomChaos } = require('./economy/chaosEvents');
 const { getNextTier, shouldUpgradeBox, tierThreshold } = require('./utils/boxUtils');
 

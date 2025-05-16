@@ -21,9 +21,10 @@ async function loadStandingsData() {
       }
     });
     const json = await res.json();
+console.log("📦 Response keys:", Object.keys(json));
+console.log("📦 response type:", typeof json.response);
+console.log("📦 typeof json.response[0]:", typeof json.response?.[0]);
 
-console.log("📦 FULL STANDINGS DUMP:");
-console.dir(json, { depth: null }); // 👈 This shows the entire nested object structure
 
 
     const teamList = json.response;

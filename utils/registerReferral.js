@@ -1,6 +1,6 @@
 // utils/registerReferral.js
 const Referral = require('../models/referralModel');
-const { Currency } = require('../currency');
+const { Currency } = require('../economy/currency');
 
 async function registerReferral(codeUsed, newUserId, guildId) {
   const referral = await Referral.findOne({ code: codeUsed });

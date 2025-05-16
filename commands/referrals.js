@@ -9,6 +9,7 @@ module.exports = {
       return message.reply('❌ You don’t have a referral code yet. Use `!myreferral` to get one.');
     }
 
-    message.reply(`📊 Referrals: **${referral.referrals}**\n💰 Earned: **${referral.earned} DreamworldPoints**`);
+    message.reply(`📊 Referrals: **${referral.referrals}**\n💰 Earned: **${referral.earned} DreamTokens**`);
+
   }
 };

@@ -1,115 +1,120 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const STANDINGS_URL = 'https://api-basketball.p.rapidapi.com/standings?league=12&season=2024';
-const API_KEY = process.env.RAPIDAPI_KEY || '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
+const recentGames = new Map(); // gameId → { home, visitor }
 
-const cachedStats = new Map();
-let lastFetchDate = null;
+const API_KEY = '36c5da5fe5mshe18e4122dd0e413p12cf89jsnbd5be527669f';
 
-async function loadStandingsData() {
-  const today = new Date().toISOString().slice(0, 10);
-  if (lastFetchDate === today && cachedStats.size > 0) {
-    console.log("🟢 Using cached team stats for today.");
-    return;
-  }
-
-  console.log("⏳ Fetching fresh standings data from API...");
-  lastFetchDate = today;
+async function getTodayGames() {
+  const skippedStatuses = ['Finished', 'After OT', 'Final', 'FT', 'Game Finished', 'Full Time'];
+  const allGames = [];
 
   try {
-    const res = await fetch(STANDINGS_URL, {
+    const options = {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': API_KEY,
         'X-RapidAPI-Host': 'api-basketball.p.rapidapi.com'
       }
-    });
+    };
 
-    const json = await res.json();
+    for (let offset = 0; offset <= 1; offset++) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      const dateStr = date.toISOString().slice(0, 10);
+      const url = `https://api-basketball.p.rapidapi.com/games?date=${dateStr}&league=12&season=2024-2025`;
 
-    console.log("📦 Raw API response keys:", Object.keys(json));
-    console.log("📦 typeof response:", typeof json.response);
-    console.log("📦 First team object:", JSON.stringify(json.response?.[0], null, 2));
+      console.log(`🌐 Fetching NBA games for: ${dateStr}`);
+      const res = await fetch(url, options);
+      const json = await res.json();
 
-    const teamList = json.response;
-
-    if (!Array.isArray(teamList)) {
-      console.warn('⚠️ Standings response is not an array.');
-      return;
-    }
-
-    cachedStats.clear();
-
-    teamList.forEach(entry => {
-      const id = Number(entry.team?.id);
-      const name = entry.team?.name;
-      const logo = entry.team?.logo;
-      const played = entry.games?.played;
-      const wins = entry.win?.total;
-      const ppgRaw = entry.points?.for;
-      const papgRaw = entry.points?.against;
-
-      if (!id || !played || !wins || !ppgRaw || !papgRaw) {
-        console.warn(`⚠️ Skipped team due to missing data: ${JSON.stringify(entry.team)}`);
-        return;
+      if (!json.response?.length) {
+        console.log(`🟡 No games found for ${dateStr}`);
+        continue;
       }
 
-      const losses = played - wins;
-      const ppg = parseFloat((ppgRaw / played).toFixed(1));
-      const papg = parseFloat((papgRaw / played).toFixed(1));
-      const winPct = parseFloat((wins / played).toFixed(3));
-      const pointDiff = parseFloat((ppg - papg).toFixed(1));
-      const power = parseFloat((winPct * 100 + ppg + pointDiff).toFixed(2));
+      allGames.push(...json.response);
+    }
 
-      cachedStats.set(id, {
-        id,
-        name,
-        logo,
-        wins,
-        losses,
-        winPct,
-        pointsPerGame: ppg,
-        pointsAllowed: papg,
-        pointDiff,
-        powerScore: power
-      });
+    console.log("🧪 Detected statuses:", [...new Set(allGames.map(g => g.status.long))]);
 
-      console.log(`✅ Cached stats for: ${name} (ID: ${id}) | Win%: ${winPct}, PPG: ${ppg}, Diff: ${pointDiff}, Power: ${power}`);
+    const filteredGames = allGames.filter(g => !skippedStatuses.includes(g.status.long));
+    const skippedGames = allGames.filter(g => skippedStatuses.includes(g.status.long));
+
+    console.log(`📊 Total games fetched: ${allGames.length}`);
+    console.log(`✅ Games included (${filteredGames.length}):`);
+    filteredGames.forEach(g => {
+      console.log(`→ ${g.teams.away.name} @ ${g.teams.home.name} — Status: ${g.status.long}`);
     });
 
-    console.log(`📊 Done: ${cachedStats.size} real teams cached from standings API.`);
+    if (skippedGames.length > 0) {
+      console.log(`⚠️ Skipped games (${skippedGames.length}):`);
+      skippedGames.forEach(g => {
+        console.log(`× ${g.teams.away.name} @ ${g.teams.home.name} — Status: ${g.status.long}`);
+      });
+    }
+
+    return filteredGames.map(game => {
+      const home = game.teams.home.name;
+      const visitor = game.teams.away.name;
+
+      const homeStats = {
+        id: game.teams.home.id,
+        name: game.teams.home.name,
+        logo: game.teams.home.logo
+      };
+
+      const visitorStats = {
+        id: game.teams.away.id,
+        name: game.teams.away.name,
+        logo: game.teams.away.logo
+      };
+
+      const series = parseSeries(game);
+      const scores = {
+        home: game.scores?.home?.total ?? null,
+        away: game.scores?.away?.total ?? null
+      };
+      const gameTime = new Date(game.date);
+
+      recentGames.set(String(game.id), { home, visitor });
+
+      return {
+        id: game.id,
+        home,
+        visitor,
+        status: game.status.long,
+        date: game.date,
+        gameTime,
+        homeStats,
+        visitorStats,
+        series,
+        scores
+      };
+    });
 
   } catch (err) {
-    console.error('❌ Error fetching team stats from standings API:', err.message);
+    console.error("❌ Error fetching NBA games:", err.message);
+    return [];
   }
 }
 
-async function getTeamStats(teamId) {
-  if (!cachedStats.has(Number(teamId))) {
-    console.log(`🔍 Team ID ${teamId} not cached. Triggering reload...`);
-    await loadStandingsData();
-  }
+function parseSeries(game) {
+  const seriesData = game.series ?? {};
+  if (!seriesData?.name || !seriesData.games) return null;
 
-  const stats = cachedStats.get(Number(teamId));
+  const leader = seriesData.name.split(' ')[0];
+  const score = `${seriesData.win.home}-${seriesData.win.away}`;
+  const number = seriesData.games;
+  const isElimination = number >= 6 && (seriesData.win.home === 3 || seriesData.win.away === 3);
 
-  if (!stats) {
-    console.warn(`⚠️ getTeamStats fallback used for teamId=${teamId}. Cached IDs: ${[...cachedStats.keys()].join(', ')}`);
-    return {
-      name: `Team ${teamId}`,
-      wins: 0,
-      losses: 0,
-      winPct: 0,
-      pointsPerGame: 0,
-      pointsAllowed: 0,
-      pointDiff: 0,
-      powerScore: 0,
-      logo: null
-    };
-  }
-
-  return stats;
+  return {
+    leader,
+    score,
+    number,
+    isElimination
+  };
 }
 
 module.exports = {
-  getTeamStats,
-  loadStandingsData
+  getTodayGames,
+  recentGames
 };

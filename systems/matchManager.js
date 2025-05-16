@@ -1,43 +1,58 @@
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
-const activeMatches = new Map(); // In-memory for now, MongoDB optional
+const matchSchema = new mongoose.Schema({
+  matchId: { type: String, unique: true },
+  guildId: String,
+  challengerId: String,
+  opponentId: String,
+  bet: Number,
+  status: { type: String, default: 'pending' },
+  winnerId: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  resolvedAt: { type: Date, default: null }
+});
 
-function createMatch({ guildId, challengerId, opponentId, bet }) {
+const Match = mongoose.model('Match', matchSchema);
+
+async function createMatch({ guildId, challengerId, opponentId, bet }) {
   const matchId = uuidv4();
 
-  const match = {
+  const match = await Match.create({
     matchId,
     guildId,
     challengerId,
     opponentId,
-    bet,
-    status: 'pending',
-    createdAt: Date.now()
-  };
+    bet
+  });
 
-  activeMatches.set(matchId, match);
   return match;
 }
 
-function resolveMatch(matchId, winnerId) {
-  const match = activeMatches.get(matchId);
+async function resolveMatch(matchId, winnerId) {
+  const match = await Match.findOne({ matchId });
   if (!match || match.status !== 'pending') return null;
 
-  match.winnerId = winnerId;
   match.status = 'resolved';
-  match.resolvedAt = Date.now();
+  match.winnerId = winnerId;
+  match.resolvedAt = new Date();
+  await match.save();
 
   return match;
 }
 
-function getActiveMatches() {
-  return Array.from(activeMatches.values()).filter(m => m.status === 'pending');
+async function getActiveMatches() {
+  return await Match.find({ status: 'pending' });
 }
 
-function getMatchByPlayer(userId) {
-  return Array.from(activeMatches.values()).find(m =>
-    m.challengerId === userId || m.opponentId === userId
-  );
+async function getMatchByPlayer(userId) {
+  return await Match.findOne({
+    status: 'pending',
+    $or: [
+      { challengerId: userId },
+      { opponentId: userId }
+    ]
+  });
 }
 
 module.exports = {
@@ -46,4 +61,3 @@ module.exports = {
   getActiveMatches,
   getMatchByPlayer
 };
- 

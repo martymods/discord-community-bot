@@ -7742,6 +7742,7 @@ client.commands.set('referrals', require('./commands/referrals'));
 client.commands.set('topreferrals', require('./commands/topreferrals'));
 client.commands.set('linkpsn', require('./commands/linkpsn'));
 client.commands.set('nba2kbet', require('./commands/nba2kbet'));
+client.commands.set('mypsn', require('./commands/mypsn'));
 
 
 

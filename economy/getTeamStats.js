@@ -22,7 +22,9 @@ async function loadStandingsData() {
     });
     const json = await res.json();
 
-    console.log("📦 Raw standings API response:", JSON.stringify(json, null, 2)); // Debug patch
+console.log("📦 FULL STANDINGS DUMP:");
+console.dir(json, { depth: null }); // 👈 This shows the entire nested object structure
+
 
     const teamList = json.response;
     if (!teamList || !Array.isArray(teamList)) {

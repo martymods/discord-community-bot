@@ -429,11 +429,6 @@ const client = new Client({
 
 client.commands = new Collection(); // ✅ ADD THIS LINE
 
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.name, command);
-}
 
 
 global.client = client; // So Stripe/Paypal access your client
@@ -7680,24 +7675,6 @@ client.commands.set('trash', {
   }
 });
 
-client.on('messageCreate', async message => {
-  if (!message.content.startsWith('!') || message.author.bot) return;
-
-  const args = message.content.slice(1).trim().split(/ +/);
-  const commandName = args.shift().toLowerCase();
-
-  const command = client.commands.get(commandName);
-  if (!command) return;
-
-  try {
-    await command.execute(message, args);
-  } catch (error) {
-    console.error(error);
-    message.reply('❌ There was an error executing that command.');
-  }
-});
-
-
 client.commands.set('grantbank', require('./commands/grantbank'));
 client.commands.set('deposit', require('./commands/deposit'));
 client.commands.set('withdraw', require('./commands/withdraw'));
@@ -7707,6 +7684,7 @@ client.commands.set('play', require('./commands/play.js'));
 client.commands.set('crystal', crystalAI);
 client.commands.set('myreferral', require('./commands/myreferral'));
 client.commands.set('referrals', require('./commands/referrals'));
+client.commands.set('topreferrals', require('./commands/topreferrals'));
 
 
 // ✅ Automatically trigger mule if player is overstocked

@@ -98,7 +98,8 @@ const {
   getTrackedTickers,
   getSniperRotation
 } = require('./economy/sniperTargets');
-
+const newReferralRoute = require('./api/newReferral'); // ✅ this line
+const path = require('path');
 
 
 
@@ -7681,6 +7682,8 @@ client.on('messageCreate', require('./events/crystalAI').execute);
 client.on('messageCreate', crystalAI.execute);
 client.commands.set('play', require('./commands/play.js'));
 client.commands.set('crystal', crystalAI);
+client.commands.set('myreferral', require('./commands/myreferral'));
+client.commands.set('referrals', require('./commands/referrals'));
 
 
 // ✅ Automatically trigger mule if player is overstocked
@@ -7744,11 +7747,14 @@ setInterval(() => {
   // Every 15 minutes peeny
 setInterval(() => checkForPriceSpikes(client), 15 * 60 * 1000);
 
-
+app.use('/api/newReferral', newReferralRoute); // ✅ this line
 app.use('/stripe/webhook', stripeWebhook);
 app.use('/paypal/webhook', paypalWebhook);
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(3000, () => console.log('Keep-alive server running'));
+app.get('/referral-form', (req, res) => {
+  res.sendFile(path.join(__dirname, 'referral-form.html'));
+});
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🛑 UNHANDLED REJECTION:', reason);

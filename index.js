@@ -916,6 +916,36 @@ client.commands.set('help', {
         `)
         .setColor('#00ffaa'),
 
+        new EmbedBuilder()
+  .setTitle('🔗 Referral Rewards')
+  .setDescription(`
+Earn **real money** and in-game bonuses by referring friends to Dreamworld.
+
+📨 **Commands**
+\`!myreferral\` — Get your personal referral link  
+\`!referrals\` — View your referral stats  
+\`!topreferrals\` — Leaderboard of top earners  
+
+💰 **Real-World Payouts**
+- Earn **$25 USD/month** for each friend you invite who joins our Discord  
+- Paid out in DreamTokens (our real-money currency)  
+
+🏦 **Free Bank Access**
+- As long as you're collecting DreamTokens, you gain **free access** to the Dreamworld Bank  
+- Redeem tokens for real fashion, rewards, or cash drops  
+
+🚀 **How to Invite**
+Share your unique link from \`!myreferral\`:
+\`https://worldwide-krill.super.site/?ref=YOURCODE\`
+
+Every signup who joins Discord counts as a referral — tracked automatically.
+
+📊 Bonuses scale with activity — the more they play, the more you earn.
+`)
+  .setFooter({ text: 'Your network is your net worth. Start inviting.' })
+  .setColor('#33ccff'),
+
+
       new EmbedBuilder()
         .setTitle('💰 Gambling Games')
         .setDescription(`
@@ -1209,18 +1239,42 @@ Grow weed, hustle smarter.
   .setColor('#66cc66'),
 
 
-      new EmbedBuilder()
-        .setTitle('🏀 NBA Betting System')
-        .setDescription(`
-!nbagames — Today's NBA games  
-!nbabet <gameId> <team> <amount>  
-> Example: \`!nbabet 1001 LAL 200\`  
-!resolvebet <gameId> <winner>  
-!mybets — Your bet history  
-!topbettors — Top earners  
-!jackpot — View jackpot pool
-        `)
-        .setColor('#ffaa44'),
+new EmbedBuilder()
+  .setTitle('🧠 Sports Predictions (Betting Edge)')
+  .setDescription(`
+Dreamworld's AI-powered sports engine analyzes **real stats** to generate **sharp betting picks** across **NBA, NHL, and MLB**.
+
+📊 **Commands**
+\`!nbapredict\` — AI-predicts today’s NBA games  
+\`!nhlpredict\` — Predicts NHL winners w/ confidence score  
+\`!mlbpredict\` — MLB picks + parlay props
+
+💡 **How It Works**
+- Each game is rated by PowerScore (team momentum, stats, efficiency)
+- The higher the score, the more confident the prediction
+- Stars (⭐️–⭐⭐⭐⭐⭐) = strength of pick
+
+🎯 **Key Stats Displayed**
+- Win %  
+- Point/Run/GF-GA Diff  
+- PowerScore (overall team strength)  
+- Predicted winner + confidence gap  
+- Simulated Vegas odds
+
+📦 **Parlay Picks**
+- 💣 Home Run prediction (MLB only)  
+- 🎯 Strikeout line (based on pitcher stats)  
+- 🕒 1st inning or quarter over/under  
+- 🔥 Team spread pick (+/- line like Vegas)
+
+💸 **Why It Matters**
+Use this to build smart parlays or single bets. The bot looks for **edges** over Vegas lines to help you cash more often.  
+Confidence score > 20 means **high edge**!
+
+📺 All predictions are auto-updated daily in \`#sports-intel\`
+  `)
+  .setFooter({ text: 'Sportsbook AI by Dreamworld. Bet smarter, win bigger.' })
+  .setColor('#3366ff'),
 
       new EmbedBuilder()
         .setTitle('🛍️ Real Items & Music')

@@ -7365,26 +7365,45 @@ client.commands.set('jobstats', {
     console.log("✅ Running !jobstats");
 
     const JobProfile = require('./models/JobProfile');
-    const profile = await JobProfile.findOne({ userId: message.author.id, guildId: message.guild.id });
+    const { EmbedBuilder } = require('discord.js');
 
-    if (!profile) return message.reply("❌ You don’t have a job. Use `!job` to pick one.");
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    const profile = await JobProfile.findOne({ userId, guildId });
+
+    if (!profile) {
+      console.log("❌ No job profile found for", userId);
+      return message.reply("❌ You don’t have a job. Use `!job` to pick one.");
+    }
+
+    console.log("📄 Loaded job profile:", profile);
 
     const now = new Date();
-    const remaining = profile.cooldownUntil ? Math.max(0, Math.ceil((profile.cooldownUntil - now) / 60000)) : 0;
-    const ready = remaining <= 0 ? '✅ Ready to work!' : `⏳ Cooldown: ${remaining} min`;
+    const cooldownUntil = profile.cooldownUntil ? new Date(profile.cooldownUntil).getTime() : 0;
+    const remaining = cooldownUntil > now.getTime()
+      ? Math.ceil((cooldownUntil - now.getTime()) / 60000)
+      : 0;
+    const readyStatus = remaining <= 0 ? '✅ Ready to work!' : `⏳ Cooldown: ${remaining} min`;
 
-    const levelMultiplier = Math.min(1 + (profile.level - 1) * 0.05, 5.0);
-    const payPerShift = Math.floor((profile.basePay || 0) * levelMultiplier);
+    const base = profile.basePay || 5000;
+    const level = profile.level || 1;
+    const levelMultiplier = Math.min(1 + (level - 1) * 0.05, 5.0);
+    const payPerShift = Math.floor(base * levelMultiplier);
+    const interval = profile.interval || 15;
+    const totalEarned = profile.earnings || 0;
+
+    console.log("📊 Calculated Stats —",
+      `Level: ${level}, BasePay: ${base}, Pay/Shift: ${payPerShift}, Earnings: ${totalEarned}, Cooldown: ${remaining}m`);
 
     const embed = new EmbedBuilder()
       .setTitle(`💼 ${profile.jobName || 'Unknown'} Stats`)
       .addFields(
-        { name: "Level", value: `${profile.level || 1}`, inline: true },
+        { name: "Level", value: `${level}`, inline: true },
         { name: "Pay Per Shift", value: `$${payPerShift.toLocaleString()}`, inline: true },
-        { name: "Work Interval", value: `${profile.interval || 15} min`, inline: true },
-        { name: "Total Earned", value: `$${(profile.totalEarned || 0).toLocaleString()}`, inline: true },
-        { name: "Shifts Worked", value: `${profile.timesWorked || 0}`, inline: true },
-        { name: "Status", value: ready, inline: false }
+        { name: "Work Interval", value: `${interval} min`, inline: true },
+        { name: "Total Earned", value: `$${totalEarned.toLocaleString()}`, inline: true },
+        { name: "Status", value: readyStatus, inline: false }
       )
       .setThumbnail(message.author.displayAvatarURL())
       .setColor('#3399ff')
@@ -7394,7 +7413,6 @@ client.commands.set('jobstats', {
     return message.channel.send({ embeds: [embed] });
   }
 });
-
 
 
 client.commands.set('quitjob', {

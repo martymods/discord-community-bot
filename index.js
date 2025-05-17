@@ -7197,6 +7197,7 @@ client.commands.set('job', {
 });
 
 
+
 // 📁 /commands/clockin.js
 client.commands.set('clockin', {
   async execute(message) {
@@ -7238,11 +7239,9 @@ client.commands.set('clockin', {
     const msUntilDone = interval * 60000;
     const nextTime = new Date(now.getTime() + msUntilDone);
 
-    // ⏳ Clock user in
     profile.clockedIn = true;
     profile.lastClockIn = now;
     profile.cooldownUntil = nextTime;
-
     profile.earnings = (profile.earnings || 0) + payout;
     profile.lastWorkedAt = now;
 
@@ -7254,8 +7253,10 @@ client.commands.set('clockin', {
 
     const previousLevel = profile.level;
     const newLevel = previousLevel + 1;
-    const shiftsWorked = Math.floor(profile.earnings / base);
-    if (previousLevel < maxLevel && shiftsWorked % promoteEvery === 0 && shiftsWorked !== 0) {
+    const totalShifts = Math.floor(profile.earnings / base);
+    const shiftsUntilPromo = promoteEvery - (totalShifts % promoteEvery);
+
+    if (previousLevel < maxLevel && totalShifts % promoteEvery === 0 && totalShifts !== 0) {
       profile.level = newLevel;
       promoted = true;
       console.log(`🎉 Promotion: ${previousLevel} -> ${newLevel}`);
@@ -7282,20 +7283,25 @@ client.commands.set('clockin', {
       } catch (err) {
         console.warn(`⚠️ Could not DM promotion message: ${err.message}`);
       }
+    } else if (shiftsUntilPromo === 1) {
+      await message.channel.send(`✨ <@${userId}> is **1 shift away** from a promotion! Keep it up! 🔥`);
     }
 
     await profile.save();
     console.log("💾 Job profile saved.");
 
-    const progressBar = '🟩' + '⬛'.repeat(9);
+    const progressThisLevel = promoteEvery - shiftsUntilPromo;
+    const bar = '🟩'.repeat(progressThisLevel) + '⬛'.repeat(promoteEvery - progressThisLevel);
+
     const embed = new EmbedBuilder()
       .setTitle(`💼 Clocked In as ${profile.jobName}`)
       .setDescription([
         `**Level:** ${profile.level}`,
         `**Pay Rate:** $${payout.toLocaleString()}`,
         `**Next Pay In:** ${interval} minutes`,
+        `**Promo Progress:** ${bar} (${progressThisLevel}/5)`,
         '',
-        `${progressBar}`
+        `🕒 Working...`
       ].join('\n'))
       .setColor(promoted ? '#00ff88' : '#ffa600')
       .setFooter({ text: 'You’ll be paid after the timer ends.' });
@@ -7321,6 +7327,7 @@ client.commands.set('clockin', {
     }, msUntilDone);
   }
 });
+
 
 client.commands.set('jobleaderboard', {
   async execute(message) {

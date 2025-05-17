@@ -106,13 +106,19 @@ module.exports = {
     return interaction.editReply({ content: `<@${userId}>`, embeds: [embed], components: [row] });
   },
 
-  async handleButton(interaction) {
-    const userId = interaction.user.id;
-    const [_, action, tableId, playerId] = interaction.customId.split("_");
+async handleButton(interaction) {
+  const userId = interaction.user.id;
 
-    if (userId !== playerId) {
-      return interaction.reply({ content: "❌ Not your game.", ephemeral: true });
-    }
+  const parts = interaction.customId.split("_");
+  const action = parts[1];
+  const tableId = parts.slice(2, -1).join("_");
+  const playerId = parts[parts.length - 1];
+
+  console.log(`[BLACKJACK DEBUG] userId: ${userId}, action: ${action}, tableId: ${tableId}, playerId: ${playerId}`);
+
+  if (userId !== playerId) {
+    return interaction.reply({ content: "❌ Not your game.", ephemeral: true });
+  }
 
     const table = activeTables.get(tableId);
     if (!table) {

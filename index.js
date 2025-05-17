@@ -3857,7 +3857,7 @@ if (customId.startsWith("bj_")) {
         .setColor("#ffaa00");
   
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`bj_hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId(`hold_${table.id}_${userId}`).setLabel("✋ Hold").setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
       );
@@ -3873,10 +3873,7 @@ if (customId.startsWith("bj_")) {
     }
   };
   
-  if (customId.startsWith("hit_") || customId.startsWith("hold_") || customId.startsWith("leave_")) {
-    const { handleButton } = require('./commands/blackjackCommand.js');
-    return handleButton(interaction);
-  }
+
   
 
   // ✅ Handle stat button interactions

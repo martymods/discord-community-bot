@@ -3770,6 +3770,12 @@ if (customId.startsWith('steal_')) {
   return; // ✅ CRUCIAL: prevents fall-through / duplication
 }
 
+  // ✅ Handle Black Jack
+if (customId.startsWith("bj_")) {
+  const { handleButton } = require('./commands/blackjackCommand.js');
+  return handleButton(interaction);
+}
+
   
   function createDeck() {
     const deck = [];

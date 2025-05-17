@@ -7197,7 +7197,6 @@ client.commands.set('job', {
 });
 
 
-
 // 📁 /commands/clockin.js
 client.commands.set('clockin', {
   async execute(message) {
@@ -7205,7 +7204,7 @@ client.commands.set('clockin', {
 
     const JobProfile = require('./models/JobProfile');
     const { addCash } = require('./economy/currency');
-    const { appendXp } = require('./economy/xpRewards');
+    const { appendXp, fetchLevel } = require('./economy/xpRewards');
     const { EmbedBuilder } = require('discord.js');
 
     const userId = message.author.id;
@@ -7293,10 +7292,20 @@ client.commands.set('clockin', {
     const progressThisLevel = promoteEvery - shiftsUntilPromo;
     const bar = '🟩'.repeat(progressThisLevel) + '⬛'.repeat(promoteEvery - progressThisLevel);
 
+    // 🧪 Animated XP bar
+    const xpData = await fetchLevel(userId, guildId);
+    const currentLevel = xpData?.level || 1;
+    const xpBar = '🔹'.repeat(currentLevel % 10) + '▫️'.repeat(10 - (currentLevel % 10));
+
+    // 🎖️ Tiered Title
+    const tierTitles = ["Trainee", "Junior", "Operator", "Technician", "Specialist", "Lead", "Foreman", "Supervisor", "Manager", "Master"];
+    const title = tierTitles[Math.min(profile.level - 1, tierTitles.length - 1)];
+
     const embed = new EmbedBuilder()
-      .setTitle(`💼 Clocked In as ${profile.jobName}`)
+      .setTitle(`💼 Clocked In as ${profile.jobName} (${title})`)
       .setDescription([
         `**Level:** ${profile.level}`,
+        `**XP Bar:** ${xpBar}`,
         `**Pay Rate:** $${payout.toLocaleString()}`,
         `**Next Pay In:** ${interval} minutes`,
         `**Promo Progress:** ${bar} (${progressThisLevel}/5)`,
@@ -7327,7 +7336,6 @@ client.commands.set('clockin', {
     }, msUntilDone);
   }
 });
-
 
 client.commands.set('jobleaderboard', {
   async execute(message) {

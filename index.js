@@ -1277,6 +1277,47 @@ Confidence score > 20 means **high edge**!
   .setFooter({ text: 'Sportsbook AI by Dreamworld. Bet smarter, win bigger.' })
   .setColor('#3366ff'),
 
+
+  new EmbedBuilder()
+  .setTitle('🕹️ NBA2K Wager System (PS5)')
+  .setDescription(`
+Compete in **real NBA2K matches on PS5** and **wager DreamTokens** against other players.
+
+🔗 **Step 1: Link PSN**
+\`!linkpsn <yourPSN>\` — Connect your PSN ID  
+\`!mypsn\` — Check linked account  
+\`!unlinkpsn\` — Reset your PSN link
+
+💰 **Step 2: Start a Bet**
+\`!nba2kbet @opponent <amount>\` — Start a 1v1 wager  
+Tokens are locked and auto-resolved when a winner is detected  
+Example: \`!nba2kbet @user 500\`
+
+🎲 **Step 3: Pool Bets**
+\`!2kpool <amount>\` — Join a pool wager with a random player  
+The bot auto-matches and handles payout  
+Example: \`!2kpool 250\`
+
+🏆 **Stats & Rankings**
+\`!2kprofile\` — View your wins, losses, and win rate  
+\`!2kleaderboard\` — Top winners by DreamToken earnings
+
+🧠 **Auto Verification**
+- The bot checks real PSN match history  
+- No screenshots or manual input needed  
+- Winner receives 90% of the pot  
+- Bot takes 10% rake to fund events and economy
+
+💡 Pro Tips:
+- PSN must match your NBA2K username  
+- Play ranked or quick matches to log results  
+- Winner is determined based on most recent match win timestamp
+
+📺 PS5 Only — Must be able to play online and show history on [psnprofiles.com](https://psnprofiles.com)
+  `)
+  .setFooter({ text: 'Powered by Dreamworld Sportsbook AI. Ball smarter, win bigger.' })
+  .setColor('#3366cc'),
+
       new EmbedBuilder()
         .setTitle('🛍️ Real Items & Music')
         .setDescription(`

@@ -7208,6 +7208,7 @@ client.commands.set('clockin', {
 
     const userId = message.author.id;
     const guildId = message.guild.id;
+    const member = await message.guild.members.fetch(userId);
     let profile = await JobProfile.findOne({ userId, guildId });
 
     if (!profile) {
@@ -7224,51 +7225,62 @@ client.commands.set('clockin', {
       return message.reply(`⏳ You're still working! Come back in **${minutes}m ${seconds}s**.`);
     }
 
-    // 🔢 Increment before checking for promotion
-    profile.timesWorked += 1;
-
-    // ⏫ Promotion check (every 5 shifts)
-    const promoteEvery = 5;
-    const maxLevel = 10;
-    const maxMultiplier = 5.0;
-    let promoted = false;
-
-    if (profile.level < maxLevel && profile.timesWorked % promoteEvery === 0) {
-      profile.level += 1;
-      promoted = true;
-
-      // 🎉 Public channel announcement
-      await message.channel.send(`🔺 **${message.author.username}** has been **promoted to Level ${profile.level}** as a **${profile.jobName}**!`);
-
-      // 💌 DM backup
-      try {
-        const user = await message.client.users.fetch(userId);
-        await user.send(`📈 Congrats! You've been promoted to Level ${profile.level} as a **${profile.jobName}**.`);
-      } catch (err) {
-        console.warn(`⚠️ Could not DM promotion message: ${err.message}`);
-      }
-
-      // 🎁 XP boost for promotion
-      await appendXp(userId, guildId, 50);
-    }
-
-    // 💰 Calculate Pay
+    // 💰 Pay logic
     const base = profile.basePay || 5000;
+    const maxMultiplier = 5.0;
     const levelMultiplier = Math.min(1 + (profile.level - 1) * 0.05, maxMultiplier);
     const payout = Math.floor(base * levelMultiplier);
     const interval = profile.interval || 15;
     const msUntilDone = interval * 60000;
     const nextTime = new Date(now.getTime() + msUntilDone);
 
-    // 📊 Visual progress bar
-    const progressBar = '🟩' + '⬛'.repeat(9); // placeholder for now
-
-    // ⏳ Clock user in
+    // ⏳ Clock user in (before promotion check!)
     profile.clockedIn = true;
     profile.lastClockIn = now;
     profile.cooldownUntil = nextTime;
     profile.totalEarned += payout;
+    profile.timesWorked += 1;
+
+    // 🎖️ Promotion
+    const promoteEvery = 5;
+    const maxLevel = 10;
+    let promoted = false;
+
+    if (profile.level < maxLevel && profile.timesWorked % promoteEvery === 0) {
+      profile.level += 1;
+      promoted = true;
+      await appendXp(userId, guildId, 50); // XP boost
+
+      // 🥇 Bonus role on promotion
+      const role = message.guild.roles.cache.find(r => r.name === 'Hard Worker');
+      if (role && !member.roles.cache.has(role.id)) {
+        await member.roles.add(role).catch(console.error);
+      }
+
+      // 🔺 Animated Promotion Embed
+      const promoEmbed = new EmbedBuilder()
+        .setTitle("🔺 PROMOTION UNLOCKED!")
+        .setDescription(`🎉 <@${userId}> is now **Level ${profile.level}** as a **${profile.jobName}**!\nEarns **$${Math.floor(profile.basePay * Math.min(1 + (profile.level - 1) * 0.05, maxMultiplier)).toLocaleString()}** per shift.`)
+        .setImage('https://media.giphy.com/media/3o7TKW5pMnb1iZ9A3e/giphy.gif') // 🔺 Animated effect
+        .setColor('#ff0055')
+        .setFooter({ text: 'Promotion Bonus Applied! 🔊 + 🎖️ + 💸' });
+
+      await message.channel.send({ embeds: [promoEmbed] });
+
+      try {
+        const user = await message.client.users.fetch(userId);
+        await user.send(`📈 You’ve been promoted to Level ${profile.level} — congrats on the grind!`);
+      } catch (err) {
+        console.warn(`⚠️ Could not DM promotion message: ${err.message}`);
+      }
+    }
+
     await profile.save();
+
+    // ⏳ Dynamic Progress Bar
+    const progressTotal = 10;
+    const progressFilled = 1;
+    const progressBar = '🟩'.repeat(progressFilled) + '⬛'.repeat(progressTotal - progressFilled);
 
     const embed = new EmbedBuilder()
       .setTitle(`💼 Clocked In as ${profile.jobName}`)
@@ -7284,7 +7296,9 @@ client.commands.set('clockin', {
 
     await message.reply({ embeds: [embed] });
 
-    // ⏰ Set Timer
+    // 🔊 Optional: play sound (e.g., through bot VC if implemented)
+    // If your bot joins VC, trigger audio clip here
+
     setTimeout(async () => {
       const updated = await JobProfile.findOne({ userId, guildId });
       if (!updated) return;
@@ -7297,14 +7311,13 @@ client.commands.set('clockin', {
 
       try {
         const user = await message.client.users.fetch(userId);
-        await user.send(`🤑 You’ve finished your shift as a **${updated.jobName}** and earned **$${finalPayout.toLocaleString()}**!\nUse \`!clockin\` to go back to work.`);
+        await user.send(`💵 Shift complete! You earned **$${finalPayout.toLocaleString()}**.\nUse \`!clockin\` to work again.`);
       } catch (err) {
         console.warn(`❌ DM failed for ${userId}: ${err.message}`);
       }
     }, msUntilDone);
   }
 });
-
 
 
 

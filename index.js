@@ -1295,7 +1295,7 @@ Example: \`!nba2kbet @user 500\`
 
 🎲 **Step 3: Pool Bets**
 \`!2kpool <amount>\` — Join a pool wager with a random player  
-The bot auto-matches and handles payout  
+Slave App auto-matches and handles payout  
 Example: \`!2kpool 250\`
 
 🏆 **Stats & Rankings**
@@ -1303,7 +1303,7 @@ Example: \`!2kpool 250\`
 \`!2kleaderboard\` — Top winners by DreamToken earnings
 
 🧠 **Auto Verification**
-- The bot checks real PSN match history  
+- Slave App checks real PSN match history  
 - No screenshots or manual input needed  
 - Winner receives 90% of the pot  
 - Bot takes 10% rake to fund events and economy

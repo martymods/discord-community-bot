@@ -102,7 +102,7 @@ const newReferralRoute = require('./api/newReferral'); // ✅ this line
 const path = require('path');
 const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
-
+const { getDogProfile } = require('./dogSystem');
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -4849,6 +4849,88 @@ if (playerHideout && playerHideout > Date.now()) {
         .setColor("#00ff88")
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
         .setTimestamp();
+
+        // 🔁 Inside your `if (success)` block, right after alertEmbed creation but BEFORE sending it:
+
+const dogProfile = await getDogProfile(userId, message.guild.id);
+const targetDog = await getDogProfile(target.id, message.guild.id);
+
+if (dogProfile) {
+  const powStat = dogProfile.stats?.POW || 0;
+  const dogLevel = dogProfile.level || 1;
+  const baseItems = 1 + Math.floor(Math.random() * 3); // 1–3 base
+  const bonusItems = Math.floor(powStat / 5); // +1 every 5 POW
+  const totalItemsToSteal = baseItems + bonusItems;
+
+  const failChance = 0.2 - Math.min(0.15, powStat * 0.01);
+  if (Math.random() < failChance) {
+    message.channel.send("🐶 Your dog barked but failed to steal anything.");
+  } else {
+    // ⚔️ Check for defender dog
+    let dogBlocked = false;
+    if (targetDog) {
+      const attackerLevel = dogProfile.level || 1;
+      const defenderLevel = targetDog.level || 1;
+      const defendChance = defenderLevel / (attackerLevel + defenderLevel);
+
+      if (Math.random() < defendChance) {
+        dogBlocked = true;
+
+        const defenderPic = targetDog.breed === 'pitbull' ? 'public/sharedphotos/pb__normal_attack_0.png'
+                        : targetDog.breed === 'shepherd' ? 'public/sharedphotos/gs__normal_attack_0.png'
+                        : 'public/sharedphotos/p__normal_attack_0.png';
+
+        const defEmbed = new EmbedBuilder()
+          .setTitle("🛡️ Guard Dog Defense!")
+          .setDescription(`<@${target.id}>'s dog scared off <@${userId}>'s dog before it could steal any items!`)
+          .setImage(defenderPic)
+          .setColor('#ff4444');
+
+        await message.channel.send({ embeds: [defEmbed] });
+      }
+    }
+
+    if (!dogBlocked) {
+      const victimItems = Array.from(targetInventory.entries()).filter(([id, qty]) => qty > 0);
+      const stolenItems = [];
+
+      for (let i = 0; i < totalItemsToSteal && victimItems.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * victimItems.length);
+        const [itemId, qty] = victimItems[randomIndex];
+
+        await removeItem(target.id, message.guild.id, itemId, 1);
+        await addItem(userId, message.guild.id, itemId, 1);
+        stolenItems.push(itemId);
+
+        if (qty <= 1) {
+          victimItems.splice(randomIndex, 1);
+        } else {
+          victimItems[randomIndex][1]--;
+        }
+      }
+
+      if (stolenItems.length) {
+        const display = stolenItems.map(id => {
+          const item = shopItems.find(i => i.id === id);
+          return item ? `${item.emoji || ''} ${item.name}` : id;
+        }).join(', ');
+
+        const breedPic = dogProfile.breed === 'pitbull' ? 'public/sharedphotos/pb__normal_attack_0.png'
+                        : dogProfile.breed === 'shepherd' ? 'public/sharedphotos/gs__normal_attack_0.png'
+                        : 'public/sharedphotos/p__normal_attack_0.png';
+
+        const embed = new EmbedBuilder()
+          .setTitle('🐶 Dog Theft!')
+          .setDescription(`Your dog stole ${stolenItems.length} item(s): ${display}`)
+          .setImage(breedPic)
+          .setColor('#ffaa00');
+
+        message.channel.send({ embeds: [embed] });
+      }
+    }
+  }
+}
+
 
     } else {
       const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));

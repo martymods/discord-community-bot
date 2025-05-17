@@ -7393,8 +7393,15 @@ client.commands.set('jobstats', {
     const interval = profile.interval || 15;
     const totalEarned = profile.earnings || 0;
 
+    // 🔄 Calculate shift progress
+    const totalShifts = Math.floor(totalEarned / base);
+    const shiftsThisLevel = totalShifts % 5;
+    const shiftsUntilPromo = 5 - shiftsThisLevel;
+
     console.log("📊 Calculated Stats —",
       `Level: ${level}, BasePay: ${base}, Pay/Shift: ${payPerShift}, Earnings: ${totalEarned}, Cooldown: ${remaining}m`);
+    console.log("📈 Promo Progress —",
+      `Total Shifts: ${totalShifts}, Shifts until promo: ${shiftsUntilPromo}`);
 
     const embed = new EmbedBuilder()
       .setTitle(`💼 ${profile.jobName || 'Unknown'} Stats`)
@@ -7403,6 +7410,8 @@ client.commands.set('jobstats', {
         { name: "Pay Per Shift", value: `$${payPerShift.toLocaleString()}`, inline: true },
         { name: "Work Interval", value: `${interval} min`, inline: true },
         { name: "Total Earned", value: `$${totalEarned.toLocaleString()}`, inline: true },
+        { name: "Shifts Worked", value: `${totalShifts}`, inline: true },
+        { name: "Promotion Progress", value: `🚀 ${shiftsThisLevel}/5 shifts\n⏳ ${shiftsUntilPromo} to next`, inline: true },
         { name: "Status", value: readyStatus, inline: false }
       )
       .setThumbnail(message.author.displayAvatarURL())

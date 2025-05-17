@@ -64,13 +64,15 @@ module.exports = {
   name: "blackjack",
 
   async execute(interaction) {
+    await interaction.deferReply(); // ✅ Fix: prevent Unknown Interaction
+
     const userId = interaction.user.id;
     const guildId = interaction.guild.id;
     const betAmount = 100;
 
     const balance = await getBalance(userId, guildId);
     if (balance < betAmount) {
-      return interaction.reply({ content: "❌ Not enough funds to join blackjack table.", ephemeral: true });
+      return interaction.editReply({ content: "❌ Not enough funds to join blackjack table.", ephemeral: true });
     }
 
     await removeCash(userId, guildId, betAmount);
@@ -101,7 +103,7 @@ module.exports = {
       new ButtonBuilder().setCustomId(`bj_leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
     );
 
-    return interaction.reply({ content: `<@${userId}>`, embeds: [embed], components: [row] });
+    return interaction.editReply({ content: `<@${userId}>`, embeds: [embed], components: [row] });
   },
 
   async handleButton(interaction) {
@@ -129,6 +131,8 @@ module.exports = {
       if (calculateHandValue(hand) > 21) {
         table.donePlayers.add(userId);
         await interaction.reply({ content: `💥 You busted!`, ephemeral: true });
+      } else {
+        return interaction.deferUpdate(); // just redraw
       }
     }
 
@@ -157,7 +161,7 @@ module.exports = {
       new ButtonBuilder().setCustomId(`bj_leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
     );
 
-    // Evaluate if game ended for this player
+    // 🎯 Game Result
     if (table.dealerRevealed && table.donePlayers.has(userId)) {
       const dealerVal = calculateHandValue(table.dealerHand);
       const playerVal = calculateHandValue(hand);
@@ -169,14 +173,17 @@ module.exports = {
 
       let payout = 0;
       let msg = `🧾 Dealer: ${dealerVal} | You: ${playerVal} → `;
+
       if (result === "win") {
         payout = playerVal === 21 && hand.length === 2 ? 300 : 200;
         msg += `🎉 You win **$${payout}**`;
         await addCash(userId, interaction.guildId, payout);
         await Levels.appendXp(userId, interaction.guildId, 25);
+
         if (playerVal === 21 && hand.length === 2) {
           interaction.channel.send(`🎥 <@${userId}> beat the dealer with BLACKJACK! 💎`).catch(() => {});
         }
+
       } else if (result === "draw") {
         payout = 100;
         msg += "🤝 Push. You get your bet back.";

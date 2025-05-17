@@ -12,4 +12,5 @@ const matchSchema = new mongoose.Schema({
   resolvedAt: { type: Date, default: null }
 });
 
-module.exports = mongoose.model('Match', matchSchema);
+// ✅ Prevent OverwriteModelError
+module.exports = mongoose.models.Match || mongoose.model('Match', matchSchema);

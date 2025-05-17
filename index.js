@@ -7197,6 +7197,7 @@ client.commands.set('job', {
 });
 
 
+
 // 📁 /commands/clockin.js
 client.commands.set('clockin', {
   async execute(message) {
@@ -7243,6 +7244,31 @@ client.commands.set('clockin', {
     profile.cooldownUntil = nextTime;
     profile.earnings = (profile.earnings || 0) + payout;
     profile.lastWorkedAt = now;
+
+    // 🔁 Streak tracking
+    const lastDate = profile.lastWorkedDate ? new Date(profile.lastWorkedDate) : null;
+    const today = new Date(now.toDateString());
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    if (lastDate && lastDate.toDateString() === today.toDateString()) {
+      console.log("📆 Already clocked in today.");
+    } else if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
+      profile.streak = (profile.streak || 0) + 1;
+      console.log(`🔥 Streak continued: ${profile.streak} days`);
+    } else {
+      profile.streak = 1;
+      console.log("🔁 Streak reset.");
+    }
+
+    profile.lastWorkedDate = today;
+
+    // 🎁 Weekly bonus (every 7 streak days)
+    if (profile.streak > 0 && profile.streak % 7 === 0) {
+      const bonus = 20000;
+      await addCash(userId, guildId, bonus);
+      await message.channel.send(`🎉 <@${userId}> hit a **7-day work streak** and earned a **$${bonus.toLocaleString()}** bonus! 💼💰`);
+    }
 
     console.log(`💵 Payout queued: $${payout}`);
 
@@ -7292,12 +7318,10 @@ client.commands.set('clockin', {
     const progressThisLevel = promoteEvery - shiftsUntilPromo;
     const bar = '🟩'.repeat(progressThisLevel) + '⬛'.repeat(promoteEvery - progressThisLevel);
 
-    // 🧪 Animated XP bar
     const xpData = await fetchLevel(userId, guildId);
     const currentLevel = xpData?.level || 1;
     const xpBar = '🔹'.repeat(currentLevel % 10) + '▫️'.repeat(10 - (currentLevel % 10));
 
-    // 🎖️ Tiered Title
     const tierTitles = ["Trainee", "Junior", "Operator", "Technician", "Specialist", "Lead", "Foreman", "Supervisor", "Manager", "Master"];
     const title = tierTitles[Math.min(profile.level - 1, tierTitles.length - 1)];
 
@@ -7309,6 +7333,7 @@ client.commands.set('clockin', {
         `**Pay Rate:** $${payout.toLocaleString()}`,
         `**Next Pay In:** ${interval} minutes`,
         `**Promo Progress:** ${bar} (${progressThisLevel}/5)`,
+        `**Streak:** 🔥 ${profile.streak} days`,
         '',
         `🕒 Working...`
       ].join('\n'))
@@ -7336,6 +7361,7 @@ client.commands.set('clockin', {
     }, msUntilDone);
   }
 });
+
 
 client.commands.set('jobleaderboard', {
   async execute(message) {

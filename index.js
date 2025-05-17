@@ -7198,6 +7198,7 @@ client.commands.set('job', {
 
 
 
+
 // 📁 /commands/clockin.js
 client.commands.set('clockin', {
   async execute(message) {
@@ -7207,6 +7208,43 @@ client.commands.set('clockin', {
     const { addCash } = require('./economy/currency');
     const { appendXp, fetchLevel } = require('./economy/xpRewards');
     const { EmbedBuilder } = require('discord.js');
+
+    const jobTitles = {
+      cook: ["🍳 Line Cook", "🥘 Kitchen Assistant", "👨‍🍳 Sous Chef", "🧂 Culinary Specialist", "👩‍🍳 Head Chef", "🍽️ Restaurant Manager", "🍷 Executive Chef", "🏨 Hotel Culinary Director", "🍾 Celebrity Chef", "👑 Gourmet Legend"],
+      guard: ["🔒 Security Guard", "🪖 Cadet", "🚓 Patrol Officer", "📋 Desk Sergeant", "🕵️ Vice Squad", "🧠 Detective", "🎖️ Lieutenant", "🔫 SWAT Leader", "👮 Police Chief", "🦸 Captain Hero"],
+      clerk: ["📦 Mailroom Clerk", "📠 Executive Assistant", "🚗 Field Sales Rep", "💼 Junior Executive", "📊 Executive", "👔 Senior Manager", "🏢 Vice President", "🏛️ President", "👨‍💼 CEO", "💰 Business Tycoon"],
+      delivery: ["📦 Package Handler", "🚛 Delivery Driver", "🚐 Route Specialist", "🧾 Logistics Coordinator", "📍 Dispatch Manager", "🏭 Fulfillment Supervisor", "📡 Regional Courier Lead", "🌐 Transport Strategist", "✈️ Global Shipper", "📦 Delivery Mogul"],
+      bartender: ["🍺 Barback", "🍸 Junior Bartender", "🍷 Cocktail Specialist", "🍹 Bar Chef", "🥃 Lead Mixologist", "🏆 Signature Drinker", "🎤 Lounge Host", "🍾 VIP Mixologist", "🍸 Celebrity Bartender", "👑 Bar Legend"]
+    };
+
+    const jobNarratives = {
+      guard: {
+        1: ["🔒 You clip your badge and head out into the cold night shift.", "🕶️ It's a quiet night... too quiet."],
+        3: ["🚓 You're back on patrol. Radio crackles. It's go time.", "🛑 Flashing lights reflect in your rear view mirror."],
+        5: ["🕵️ You brief your squad under dim lamplight — vice duty tonight.", "📂 A new case hits your desk. High stakes. Low time."],
+        10: ["🦸 The city sleeps. But you're its silent guardian.", "⚖️ Justice is your mission. And tonight, it’s personal."]
+      },
+      clerk: {
+        1: ["📦 You push the mail cart, dodging cubicle corners and coffee spills.", "📠 Copier is jammed again. Another thrilling day."],
+        4: ["💼 Your name's on the door now. You boss someone else around.", "👔 A merger meeting runs long. You nod strategically."],
+        10: ["💰 You've built an empire — but charity galas await.", "📈 Stocks climb. Your legacy is baked into SimCity's skyline."]
+      },
+      delivery: {
+        1: ["📦 You stack boxes and triple check labels before takeoff.", "🚚 First stop: the suburbs. Route calculated. Playlist loaded."],
+        5: ["📍 Dispatch chaos. You turn it into symphony with a spreadsheet.", "🧾 Your barcode scans like music. Numbers are your rhythm."],
+        10: ["✈️ Global contracts. Premium clients. You deliver the world.", "📦 A package from you is a promise. And you never break one."]
+      },
+      bartender: {
+        1: ["🍺 You stock the fridge and mop up last night’s party.", "🎶 Bass thumps. Tipsy customers wave. You’re on."],
+        4: ["🍹 A celebrity walks in. You stir their usual with flair.", "🍷 A patron claps. You nailed the perfect pour."],
+        10: ["👑 Every drink has your signature. Every guest knows your name.", "🍾 You don’t serve the city. You *are* the nightlife."]
+      },
+      cook: {
+        1: ["💼 You grab your clipboard and head toward the bustling kitchen.", "🔥 Orders pile up — but your timing is perfect."],
+        3: ["🧂 You taste the sauce — just right.", "👨‍🍳 The head chef watches as you plate with precision."],
+        5: ["👑 You give commands and the kitchen obeys.", "🍾 A VIP reservation has your name on it."]
+      }
+    };
 
     const userId = message.author.id;
     const guildId = message.guild.id;
@@ -7245,7 +7283,6 @@ client.commands.set('clockin', {
     profile.earnings = (profile.earnings || 0) + payout;
     profile.lastWorkedAt = now;
 
-    // 🔁 Streak tracking
     const lastDate = profile.lastWorkedDate ? new Date(profile.lastWorkedDate) : null;
     const today = new Date(now.toDateString());
     const yesterday = new Date(today);
@@ -7263,14 +7300,11 @@ client.commands.set('clockin', {
 
     profile.lastWorkedDate = today;
 
-    // 🎁 Weekly bonus (every 7 streak days)
     if (profile.streak > 0 && profile.streak % 7 === 0) {
       const bonus = 20000;
       await addCash(userId, guildId, bonus);
       await message.channel.send(`🎉 <@${userId}> hit a **7-day work streak** and earned a **$${bonus.toLocaleString()}** bonus! 💼💰`);
     }
-
-    console.log(`💵 Payout queued: $${payout}`);
 
     const promoteEvery = 5;
     const maxLevel = 10;
@@ -7284,49 +7318,25 @@ client.commands.set('clockin', {
     if (previousLevel < maxLevel && totalShifts % promoteEvery === 0 && totalShifts !== 0) {
       profile.level = newLevel;
       promoted = true;
-      console.log(`🎉 Promotion: ${previousLevel} -> ${newLevel}`);
-
       await appendXp(userId, guildId, 50);
-
-      const role = message.guild.roles.cache.find(r => r.name === 'Hard Worker');
-      if (role && !member.roles.cache.has(role.id)) {
-        await member.roles.add(role).catch(console.error);
-      }
-
-      const promoEmbed = new EmbedBuilder()
-        .setTitle("🔺 PROMOTION UNLOCKED!")
-        .setDescription(`🎉 <@${userId}> reached **Level ${newLevel}** as a **${profile.jobName}**! Earns **$${Math.floor(profile.basePay * Math.min(1 + (newLevel - 1) * 0.05, maxMultiplier)).toLocaleString()}**.`)
-        .setImage('https://media.giphy.com/media/3o7TKW5pMnb1iZ9A3e/giphy.gif')
-        .setColor('#ff0055')
-        .setFooter({ text: 'Promotion Bonus Applied! 🔊 + 🎖️ + 💸' });
-
-      await message.channel.send({ embeds: [promoEmbed] });
-
-      try {
-        const user = await message.client.users.fetch(userId);
-        await user.send(`📈 You’ve been promoted to Level ${newLevel}! Keep grinding.`);
-      } catch (err) {
-        console.warn(`⚠️ Could not DM promotion message: ${err.message}`);
-      }
-    } else if (shiftsUntilPromo === 1) {
-      await message.channel.send(`✨ <@${userId}> is **1 shift away** from a promotion! Keep it up! 🔥`);
     }
 
     await profile.save();
-    console.log("💾 Job profile saved.");
 
     const progressThisLevel = promoteEvery - shiftsUntilPromo;
     const bar = '🟩'.repeat(progressThisLevel) + '⬛'.repeat(promoteEvery - progressThisLevel);
-
     const xpData = await fetchLevel(userId, guildId);
     const currentLevel = xpData?.level || 1;
     const xpBar = '🔹'.repeat(currentLevel % 10) + '▫️'.repeat(10 - (currentLevel % 10));
 
-    const tierTitles = ["Trainee", "Junior", "Operator", "Technician", "Specialist", "Lead", "Foreman", "Supervisor", "Manager", "Master"];
-    const title = tierTitles[Math.min(profile.level - 1, tierTitles.length - 1)];
+    const jobName = jobTitles[profile.jobId]?.[profile.level - 1] || profile.jobName;
+    const jobFlavorList = jobNarratives[profile.jobId]?.[profile.level] || [];
+    const narrative = jobFlavorList.length > 0
+      ? jobFlavorList[Math.floor(Math.random() * jobFlavorList.length)]
+      : "🛠️ You begin your work shift...";
 
     const embed = new EmbedBuilder()
-      .setTitle(`💼 Clocked In as ${profile.jobName} (${title})`)
+      .setTitle(`${jobName}`)
       .setDescription([
         `**Level:** ${profile.level}`,
         `**XP Bar:** ${xpBar}`,
@@ -7335,7 +7345,7 @@ client.commands.set('clockin', {
         `**Promo Progress:** ${bar} (${progressThisLevel}/5)`,
         `**Streak:** 🔥 ${profile.streak} days`,
         '',
-        `🕒 Working...`
+        `${narrative}`
       ].join('\n'))
       .setColor(promoted ? '#00ff88' : '#ffa600')
       .setFooter({ text: 'You’ll be paid after the timer ends.' });
@@ -7345,13 +7355,10 @@ client.commands.set('clockin', {
     setTimeout(async () => {
       const updated = await JobProfile.findOne({ userId, guildId });
       if (!updated) return;
-
       updated.clockedIn = false;
       await updated.save();
-
       const finalPayout = Math.floor((updated.basePay || 5000) * Math.min(1 + (updated.level - 1) * 0.05, maxMultiplier));
       await addCash(userId, guildId, finalPayout);
-
       try {
         const user = await message.client.users.fetch(userId);
         await user.send(`💵 Shift complete! You earned **$${finalPayout.toLocaleString()}**.`);
@@ -7361,7 +7368,6 @@ client.commands.set('clockin', {
     }, msUntilDone);
   }
 });
-
 
 client.commands.set('jobleaderboard', {
   async execute(message) {
@@ -7400,7 +7406,6 @@ client.commands.set('jobleaderboard', {
   }
 });
 
-
 client.commands.set('jobstats', {
   async execute(message) {
     console.log("✅ Running !jobstats");
@@ -7410,6 +7415,14 @@ client.commands.set('jobstats', {
 
     const userId = message.author.id;
     const guildId = message.guild.id;
+
+    const jobTitles = {
+      cook: ["🍳 Line Cook", "🥘 Kitchen Assistant", "👨‍🍳 Sous Chef", "🧂 Culinary Specialist", "👩‍🍳 Head Chef", "🍽️ Restaurant Manager", "🍷 Executive Chef", "🏨 Hotel Culinary Director", "🍾 Celebrity Chef", "👑 Gourmet Legend"],
+      guard: ["🔒 Security Guard", "🪖 Cadet", "🚓 Patrol Officer", "📋 Desk Sergeant", "🕵️ Vice Squad", "🧠 Detective", "🎖️ Lieutenant", "🔫 SWAT Leader", "👮 Police Chief", "🦸 Captain Hero"],
+      clerk: ["📦 Mailroom Clerk", "📠 Executive Assistant", "🚗 Field Sales Rep", "💼 Junior Executive", "📊 Executive", "👔 Senior Manager", "🏢 Vice President", "🏛️ President", "👨‍💼 CEO", "💰 Business Tycoon"],
+      delivery: ["📦 Package Handler", "🚛 Delivery Driver", "🚐 Route Specialist", "🧾 Logistics Coordinator", "📍 Dispatch Manager", "🏭 Fulfillment Supervisor", "📡 Regional Courier Lead", "🌐 Transport Strategist", "✈️ Global Shipper", "📦 Delivery Mogul"],
+      bartender: ["🍺 Barback", "🍸 Junior Bartender", "🍷 Cocktail Specialist", "🍹 Bar Chef", "🥃 Lead Mixologist", "🏆 Signature Drinker", "🎤 Lounge Host", "🍾 VIP Mixologist", "🍸 Celebrity Bartender", "👑 Bar Legend"]
+    };
 
     const profile = await JobProfile.findOne({ userId, guildId });
 
@@ -7433,11 +7446,12 @@ client.commands.set('jobstats', {
     const payPerShift = Math.floor(base * levelMultiplier);
     const interval = profile.interval || 15;
     const totalEarned = profile.earnings || 0;
-
-    // 🔄 Calculate shift progress
     const totalShifts = Math.floor(totalEarned / base);
     const shiftsThisLevel = totalShifts % 5;
     const shiftsUntilPromo = 5 - shiftsThisLevel;
+
+    const currentTitle = jobTitles[profile.jobId]?.[level - 1] || profile.jobName || 'Unknown';
+    const nextTitle = jobTitles[profile.jobId]?.[level] || '🎓 Max Level Reached';
 
     console.log("📊 Calculated Stats —",
       `Level: ${level}, BasePay: ${base}, Pay/Shift: ${payPerShift}, Earnings: ${totalEarned}, Cooldown: ${remaining}m`);
@@ -7445,7 +7459,7 @@ client.commands.set('jobstats', {
       `Total Shifts: ${totalShifts}, Shifts until promo: ${shiftsUntilPromo}`);
 
     const embed = new EmbedBuilder()
-      .setTitle(`💼 ${profile.jobName || 'Unknown'} Stats`)
+      .setTitle(`💼 ${currentTitle} Stats`)
       .addFields(
         { name: "Level", value: `${level}`, inline: true },
         { name: "Pay Per Shift", value: `$${payPerShift.toLocaleString()}`, inline: true },
@@ -7453,6 +7467,7 @@ client.commands.set('jobstats', {
         { name: "Total Earned", value: `$${totalEarned.toLocaleString()}`, inline: true },
         { name: "Shifts Worked", value: `${totalShifts}`, inline: true },
         { name: "Promotion Progress", value: `🚀 ${shiftsThisLevel}/5 shifts\n⏳ ${shiftsUntilPromo} to next`, inline: true },
+        { name: "Next Title", value: `${nextTitle}`, inline: false },
         { name: "Status", value: readyStatus, inline: false }
       )
       .setThumbnail(message.author.displayAvatarURL())
@@ -7463,7 +7478,6 @@ client.commands.set('jobstats', {
     return message.channel.send({ embeds: [embed] });
   }
 });
-
 
 client.commands.set('quitjob', {
   async execute(message) {

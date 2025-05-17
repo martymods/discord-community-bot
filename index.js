@@ -102,7 +102,8 @@ const newReferralRoute = require('./api/newReferral'); // ✅ this line
 const path = require('path');
 const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
-const { getDogProfile } = require('./economy/dogSystem');
+const { getDogProfile } = require('./events/npc/defense/dogSystem');
+
 
 
 

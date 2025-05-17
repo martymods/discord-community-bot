@@ -7746,6 +7746,7 @@ client.commands.set('mypsn', require('./commands/mypsn'));
 client.commands.set('2kprofile', require('./commands/2kprofile'));
 client.commands.set('2kleaderboard', require('./commands/2kleaderboard'));
 client.commands.set('unlinkpsn', require('./commands/unlinkpsn'));
+client.commands.set('2kpool', require('./commands/2kpool'));
 
 
 

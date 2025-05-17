@@ -108,7 +108,6 @@ module.exports = {
 
 async handleButton(interaction) {
   const userId = interaction.user.id;
-
   const parts = interaction.customId.split("_");
   const action = parts[1];
   const tableId = parts.slice(2, -1).join("_");
@@ -120,88 +119,114 @@ async handleButton(interaction) {
     return interaction.reply({ content: "❌ Not your game.", ephemeral: true });
   }
 
-    const table = activeTables.get(tableId);
-    if (!table) {
-      return interaction.reply({ content: "❌ Table not found.", ephemeral: true });
-    }
-
-    const hand = table.hands[userId];
-    if (!hand) {
-      return interaction.reply({ content: "❌ You don't have a hand at this table.", ephemeral: true });
-    }
-
-    if (action === "hit") {
-      const newCard = table.deck.pop();
-      hand.push(newCard);
-      console.log(`[BJ] ${userId} HIT:`, newCard);
-      if (calculateHandValue(hand) > 21) {
-        table.donePlayers.add(userId);
-        await interaction.reply({ content: `💥 You busted!`, ephemeral: true });
-      } else {
-        return interaction.deferUpdate(); // just redraw
-      }
-    }
-
-    if (action === "hold") {
-      table.donePlayers.add(userId);
-      await interaction.reply({ content: `🧍 You hold.`, ephemeral: true });
-    }
-
-    if (action === "leave") {
-      table.players = table.players.filter(id => id !== userId);
-      table.donePlayers.add(userId);
-      return interaction.reply({ content: "🚪 You left the table.", ephemeral: true });
-    }
-
-    if (table.donePlayers.size === table.players.length) {
-      while (calculateHandValue(table.dealerHand) < 17) {
-        table.dealerHand.push(table.deck.pop());
-      }
-      table.dealerRevealed = true;
-    }
-
-    const embed = generateTableEmbed(table, userId);
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`bj_hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(`bj_hold_${table.id}_${userId}`).setLabel("✋ Hold").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`bj_leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
-    );
-
-    // 🎯 Game Result
-    if (table.dealerRevealed && table.donePlayers.has(userId)) {
-      const dealerVal = calculateHandValue(table.dealerHand);
-      const playerVal = calculateHandValue(hand);
-
-      let result = "lose";
-      if (playerVal > 21) result = "lose";
-      else if (dealerVal > 21 || playerVal > dealerVal) result = "win";
-      else if (playerVal === dealerVal) result = "draw";
-
-      let payout = 0;
-      let msg = `🧾 Dealer: ${dealerVal} | You: ${playerVal} → `;
-
-      if (result === "win") {
-        payout = playerVal === 21 && hand.length === 2 ? 300 : 200;
-        msg += `🎉 You win **$${payout}**`;
-        await addCash(userId, interaction.guildId, payout);
-        await Levels.appendXp(userId, interaction.guildId, 25);
-
-        if (playerVal === 21 && hand.length === 2) {
-          interaction.channel.send(`🎥 <@${userId}> beat the dealer with BLACKJACK! 💎`).catch(() => {});
-        }
-
-      } else if (result === "draw") {
-        payout = 100;
-        msg += "🤝 Push. You get your bet back.";
-        await addCash(userId, interaction.guildId, payout);
-        await Levels.appendXp(userId, interaction.guildId, 5);
-      } else {
-        msg += "💀 You lose your bet.";
-      }
-
-      embed.addFields({ name: "🎯 Result", value: msg });
-    }
-
-    return interaction.message.edit({ embeds: [embed], components: [row] }).catch(() => {});
+  const table = activeTables.get(tableId);
+  if (!table) {
+    return interaction.reply({ content: "❌ Table not found.", ephemeral: true });
   }
+
+  const hand = table.hands[userId];
+  if (!hand) {
+    return interaction.reply({ content: "❌ You don't have a hand at this table.", ephemeral: true });
+  }
+
+  if (action === "hit") {
+    const newCard = table.deck.pop();
+    hand.push(newCard);
+    console.log(`[BJ] ${userId} HIT:`, newCard);
+  }
+
+  if (action === "hold") {
+    table.donePlayers.add(userId);
+    console.log(`[BJ] ${userId} HOLD`);
+  }
+
+  if (action === "leave") {
+    table.players = table.players.filter(id => id !== userId);
+    table.donePlayers.add(userId);
+    return interaction.reply({ content: "🚪 You left the table.", ephemeral: true });
+  }
+
+  const embed = generateTableEmbed(table, userId);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`bj_hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`bj_hold_${table.id}_${userId}`).setLabel("✋ Hold").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`bj_leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
+  );
+
+  const playerVal = calculateHandValue(hand);
+  let roundOver = false;
+
+  // Check for bust or hold
+  if (playerVal > 21) {
+    table.donePlayers.add(userId);
+    embed.addFields({ name: "☠️ BUSTED", value: "💥 You went over 21." });
+    roundOver = true;
+  }
+
+  // Once all players are done
+  if (table.donePlayers.size === table.players.length) {
+    while (calculateHandValue(table.dealerHand) < 17) {
+      table.dealerHand.push(table.deck.pop());
+    }
+    table.dealerRevealed = true;
+
+    const dealerVal = calculateHandValue(table.dealerHand);
+
+    let result = "lose";
+    if (playerVal > 21) result = "lose";
+    else if (dealerVal > 21 || playerVal > dealerVal) result = "win";
+    else if (playerVal === dealerVal) result = "draw";
+
+    let payout = 0;
+    let msg = `🧾 Dealer: ${dealerVal} | You: ${playerVal} → `;
+
+    if (result === "win") {
+      payout = playerVal === 21 && hand.length === 2 ? 300 : 200;
+      msg += `🎉 You win **$${payout}**`;
+      await addCash(userId, interaction.guildId, payout);
+      await Levels.appendXp(userId, interaction.guildId, 25);
+      if (playerVal === 21 && hand.length === 2) {
+        interaction.channel.send(`🎥 <@${userId}> beat the dealer with BLACKJACK! 💎`).catch(() => {});
+      }
+    } else if (result === "draw") {
+      payout = 100;
+      msg += "🤝 Push. You get your bet back.";
+      await addCash(userId, interaction.guildId, payout);
+      await Levels.appendXp(userId, interaction.guildId, 5);
+    } else {
+      msg += "💀 You lose your bet.";
+    }
+
+    embed.addFields({
+      name: "🎯 Result",
+      value: msg
+    });
+
+    roundOver = true;
+  }
+
+  // Respond with the updated embed
+  await interaction.update({ embeds: [embed], components: [row] });
+
+  // 🔁 Auto-redeal if round ended
+  if (roundOver) {
+    setTimeout(() => {
+      table.deck = createDeck();
+      table.dealerHand = [table.deck.pop(), table.deck.pop()];
+      table.hands[userId] = [table.deck.pop(), table.deck.pop()];
+      table.donePlayers = new Set();
+      table.dealerRevealed = false;
+
+      const newEmbed = generateTableEmbed(table, userId);
+      const newRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`bj_hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`bj_hold_${table.id}_${userId}`).setLabel("✋ Hold").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`bj_leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
+      );
+
+      interaction.followUp({ content: `<@${userId}> 🎲 New Round!`, embeds: [newEmbed], components: [newRow] }).catch(console.error);
+    }, 2500); // Small delay before new round
+  }
+}
+
 };

@@ -7743,6 +7743,9 @@ client.commands.set('topreferrals', require('./commands/topreferrals'));
 client.commands.set('linkpsn', require('./commands/linkpsn'));
 client.commands.set('nba2kbet', require('./commands/nba2kbet'));
 client.commands.set('mypsn', require('./commands/mypsn'));
+client.commands.set('2kprofile', require('./commands/2kprofile'));
+client.commands.set('2kleaderboard', require('./commands/2kleaderboard'));
+client.commands.set('unlinkpsn', require('./commands/unlinkpsn'));
 
 
 

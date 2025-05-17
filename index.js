@@ -7199,123 +7199,112 @@ client.commands.set('job', {
 
 client.commands.set('clockin', {
   async execute(message) {
-    console.log(`[${new Date().toISOString()}] ✅ Running !clockin for ${message.author.tag}`);
+    console.log("✅ Running !clockin command");
 
-    try {
-      const JobProfile = require('./models/JobProfile');
-      const { addCash } = require('./economy/currency');
-      const { appendXp } = require('./economy/xpRewards');
-      const { EmbedBuilder } = require('discord.js');
+    const JobProfile = require('./models/JobProfile');
+    const { addCash } = require('./economy/currency');
+    const { appendXp } = require('./economy/xpRewards');
+    const { EmbedBuilder } = require('discord.js');
 
-      const userId = message.author.id;
-      const guildId = message.guild.id;
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+    let profile = await JobProfile.findOne({ userId, guildId });
 
-      let profile = await JobProfile.findOne({ userId, guildId });
-      if (!profile) {
-        console.log(`❌ No job profile found for ${userId}`);
-        return message.reply("❌ You don’t have a job yet. Use `!job` to get started.");
-      }
-
-      const now = new Date();
-      const cooldownUntil = profile.cooldownUntil ? new Date(profile.cooldownUntil).getTime() : 0;
-
-      if (profile.clockedIn && cooldownUntil > now.getTime()) {
-        const remainingMs = cooldownUntil - now.getTime();
-        const minutes = Math.floor(remainingMs / 60000);
-        const seconds = Math.floor((remainingMs % 60000) / 1000);
-        console.log(`⏳ ${userId} is still working, ${minutes}m ${seconds}s left`);
-        return message.reply(`⏳ You're still working! Come back in **${minutes}m ${seconds}s**.`);
-      }
-
-      const base = profile.basePay || 5000;
-      const maxMultiplier = 5.0;
-      const levelMultiplier = Math.min(1 + (profile.level - 1) * 0.05, maxMultiplier);
-      const payout = Math.floor(base * levelMultiplier);
-      const interval = profile.interval || 15;
-      const msUntilDone = interval * 60000;
-      const nextTime = new Date(now.getTime() + msUntilDone);
-      const progressBar = '🟩'.repeat(1) + '⬛'.repeat(9);
-
-      profile.clockedIn = true;
-      profile.lastClockIn = now;
-      profile.cooldownUntil = nextTime;
-      profile.totalEarned += payout;
-      profile.timesWorked += 1;
-      await profile.save();
-      console.log(`⏰ ${userId} clocked in as ${profile.jobName}, earning $${payout} in ${interval} minutes`);
-
-      let promoted = false;
-      const promoteEvery = 5;
-      const maxLevel = 10;
-
-      if (profile.level < maxLevel && profile.timesWorked % promoteEvery === 0) {
-        profile.level += 1;
-        promoted = true;
-        await appendXp(userId, guildId, 50);
-        await profile.save();
-        console.log(`🎉 ${userId} promoted to Level ${profile.level}`);
-
-        const promoEmbed = new EmbedBuilder()
-          .setTitle("🔺 PROMOTED!")
-          .setDescription(`🎉 <@${userId}> was promoted to **Level ${profile.level}** as a **${profile.jobName}**!\nThey now earn **$${Math.floor(profile.basePay * levelMultiplier).toLocaleString()}** per shift.`)
-          .setColor('#ff3366')
-          .setThumbnail(message.author.displayAvatarURL())
-          .setFooter({ text: "Keep grinding. Promotions await." })
-          .setTimestamp();
-
-        await message.channel.send({ embeds: [promoEmbed] });
-
-        try {
-          const user = await message.client.users.fetch(userId);
-          await user.send(`📈 Congrats! You've been **promoted to Level ${profile.level}** as a **${profile.jobName}**!`);
-          console.log(`📨 Promotion DM sent to ${userId}`);
-        } catch (err) {
-          console.warn(`⚠️ Could not DM promotion to ${userId}: ${err.message}`);
-        }
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(`💼 Clocked In as ${profile.jobName}`)
-        .setDescription([
-          `**Level:** ${profile.level}`,
-          `**Pay Rate:** $${payout.toLocaleString()}`,
-          `**Next Pay In:** ${interval} minutes`,
-          '',
-          `${progressBar}`,
-        ].join('\n'))
-        .setColor(promoted ? '#ff9933' : '#ffa600')
-        .setFooter({ text: 'You’ll be paid after the timer ends.' });
-
-      await message.reply({ embeds: [embed] });
-
-      setTimeout(async () => {
-        const updated = await JobProfile.findOne({ userId, guildId });
-        if (!updated) {
-          console.warn(`⚠️ Job profile vanished for ${userId}`);
-          return;
-        }
-
-        updated.clockedIn = false;
-        await updated.save();
-
-        const finalPayout = Math.floor((updated.basePay || 5000) * Math.min(1 + (updated.level - 1) * 0.05, maxMultiplier));
-        await addCash(userId, guildId, finalPayout);
-        console.log(`💰 ${userId} paid $${finalPayout} after shift as ${updated.jobName}`);
-
-        try {
-          const user = await message.client.users.fetch(userId);
-          await user.send(`🤑 You’ve finished your shift as a **${updated.jobName}** and earned **$${finalPayout.toLocaleString()}**!\nUse \`!clockin\` to go back to work.`);
-          console.log(`📩 Payout DM sent to ${userId}`);
-        } catch (err) {
-          console.warn(`❌ Could not DM final payout to ${userId}: ${err.message}`);
-        }
-      }, msUntilDone);
-    } catch (err) {
-      console.error(`❌ Error in !clockin:`, err);
-      return message.reply('⚠️ Something went wrong while trying to clock you in.');
+    if (!profile) {
+      return message.reply("❌ You don’t have a job yet. Use `!job` to get started.");
     }
+
+    const now = new Date();
+    const cooldownUntil = profile.cooldownUntil ? new Date(profile.cooldownUntil).getTime() : 0;
+
+    if (profile.clockedIn && cooldownUntil > now.getTime()) {
+      const remainingMs = cooldownUntil - now.getTime();
+      const minutes = Math.floor(remainingMs / 60000);
+      const seconds = Math.floor((remainingMs % 60000) / 1000);
+      return message.reply(`⏳ You're still working! Come back in **${minutes}m ${seconds}s**.`);
+    }
+
+    // 🔢 Increment before checking for promotion
+    profile.timesWorked += 1;
+
+    // ⏫ Promotion check (every 5 shifts)
+    const promoteEvery = 5;
+    const maxLevel = 10;
+    const maxMultiplier = 5.0;
+    let promoted = false;
+
+    if (profile.level < maxLevel && profile.timesWorked % promoteEvery === 0) {
+      profile.level += 1;
+      promoted = true;
+
+      // 🎉 Public channel announcement
+      await message.channel.send(`🔺 **${message.author.username}** has been **promoted to Level ${profile.level}** as a **${profile.jobName}**!`);
+
+      // 💌 DM backup
+      try {
+        const user = await message.client.users.fetch(userId);
+        await user.send(`📈 Congrats! You've been promoted to Level ${profile.level} as a **${profile.jobName}**.`);
+      } catch (err) {
+        console.warn(`⚠️ Could not DM promotion message: ${err.message}`);
+      }
+
+      // 🎁 XP boost for promotion
+      await appendXp(userId, guildId, 50);
+    }
+
+    // 💰 Calculate Pay
+    const base = profile.basePay || 5000;
+    const levelMultiplier = Math.min(1 + (profile.level - 1) * 0.05, maxMultiplier);
+    const payout = Math.floor(base * levelMultiplier);
+    const interval = profile.interval || 15;
+    const msUntilDone = interval * 60000;
+    const nextTime = new Date(now.getTime() + msUntilDone);
+
+    // 📊 Visual progress bar
+    const progressBar = '🟩' + '⬛'.repeat(9); // placeholder for now
+
+    // ⏳ Clock user in
+    profile.clockedIn = true;
+    profile.lastClockIn = now;
+    profile.cooldownUntil = nextTime;
+    profile.totalEarned += payout;
+    await profile.save();
+
+    const embed = new EmbedBuilder()
+      .setTitle(`💼 Clocked In as ${profile.jobName}`)
+      .setDescription([
+        `**Level:** ${profile.level}`,
+        `**Pay Rate:** $${payout.toLocaleString()}`,
+        `**Next Pay In:** ${interval} minutes`,
+        '',
+        `${progressBar}`
+      ].join('\n'))
+      .setColor(promoted ? '#00ff88' : '#ffa600')
+      .setFooter({ text: 'You’ll be paid after the timer ends.' });
+
+    await message.reply({ embeds: [embed] });
+
+    // ⏰ Set Timer
+    setTimeout(async () => {
+      const updated = await JobProfile.findOne({ userId, guildId });
+      if (!updated) return;
+
+      updated.clockedIn = false;
+      await updated.save();
+
+      const finalPayout = Math.floor((updated.basePay || 5000) * Math.min(1 + (updated.level - 1) * 0.05, maxMultiplier));
+      await addCash(userId, guildId, finalPayout);
+
+      try {
+        const user = await message.client.users.fetch(userId);
+        await user.send(`🤑 You’ve finished your shift as a **${updated.jobName}** and earned **$${finalPayout.toLocaleString()}**!\nUse \`!clockin\` to go back to work.`);
+      } catch (err) {
+        console.warn(`❌ DM failed for ${userId}: ${err.message}`);
+      }
+    }, msUntilDone);
   }
 });
+
 
 
 

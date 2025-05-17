@@ -3770,9 +3770,10 @@ if (customId.startsWith('steal_')) {
   return; // ✅ CRUCIAL: prevents fall-through / duplication
 }
 
-  // ✅ Handle Black Jack
-if (customId.startsWith("bj_")) {
+// ✅ Handle Blackjack Button Presses
+if (interaction.isButton() && customId.startsWith("bj_")) {
   const { handleButton } = require('./commands/blackjackCommand.js');
+  console.log(`[BLACKJACK DEBUG] Routing to handleButton: ${customId}`);
   return handleButton(interaction);
 }
 

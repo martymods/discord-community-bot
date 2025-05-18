@@ -4951,14 +4951,22 @@ client.commands.set('steal', {
               await theirDog.save();
               if (theirDog.hp <= 0) {
                 await DogProfile.deleteOne({ _id: theirDog._id });
-                const deathPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__state_dead_0.png`;
-                message.channel.send({
-                  embeds: [new EmbedBuilder()
-                    .setTitle("☠️ The Defender's Dog Died")
-                    .setDescription(`**${theirDog.name}** was killed during the item theft.`)
-                    .setImage(deathPic)
-                    .setColor("#ff5555")]
-                });
+await DogProfile.deleteOne({ _id: theirDog._id });
+
+const deathBreedKey = theirDog.breed === 'pitbull' ? 'pb' :
+                      theirDog.breed === 'shepherd' ? 'gs' :
+                      theirDog.breed === 'pomeranian' ? 'p' : 'default';
+
+const deathImg = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${deathBreedKey}__state_dead_0.png`;
+
+await message.channel.send({
+  embeds: [new EmbedBuilder()
+    .setTitle("☠️ The Defender's Dog Died")
+    .setDescription(`**${theirDog.name}** was killed during the item theft.`)
+    .setImage(deathImg)
+    .setColor("#ff5555")]
+});
+
               }
             }
 

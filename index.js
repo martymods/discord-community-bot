@@ -4858,7 +4858,11 @@ client.commands.set('steal', {
         if (failed) {
           message.channel.send("🐶 Your dog barked but failed to steal anything.");
         } else if (theirDog && Math.random() < theirDog.level / (myDog.level + theirDog.level)) {
-          const blockPic = `public/sharedphotos/${theirDog.breed[0]}__normal_attack_0.png`;
+const targetBreedKey = theirDog.breed === 'pitbull' ? 'pb' :
+                       theirDog.breed === 'shepherd' ? 'gs' :
+                       theirDog.breed === 'pomeranian' ? 'p' : 'default';
+const blockPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${targetBreedKey}__normal_attack_0.png`;
+
           await message.channel.send({
             embeds: [new EmbedBuilder()
               .setTitle("🛡️ Guard Dog Defense!")
@@ -4883,7 +4887,11 @@ client.commands.set('steal', {
               return item ? `${item.emoji || ''} ${item.name}` : id;
             }).join(', ');
 
-            const myDogPic = `public/sharedphotos/${myDog.breed[0]}__normal_attack_0.png`;
+const myBreedKey = myDog.breed === 'pitbull' ? 'pb' :
+                   myDog.breed === 'shepherd' ? 'gs' :
+                   myDog.breed === 'pomeranian' ? 'p' : 'default';
+const myDogPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${myBreedKey}__normal_attack_0.png`;
+
             message.channel.send({
               embeds: [new EmbedBuilder()
                 .setTitle('🐶 Dog Theft!')

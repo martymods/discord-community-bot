@@ -4764,201 +4764,183 @@ const { isInPrison, disabledWhileInPrison } = require('./economy/prisonSystem');
 client.commands.set('steal', {
   async execute(message) {
     const target = message.mentions.users.first();
-    if (!target) return message.reply("Tag someone to rob: `!steal @user`");
-    if (target.id === message.author.id) return message.reply("You can't rob yourself.");
-
-    const hideout = hideoutMap.get(target.id);
-    if (hideout && hideout > Date.now()) return message.reply(`🧢 That user is hiding.`);
-
-    const now = Date.now();
     const userId = message.author.id;
-    // ⛔ Prevent using while hiding
-const playerHideout = hideoutMap.get(userId);
-if (playerHideout && playerHideout > Date.now()) {
-  return message.reply("⛔ You cannot use `!steal` while hiding in a hideout.");
-}
-    const cooldown = stealCooldowns.get(userId) || 0;
-    if (cooldown > now) return message.reply(`⏳ Cooldown: ${Math.ceil((cooldown - now) / 1000)}s`);
+    const guildId = message.guild.id;
 
-    // 🔒 Auto-prison for trying to rob Slave
+    if (!target) return message.reply("Tag someone to rob: `!steal @user`");
+    if (target.id === userId) return message.reply("You can't rob yourself.");
+
+    console.log(`[STEAL] Attempt: ${userId} → ${target.id}`);
+
+    // Hideout Checks
+    const targetHideout = hideoutMap.get(target.id);
+    if (targetHideout && targetHideout > Date.now()) {
+      console.log(`[STEAL] Target is hiding.`);
+      return message.reply("🧢 That user is hiding.");
+    }
+
+    const playerHideout = hideoutMap.get(userId);
+    if (playerHideout && playerHideout > Date.now()) {
+      console.log(`[STEAL] Robber is hiding.`);
+      return message.reply("⛔ You cannot use `!steal` while hiding in a hideout.");
+    }
+
+    const cooldown = stealCooldowns.get(userId) || 0;
+    if (cooldown > Date.now()) {
+      const seconds = Math.ceil((cooldown - Date.now()) / 1000);
+      return message.reply(`⏳ Cooldown: ${seconds}s`);
+    }
+
     if (target.username === 'Slave' || target.id === '1353724293380440085') {
-      sendToPrison(userId, message.guild.id);
+      console.log(`[STEAL] Attempted to rob Slave - prison.`);
+      sendToPrison(userId, guildId);
       return message.reply("🚔 You tried to rob the wrong slave and got locked up immediately.");
     }
 
-    const [targetBalance, targetInventory, yourBalance, userData, targetData] = await Promise.all([
-      getBalance(target.id, message.guild.id),
-      getInventory(target.id, message.guild.id),
-      getBalance(userId, message.guild.id),
-      Levels.fetch(userId, message.guild.id),
-      Levels.fetch(target.id, message.guild.id)
+    const [
+      targetBalance, targetInventory,
+      yourBalance, userData, targetData
+    ] = await Promise.all([
+      getBalance(target.id, guildId),
+      getInventory(target.id, guildId),
+      getBalance(userId, guildId),
+      Levels.fetch(userId, guildId),
+      Levels.fetch(target.id, guildId)
     ]);
 
     const yourLevel = userData?.level || 1;
     const targetLevel = targetData?.level || 1;
     const levelDiff = yourLevel - targetLevel;
+    const heat = heatMap.get(userId) || { heat: 0, lastActivity: Date.now() };
 
-    if (targetBalance < 100) return message.reply("They're too broke.");
+    if (targetBalance < 100) {
+      console.log(`[STEAL] Target too broke.`);
+      return message.reply("They're too broke.");
+    }
 
+    // Smoke bomb
     if (targetInventory.has('smoke')) {
-      const successChance = targetLevel >= 15 ? 0 : targetLevel >= 12 ? 0.15 : targetLevel >= 9 ? 0.3 : targetLevel >= 6 ? 0.5 : 0.8;
-      if (Math.random() < successChance) {
-        await removeItem(target.id, message.guild.id, 'smoke');
+      const chance = targetLevel >= 15 ? 0 : targetLevel >= 12 ? 0.15 : targetLevel >= 9 ? 0.3 : targetLevel >= 6 ? 0.5 : 0.8;
+      if (Math.random() < chance) {
+        await removeItem(target.id, guildId, 'smoke');
+        console.log(`[STEAL] Smoke bomb success.`);
         return message.reply(`💨 <@${target.id}> escaped with a smoke bomb!`);
       } else {
         message.channel.send(`💨 <@${target.id}> tried to use a smoke bomb... but it failed against a high-level attacker!`);
       }
     }
 
-    let baseSuccessRate = 0.5;
-    if (isInPrison(target.id)) baseSuccessRate = 0.95;
-    else if (levelDiff >= 15) baseSuccessRate = 1;
-    else if (levelDiff > 0) baseSuccessRate += Math.min(0.05 * levelDiff, 0.45);
+    // Success check
+    let successRate = 0.5;
+    if (isInPrison(target.id)) successRate = 0.95;
+    else if (levelDiff >= 15) successRate = 1;
+    else if (levelDiff > 0) successRate += Math.min(0.05 * levelDiff, 0.45);
 
-    const success = Math.random() < baseSuccessRate;
-
-    const heat = heatMap.get(userId) || { heat: 0, lastActivity: now };
+    const success = Math.random() < successRate;
     const gang = gangMap.get(userId);
     const gangInfo = gangs[gang];
-
-    let alertEmbed;
+    const alertEmbed = new EmbedBuilder().setTimestamp();
 
     if (success) {
       let stealPercent = 0.1 + Math.min(levelDiff * 0.02, 0.9);
-      let stolen = Math.floor(targetBalance * stealPercent);
-      let finalSteal = Math.min(stolen, targetBalance); // ✅ Prevent negative balance
+      let amount = Math.floor(targetBalance * stealPercent);
 
       if (targetInventory.has('vest')) {
-        finalSteal = Math.floor(finalSteal * 0.5);
-        await removeItem(target.id, message.guild.id, 'vest');
+        amount = Math.floor(amount * 0.5);
+        await removeItem(target.id, guildId, 'vest');
         message.channel.send(`🛡️ <@${target.id}> blocked some of the damage with a vest!`);
       }
 
       if (gangInfo?.bonus === "heist") {
-        const bonus = Math.floor(finalSteal * 0.15);
-        finalSteal += bonus;
+        const bonus = Math.floor(amount * 0.15);
+        amount += bonus;
         message.channel.send(`🎭 **Gang Bonus:** +$${bonus} from your heist thanks to ${gangInfo.name}.`);
       }
 
       await Promise.all([
-        removeCash(target.id, message.guild.id, finalSteal),
-        addCash(userId, message.guild.id, finalSteal)
+        removeCash(target.id, guildId, amount),
+        addCash(userId, guildId, amount)
       ]);
 
-      alertEmbed = new EmbedBuilder()
+      alertEmbed
         .setTitle("💸 Heist Successful!")
-        .setDescription(`<@${userId}> stole **$${finalSteal}** from <@${target.id}>.`)
+        .setDescription(`<@${userId}> stole **$${amount}** from <@${target.id}>.`)
         .setColor("#00ff88")
-        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
-        .setTimestamp();
+        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
 
-        // 🔁 Inside your `if (success)` block, right after alertEmbed creation but BEFORE sending it:
+      // Dog Theft Logic
+      const dogProfile = await getDogProfile(userId, guildId);
+      const targetDog = await getDogProfile(target.id, guildId);
+      if (dogProfile) {
+        const pow = dogProfile.stats?.POW || 0;
+        const itemCount = 1 + Math.floor(Math.random() * 3) + Math.floor(pow / 5);
 
-const dogProfile = await getDogProfile(userId, message.guild.id);
-const targetDog = await getDogProfile(target.id, message.guild.id);
-
-if (dogProfile) {
-  const powStat = dogProfile.stats?.POW || 0;
-  const dogLevel = dogProfile.level || 1;
-  const baseItems = 1 + Math.floor(Math.random() * 3); // 1–3 base
-  const bonusItems = Math.floor(powStat / 5); // +1 every 5 POW
-  const totalItemsToSteal = baseItems + bonusItems;
-
-  const failChance = 0.2 - Math.min(0.15, powStat * 0.01);
-  if (Math.random() < failChance) {
-    message.channel.send("🐶 Your dog barked but failed to steal anything.");
-  } else {
-    // ⚔️ Check for defender dog
-    let dogBlocked = false;
-    if (targetDog) {
-      const attackerLevel = dogProfile.level || 1;
-      const defenderLevel = targetDog.level || 1;
-      const defendChance = defenderLevel / (attackerLevel + defenderLevel);
-
-      if (Math.random() < defendChance) {
-        dogBlocked = true;
-
-        const defenderPic = targetDog.breed === 'pitbull' ? 'public/sharedphotos/pb__normal_attack_0.png'
-                        : targetDog.breed === 'shepherd' ? 'public/sharedphotos/gs__normal_attack_0.png'
-                        : 'public/sharedphotos/p__normal_attack_0.png';
-
-        const defEmbed = new EmbedBuilder()
-          .setTitle("🛡️ Guard Dog Defense!")
-          .setDescription(`<@${target.id}>'s dog scared off <@${userId}>'s dog before it could steal any items!`)
-          .setImage(defenderPic)
-          .setColor('#ff4444');
-
-        await message.channel.send({ embeds: [defEmbed] });
-      }
-    }
-
-    if (!dogBlocked) {
-      const victimItems = Array.from(targetInventory.entries()).filter(([id, qty]) => qty > 0);
-      const stolenItems = [];
-
-      for (let i = 0; i < totalItemsToSteal && victimItems.length > 0; i++) {
-        const randomIndex = Math.floor(Math.random() * victimItems.length);
-        const [itemId, qty] = victimItems[randomIndex];
-
-        await removeItem(target.id, message.guild.id, itemId, 1);
-        await addItem(userId, message.guild.id, itemId, 1);
-        stolenItems.push(itemId);
-
-        if (qty <= 1) {
-          victimItems.splice(randomIndex, 1);
+        if (Math.random() < (0.2 - Math.min(0.15, pow * 0.01))) {
+          message.channel.send("🐶 Your dog barked but failed to steal anything.");
+        } else if (targetDog && Math.random() < targetDog.level / (targetDog.level + dogProfile.level)) {
+          const defPic = `public/sharedphotos/${targetDog.breed[0]}__normal_attack_0.png`;
+          await message.channel.send({
+            embeds: [new EmbedBuilder()
+              .setTitle("🛡️ Guard Dog Defense!")
+              .setDescription(`<@${target.id}>'s dog scared off <@${userId}>'s dog!`)
+              .setImage(defPic)
+              .setColor("#ff4444")]
+          });
         } else {
-          victimItems[randomIndex][1]--;
+          const victimItems = Array.from(targetInventory.entries()).filter(([id, qty]) => qty > 0);
+          const stolenItems = [];
+
+          for (let i = 0; i < itemCount && victimItems.length; i++) {
+            const rand = Math.floor(Math.random() * victimItems.length);
+            const [itemId, qty] = victimItems[rand];
+            await removeItem(target.id, guildId, itemId, 1);
+            await addItem(userId, guildId, itemId, 1);
+            stolenItems.push(itemId);
+            if (qty <= 1) victimItems.splice(rand, 1);
+            else victimItems[rand][1]--;
+          }
+
+          if (stolenItems.length) {
+            const readable = stolenItems.map(id => {
+              const i = shopItems.find(x => x.id === id);
+              return i ? `${i.emoji || ''} ${i.name}` : id;
+            }).join(', ');
+
+            const dogPic = `public/sharedphotos/${dogProfile.breed[0]}__normal_attack_0.png`;
+            message.channel.send({
+              embeds: [new EmbedBuilder()
+                .setTitle('🐶 Dog Theft!')
+                .setDescription(`Your dog stole ${stolenItems.length} item(s): ${readable}`)
+                .setImage(dogPic)
+                .setColor('#ffaa00')]
+            });
+          }
         }
       }
 
-      if (stolenItems.length) {
-        const display = stolenItems.map(id => {
-          const item = shopItems.find(i => i.id === id);
-          return item ? `${item.emoji || ''} ${item.name}` : id;
-        }).join(', ');
-
-        const breedPic = dogProfile.breed === 'pitbull' ? 'public/sharedphotos/pb__normal_attack_0.png'
-                        : dogProfile.breed === 'shepherd' ? 'public/sharedphotos/gs__normal_attack_0.png'
-                        : 'public/sharedphotos/p__normal_attack_0.png';
-
-        const embed = new EmbedBuilder()
-          .setTitle('🐶 Dog Theft!')
-          .setDescription(`Your dog stole ${stolenItems.length} item(s): ${display}`)
-          .setImage(breedPic)
-          .setColor('#ffaa00');
-
-        message.channel.send({ embeds: [embed] });
-      }
-    }
-  }
-}
-
-
     } else {
-      const lost = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));
-      await removeCash(userId, message.guild.id, lost);
-
+      const loss = Math.floor(yourBalance * (Math.random() * 0.1 + 0.1));
+      await removeCash(userId, guildId, loss);
       if (gangInfo?.bonus === "bribe") {
-        const refund = Math.floor(lost * 0.25);
-        await addCash(userId, message.guild.id, refund);
+        const refund = Math.floor(loss * 0.25);
+        await addCash(userId, guildId, refund);
         message.channel.send(`💵 **Gang Bonus:** Recovered $${refund} with Syndicate bribe.`);
       }
 
-      alertEmbed = new EmbedBuilder()
+      alertEmbed
         .setTitle("🚨 Failed Robbery!")
-        .setDescription(`<@${userId}> got caught trying to rob <@${target.id}> and lost **$${lost}**.`)
+        .setDescription(`<@${userId}> got caught trying to rob <@${target.id}> and lost **$${loss}**.`)
         .setColor("#ff4444")
-        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true })
-        .setTimestamp();
+        .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
     }
 
+    // Finalize heat + fence
     heat.heat += success ? 10 : 5;
-    heat.lastActivity = now;
+    heat.lastActivity = Date.now();
 
-    if (gangInfo?.bonus.includes("Reduced Heat")) {
-      heat.heat = Math.max(0, Math.floor(heat.heat * 0.5));
+    if (gangInfo?.bonus?.includes("Reduced Heat")) {
+      heat.heat = Math.floor(heat.heat * 0.5);
     }
-
     heatMap.set(userId, heat);
 
     if (gangInfo) {
@@ -4971,12 +4953,13 @@ if (dogProfile) {
     message.channel.send({ embeds: [alertEmbed] });
 
     if (Math.random() < 0.4) {
-      spawnFenceDealer(client, message.author, message.guild.id);
+      spawnFenceDealer(client, message.author, guildId);
     }
 
-    stealCooldowns.set(userId, now + 5 * 60 * 1000);
+    stealCooldowns.set(userId, Date.now() + 5 * 60 * 1000);
   }
 });
+
 
 
 client.commands.set('crime', {

@@ -4815,14 +4815,13 @@ client.commands.set('steal', {
 
     if (!target) return message.reply("Tag someone to rob: `!steal @user`");
     if (target.id === userId) return message.reply("You can't rob yourself.");
-
     console.log(`[STEAL] Attempt: ${userId} → ${target.id}`);
 
     const targetHideout = hideoutMap.get(target.id);
     if (targetHideout && targetHideout > Date.now()) return message.reply("🧢 That user is hiding.");
 
     const playerHideout = hideoutMap.get(userId);
-    if (playerHideout && playerHideout > Date.now()) return message.reply("⛔ You cannot use `!steal` while hiding.");
+    if (playerHideout && playerHideout > Date.now()) return message.reply("⛔ You cannot use \`!steal\` while hiding.");
 
     const cooldown = stealCooldowns.get(userId) || 0;
     if (cooldown > Date.now()) return message.reply(`⏳ Cooldown: ${Math.ceil((cooldown - Date.now()) / 1000)}s`);
@@ -4847,7 +4846,6 @@ client.commands.set('steal', {
 
     if (targetBal < 100) return message.reply("They're too broke.");
 
-    // 💨 Smoke Bomb
     if (targetInv.has('smoke')) {
       const chance = theirLvl >= 15 ? 0 : theirLvl >= 12 ? 0.15 : theirLvl >= 9 ? 0.3 : theirLvl >= 6 ? 0.5 : 0.8;
       if (Math.random() < chance) {
@@ -4858,7 +4856,6 @@ client.commands.set('steal', {
       }
     }
 
-    // 🎯 Success chance
     let successRate = 0.5;
     if (isInPrison(target.id)) successRate = 0.95;
     else if (lvlDiff >= 15) successRate = 1;
@@ -4896,7 +4893,6 @@ client.commands.set('steal', {
         .setColor("#00ff88")
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
 
-      // 🐶 Dog Stealing
       const myDog = await getDogProfile(userId, guildId);
       const theirDog = await getDogProfile(target.id, guildId);
       if (myDog) {
@@ -4907,39 +4903,64 @@ client.commands.set('steal', {
         if (failed) {
           message.channel.send("🐶 Your dog barked but failed to steal anything.");
         } else if (theirDog && Math.random() < theirDog.level / (myDog.level + theirDog.level)) {
-const targetBreedKey = theirDog.breed === 'pitbull' ? 'pb' :
-                       theirDog.breed === 'shepherd' ? 'gs' :
-                       theirDog.breed === 'pomeranian' ? 'p' : 'default';
-const blockPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${targetBreedKey}__normal_attack_0.png`;
-
-          await message.channel.send({
+          const powLoss = Math.max(1, 10 + pow - (theirDog.stats?.DEF || 0));
+          myDog.hp -= powLoss;
+          await myDog.save();
+          const breedKey = theirDog.breed === 'pitbull' ? 'pb' : theirDog.breed === 'shepherd' ? 'gs' : 'p';
+          const blockPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__normal_attack_0.png`;
+          message.channel.send({
             embeds: [new EmbedBuilder()
               .setTitle("🛡️ Guard Dog Defense!")
-              .setDescription(`<@${target.id}>'s dog scared off <@${userId}>'s dog!`)
+              .setDescription(`<@${target.id}>'s dog scared off <@${userId}>'s dog! -${powLoss} HP`)
               .setImage(blockPic)
               .setColor("#ff4444")]
           });
+          if (myDog.hp <= 0) {
+            await DogProfile.deleteOne({ _id: myDog._id });
+            const deathPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__state_dead_0.png`;
+            message.channel.send({
+              embeds: [new EmbedBuilder()
+                .setTitle("💀 Your Dog Has Died")
+                .setDescription(`**${myDog.name}** was mortally wounded during the robbery.`)
+                .setImage(deathPic)
+                .setColor("#555555")]
+            });
+          }
         } else {
           const allItems = Array.from(targetInv.entries()).filter(([id, qty]) => qty > 0);
           const stolen = [];
-
           for (let i = 0; i < tries && allItems.length; i++) {
             const [itemId, qty] = allItems.splice(Math.floor(Math.random() * allItems.length), 1)[0];
             await removeItem(target.id, guildId, itemId, 1);
             await addItem(userId, guildId, itemId, 1);
             stolen.push(itemId);
           }
-
           if (stolen.length) {
+            const xp = 50 + (theirLvl * 2);
+            await Levels.appendXp(userId, guildId, xp);
             const itemDisplay = stolen.map(id => {
               const item = shopItems.find(x => x.id === id);
               return item ? `${item.emoji || ''} ${item.name}` : id;
             }).join(', ');
+            const breedKey = myDog.breed === 'pitbull' ? 'pb' : myDog.breed === 'shepherd' ? 'gs' : 'p';
+            const myDogPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__normal_attack_0.png`;
 
-const myBreedKey = myDog.breed === 'pitbull' ? 'pb' :
-                   myDog.breed === 'shepherd' ? 'gs' :
-                   myDog.breed === 'pomeranian' ? 'p' : 'default';
-const myDogPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${myBreedKey}__normal_attack_0.png`;
+            if (theirDog) {
+              const powLoss = Math.max(1, 10 + pow - (theirDog.stats?.DEF || 0));
+              theirDog.hp -= powLoss;
+              await theirDog.save();
+              if (theirDog.hp <= 0) {
+                await DogProfile.deleteOne({ _id: theirDog._id });
+                const deathPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__state_dead_0.png`;
+                message.channel.send({
+                  embeds: [new EmbedBuilder()
+                    .setTitle("☠️ The Defender's Dog Died")
+                    .setDescription(`**${theirDog.name}** was killed during the item theft.`)
+                    .setImage(deathPic)
+                    .setColor("#ff5555")]
+                });
+              }
+            }
 
             message.channel.send({
               embeds: [new EmbedBuilder()
@@ -4968,15 +4989,12 @@ const myDogPic = `https://raw.githubusercontent.com/martymods/discord-community-
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
     }
 
-    // Heat Tracking
     heat.heat += success ? 10 : 5;
     heat.lastActivity = Date.now();
-
     if (gangInfo?.bonus?.includes("Reduced Heat")) {
       heat.heat = Math.floor(heat.heat * 0.5);
     }
     heatMap.set(userId, heat);
-
     if (gangInfo) {
       embed.setAuthor({
         name: `${gangInfo.icon} ${gangInfo.name}`,
@@ -4993,7 +5011,6 @@ const myDogPic = `https://raw.githubusercontent.com/martymods/discord-community-
     stealCooldowns.set(userId, Date.now() + 5 * 60 * 1000);
   }
 });
-
 
 client.commands.set('crime', {
   async execute(message) {

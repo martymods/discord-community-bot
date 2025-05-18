@@ -1035,6 +1035,55 @@ Every signup who joins Discord counts as a referral — tracked automatically.
       \`!use skull\` — Reduce cooldowns
       `)
         .setColor('#ff0055'),
+
+        new EmbedBuilder()
+  .setTitle('💸 Player Stealing & Dog Theft')
+  .setDescription(`
+Become a street legend by **robbing real players** for their money and items.
+
+📦 **Command**
+\`!steal @user\` — Attempt a real-time robbery  
+- Success chance increases if you're higher level  
+- Fails if target is hiding in a \`!hideout\`  
+- Target can block you with **smoke bombs**, **vests**, or a **guard dog**
+
+🐕 **Guard Dog Defense**
+- If they own a dog, it may **block** or **fight off** your robbery  
+- You’ll see a custom image of their dog if it defends
+
+🐶 **Your Dog Helps Too**
+- If you own a dog, it tries to steal extra items after your robbery  
+- Success depends on your dog’s **POW stat**  
+- The more **POW**, the more loot it brings back  
+- You’ll see a **custom image of your dog** in action
+
+🔥 **Gang Perks**
+- If you're in a gang with **Heist**, **Bribe**, or **Whisper** bonuses, you'll get:
+  - **Extra cash on successful steal**
+  - **Partial refund if you fail**
+  - **Reduced heat** for staying under the radar
+
+🎯 **Robbery Stats That Matter**
+- **DEX**: Avoid getting robbed  
+- **DEF**: Block damage or reduce stolen cash  
+- **POW (Dog)**: More items stolen  
+- **SYNC (Dog)**: Bonus XP when defending or attacking
+
+🚨 **Heat Warning**
+- Each robbery raises your **heat level**  
+- Higher heat = more chance of **random police raids**
+- Track your heat using XP tools and cooldown effects
+
+🧠 **Tips**
+- Rob poor players less (they’re not worth the risk)  
+- Stack vests and smoke bombs for safety  
+- Dogs level up by surviving steals  
+- If your dog defends 3x = LEVEL UP!
+
+`)
+  .setFooter({ text: 'True hustlers use dogs, gangs, and stats to rob smarter.' })
+  .setColor('#ffcc00'),
+
       
         new EmbedBuilder()
         .setTitle('🧥 Fashion System')

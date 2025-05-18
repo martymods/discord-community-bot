@@ -102,9 +102,7 @@ const newReferralRoute = require('./api/newReferral'); // ✅ this line
 const path = require('path');
 const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
-const { getDogProfile } = require('./events/npc/defense/dogSystem');
-
-
+const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 
 
 global.bountyMap = global.bountyMap || new Map();
@@ -4761,6 +4759,7 @@ const stealCooldown = new Set();
 const { isInPrison, disabledWhileInPrison } = require('./economy/prisonSystem');
 
 
+
 client.commands.set('steal', {
   async execute(message) {
     const target = message.mentions.users.first();
@@ -4772,7 +4771,6 @@ client.commands.set('steal', {
 
     console.log(`[STEAL] Attempt: ${userId} → ${target.id}`);
 
-    // Hideout Checks
     const targetHideout = hideoutMap.get(target.id);
     if (targetHideout && targetHideout > Date.now()) {
       console.log(`[STEAL] Target is hiding.`);
@@ -4818,7 +4816,6 @@ client.commands.set('steal', {
       return message.reply("They're too broke.");
     }
 
-    // Smoke bomb
     if (targetInventory.has('smoke')) {
       const chance = targetLevel >= 15 ? 0 : targetLevel >= 12 ? 0.15 : targetLevel >= 9 ? 0.3 : targetLevel >= 6 ? 0.5 : 0.8;
       if (Math.random() < chance) {
@@ -4830,7 +4827,6 @@ client.commands.set('steal', {
       }
     }
 
-    // Success check
     let successRate = 0.5;
     if (isInPrison(target.id)) successRate = 0.95;
     else if (levelDiff >= 15) successRate = 1;
@@ -4868,7 +4864,6 @@ client.commands.set('steal', {
         .setColor("#00ff88")
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
 
-      // Dog Theft Logic
       const dogProfile = await getDogProfile(userId, guildId);
       const targetDog = await getDogProfile(target.id, guildId);
       if (dogProfile) {
@@ -4934,10 +4929,8 @@ client.commands.set('steal', {
         .addFields({ name: "🔥 Heat Level", value: getHeatRank(heat.heat), inline: true });
     }
 
-    // Finalize heat + fence
     heat.heat += success ? 10 : 5;
     heat.lastActivity = Date.now();
-
     if (gangInfo?.bonus?.includes("Reduced Heat")) {
       heat.heat = Math.floor(heat.heat * 0.5);
     }
@@ -4959,7 +4952,6 @@ client.commands.set('steal', {
     stealCooldowns.set(userId, Date.now() + 5 * 60 * 1000);
   }
 });
-
 
 
 client.commands.set('crime', {

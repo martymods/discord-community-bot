@@ -4917,7 +4917,12 @@ client.commands.set('steal', {
           });
           if (myDog.hp <= 0) {
             await DogProfile.deleteOne({ _id: myDog._id });
-            const deathPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${breedKey}__state_dead_0.png`;
+            const myDeathKey = myDog.breed === 'pitbull' ? 'pb' :
+                   myDog.breed === 'shepherd' ? 'gs' :
+                   myDog.breed === 'pomeranian' ? 'p' : 'default';
+
+const deathPic = `https://raw.githubusercontent.com/martymods/discord-community-bot/main/public/sharedphotos/${myDeathKey}__state_dead_0.png`;
+
             message.channel.send({
               embeds: [new EmbedBuilder()
                 .setTitle("💀 Your Dog Has Died")

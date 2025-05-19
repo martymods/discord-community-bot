@@ -7,7 +7,9 @@ const currencySchema = new mongoose.Schema({
   lastDaily: { type: Date, default: null },
   streak: { type: Number, default: 0 },
   gang: { type: String, default: null },
-  username: { type: String, default: '' } // ✅ Add this line
+  username: { type: String, default: '' },
+  crimeTier: { type: Number, default: 1 },              // ✅ NEW
+  crimesCompleted: { type: Number, default: 0 }         // ✅ NEW
 });
 
 const Currency = mongoose.model('Currency', currencySchema);
@@ -41,3 +43,4 @@ module.exports = {
     return user.cash;
   }
 };
+

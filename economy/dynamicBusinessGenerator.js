@@ -48,7 +48,7 @@ async function generateDynamicProperties() {
 
   for (let i = 0; i < 93; i++) {
     const biz = businessTypes[Math.floor(Math.random() * businessTypes.length)];
-    const dynamicPrice = Math.floor(biz.base * (0.9 + Math.random() * 0.2)); // ✅ adds variety
+    const dynamicPrice = Math.floor(biz.base * (0.9 + Math.random() * 0.2));
     const stashBonus = Math.floor(dynamicPrice / 1e7) + 1;
     const tier = getRandomTier(dynamicPrice);
     const prop = new Property({
@@ -70,7 +70,6 @@ async function generateDynamicProperties() {
   console.log(`✅ Generated ${newProps.length} dynamic properties.`);
 }
 
-
 function assignEventType(bizType) {
   const events = {
     'Casino': 'heist',
@@ -89,3 +88,13 @@ function assignEventType(bizType) {
 }
 
 module.exports = { generateDynamicProperties };
+
+// 🎯 Business Lurk Drop (to be used in !lurk command)
+async function getRandomBusinessForLurk() {
+  const Property = require('./propertyModel');
+  const options = await Property.find({ ownerId: null });
+  if (!options.length) return null;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+module.exports.getRandomBusinessForLurk = getRandomBusinessForLurk;

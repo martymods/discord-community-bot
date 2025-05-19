@@ -1209,18 +1209,48 @@ Gang Bonuses:
         `)
         .setColor('#ff7722'),
 
-        new EmbedBuilder()
-        .setTitle('🏠 Real Estate System')
-        .setDescription(`
-      \`!listproperties\` — Browse properties with buy buttons  
-      \`!buyproperty <id>\` — Manual purchase option  
-      \`!myproperties\` — View owned homes  
-      \`!sellproperty\` — Sell via buttons  
-      \`!landlords\` — Top property owners  
-      
-      🏚️ Properties grant stash bonuses + passive income from hideouts.
-      `)
-        .setColor('#00cc88'),
+new EmbedBuilder()
+  .setTitle('🏠 Real Estate & Business System')
+  .setDescription(`
+Build wealth by owning **businesses** and **properties**.
+
+🏢 \`!listbusinesses\` — Browse unowned businesses with buy buttons  
+🏠 \`!listproperties\` — View real estate listings  
+📬 \`!myproperties\` — See all you own  
+💸 \`!sellproperty\` — Sell a business or home  
+👑 \`!landlords\` — Top business moguls
+
+🧠 **Business Income System**  
+Every day, you automatically earn **passive income** from your businesses:
+• Tier F — $10,000/day  
+• Tier E — $25,000/day  
+• Tier D — $50,000/day  
+• Tier C — $100,000/day  
+• Tier B — $250,000/day  
+• Tier A — $500,000/day  
+• Tier S — $1,000,000/day  
+
+📦 **Stash Bonus**  
+Every business adds **stash space** so you can hold more inventory.  
+
+🎲 **Event Types**  
+Businesses sometimes include a **special event bonus**, like:  
+• 💣 Heist — Launches missions  
+• 🎬 Viral TikTok — Doubles income  
+• 🌟 Celebrity Visit — 5x profits  
+• 📈 IPO — Tech stock boom  
+• 💧 Oil Spill — Risk of penalty  
+> Events trigger randomly and spice up payouts!
+
+🧭 **How to Buy**  
+Use \`!listbusinesses\` and navigate with buttons  
+→ Press **Buy** to purchase instantly
+
+💰 Tip: The earlier you buy, the more daily income you collect. Stacking businesses = stacking cash!
+  `)
+  .setFooter({ text: 'Passive money never sleeps. Start building your empire.' })
+  .setColor('#00cc88'),
+
       
         new EmbedBuilder()
   .setTitle('💼 Jobs & Promotions')

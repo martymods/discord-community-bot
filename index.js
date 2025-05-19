@@ -105,6 +105,7 @@ const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
 const runAutoBusinessPayout = require('./task/autoBusinessIncome');
+const updateBusinessPricesDaily = require('./tasks/updateBusinessPrices');
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -8132,6 +8133,10 @@ setInterval(() => {
     if (end <= now) hideoutMap.delete(id);
   }
 }, 60 * 1000);
+
+setInterval(() => {
+  updateBusinessPricesDaily();
+}, 20 * 60 * 1000); // Rotate every 20 minutes
 
 setInterval(() => {
   const now = Date.now();

@@ -105,7 +105,8 @@ const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
 const runAutoBusinessPayout = require('./task/autoBusinessIncome');
-const updateBusinessPricesDaily = require('./tasks/updateBusinessPrices');
+const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
+
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here

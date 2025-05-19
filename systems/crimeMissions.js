@@ -96,6 +96,13 @@ if (isRisk) {
     embed.setDescription(`✅ You pulled off the **${mission}**!\nYou gained **$${Math.floor(baseReward)}** + **${Math.floor(xpReward)} XP**.`)
          .setColor('#00ff88');
 
+         if (bonus > 0) {
+  embed.addFields({
+    name: '👥 Gang Support Bonus',
+    value: `Your gang increased your success chance by **+${(bonus * 100).toFixed(1)}%**`
+  });
+}
+
     if (Math.random() < itemDropChance) {
       const drop = items[Math.floor(Math.random() * items.length)];
       await addItemToInventory(interaction.user.id, interaction.guild.id, drop.name, 1);

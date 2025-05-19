@@ -5685,66 +5685,6 @@ client.commands.set('heat', {
   }
 });
 
-
-// Gang definitions
-const gangs = {
-  voodoo: {
-    name: "On Point Gang",
-    icon: "👓",
-    bonus: "+1m cooldown to robbery attempts against you",
-    color: "#aa00ff" // purple
-  },
-  blitz: {
-    name: "Blitz Mode",
-    icon: "🚬",
-    bonus: "+15% XP and +10% cash from challenges",
-    color: "#ff2200" // red-orange
-  },
-  killers: {
-    name: "Red Box Service",
-    icon: "⚰🩸",
-    bonus: "+25% real player steal damage",
-    color: "#cc0000" // deep red
-  },
-  bribe: {
-    name: "Blue Fence",
-    icon: "🙅‍♂️💵",
-    bonus: "+10% item profit",
-    color: "#55cc55" // money green
-  },
-  whisper: {
-    name: "Digital Wipe",
-    icon: "👨‍💻🧢",
-    bonus: "-50% heat gain",
-    color: "#339999" // stealth teal
-  },
-  challenge: {
-    name: "Golden Chicken",
-    icon: "🏆",
-    bonus: "Duel Bonus Payouts",
-    color: "#ffaa00" // gold
-  },
-  bounty: {
-    name: "Catching Rank",
-    icon: "💣",
-    bonus: "Bonus Bounty Rewards",
-    color: "#ff6600" // fiery orange
-  },
-  heist: {
-    name: "Lost and Found",
-    icon: "👅",
-    bonus: "Steal Bonus Payouts",
-    color: "#888888" // gray
-  },
-  syndicate: {
-    name: "Diamond House",
-    icon: "💎🏠",
-    bonus: "Item Sale Bonus",
-    color: "#00aa99" // turquoise
-  }
-};
-
-
 // == !joingang Command ==
 client.commands.set("joingang", {
   async execute(message, args) {

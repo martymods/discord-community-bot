@@ -6,6 +6,7 @@ const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
 const hideoutMap = new Map(); // userId → timestamp when hideout expires
+const hideoutFreeCooldownMap = new Map();
 const crimeStreaks = new Map(); // userId → { success: n, fail: n }
 const heatMap = new Map(); // userId → { heat: 0–100, lastActivity: timestamp }
 const pvpTasks = new Map(); // userId => { crimes: 0, lastReset: Date }
@@ -5254,8 +5255,9 @@ client.commands.set('hideout', {
     const now = Date.now();
 
     const protectionCost = 2500;
-    const freeDuration = 10 * 60 * 1000; // 10 mins
+    const freeDuration = 10 * 60 * 1000; // 10 minutes
     const paidDuration = 60 * 60 * 1000; // 1 hour
+    const freeCooldown = 60 * 60 * 1000; // 1 hour cooldown on free use
 
     const { getBalance, removeCash, addCash } = require('./economy/currency');
     const DealerProfile = require('./economy/dealerProfileModel');
@@ -5265,9 +5267,16 @@ client.commands.set('hideout', {
     let current = hideoutMap.get(userId);
     let isFirstUse = !current || current < now;
 
-    // 🧮 First-time use: grant free 10 minutes
+    // 🔒 Check cooldown on free usage
+    const lastFreeUse = hideoutFreeCooldownMap.get(userId) || 0;
+    const canUseFree = now - lastFreeUse >= freeCooldown;
+
     if (isFirstUse) {
+      if (!canUseFree) {
+        return message.reply("⏳ You can only use the **free 10-minute hideout** once every hour. Try again later or pay $2500 to extend.");
+      }
       current = now + freeDuration;
+      hideoutFreeCooldownMap.set(userId, now);
     } else {
       if (balance < protectionCost) {
         return message.reply(`💸 You need $${protectionCost} to extend your hideout time.`);
@@ -5284,7 +5293,7 @@ client.commands.set('hideout', {
     heat.lastActivity = now;
     heatMap.set(userId, heat);
 
-    // 🏠 Distribute property passive income
+    // 🏠 Distribute passive income
     const ownerProps = await Property.find({ ownerId: { $ne: null } });
     for (const prop of ownerProps) {
       const payout = isFirstUse ? 500 : 1800;
@@ -5335,7 +5344,6 @@ client.commands.set('hideout', {
     message.channel.send({ embeds: [embed], components: [buttons] });
   }
 });
-
 
 client.commands.set('use', {
   async execute(message, args) {

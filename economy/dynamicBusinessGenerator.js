@@ -43,20 +43,20 @@ async function generateDynamicProperties() {
   const newProps = [];
 
   for (let i = 0; i < 93; i++) {
-    const type = businessTypes[Math.floor(Math.random() * businessTypes.length)];
-    const dynamicPrice = Math.floor(type.base * (0.9 + Math.random() * 0.2));
+    const biz = businessTypes[Math.floor(Math.random() * businessTypes.length)];
+    const dynamicPrice = Math.floor(biz.base * (0.9 + Math.random() * 0.2));
     const stashBonus = Math.floor(dynamicPrice / 1e7) + 1;
     const tier = getRandomTier(dynamicPrice);
     const prop = new Property({
       id: `biz_${idCount}`,
-      area: getRandomArea(),
-      type: type.type,
+      type: biz.type,
       price: dynamicPrice,
       stashBonus,
       tier,
+      area: getRandomArea(),
       ownerId: null,
       purchaseDate: null,
-      eventType: assignEventType(type.type) // 🎉 New: assign event type
+      eventType: assignEventType(biz.type) // 🎉 New: assign event type
     });
     newProps.push(prop);
     idCount++;

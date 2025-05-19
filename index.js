@@ -104,6 +104,7 @@ const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
+const runAutoBusinessPayout = require('./tasks/autoBusinessIncome');
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -8152,7 +8153,12 @@ setInterval(() => {
   // Every 15 minutes peeny
 setInterval(() => checkForPriceSpikes(client), 15 * 60 * 1000);
 
+setInterval(() => {
+  runAutoBusinessPayout(client);
+}, 1000 * 60 * 60 * 24); // Every 24 hours
+
 startMatchVerificationInterval(300000); // every 5 mins
+
 
 
 app.use('/api/newReferral', newReferralRoute); // ✅ this line

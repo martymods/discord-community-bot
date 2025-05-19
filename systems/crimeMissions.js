@@ -18,10 +18,10 @@ function generateCrimeMission() {
   return `${prefix} ${type} ${suffix}`;
 }
 
-async function runCrime(channel, user, level, guildId) {
+async function runCrime(channel, user, level, guildId, multiplier = 1) {
   const mission = generateCrimeMission();
-  const baseReward = 100 + Math.floor(Math.random() * 100) + level * 20;
-  const xpReward = 15 + Math.floor(Math.random() * 10) + level * 2;
+  const baseReward = (100 + Math.floor(Math.random() * 100) + level * 20) * multiplier;
+  const xpReward = (15 + Math.floor(Math.random() * 10) + level * 2) * multiplier;
   const failPenalty = Math.floor(baseReward / 2);
   const itemDropChance = 0.1 + level * 0.005;
 
@@ -31,6 +31,13 @@ async function runCrime(channel, user, level, guildId) {
     .setColor('#d4af37')
     .setFooter({ text: `Urban Crime Network | Level ${level}` })
     .setTimestamp();
+
+  if (multiplier > 1) {
+    embed.addFields({
+      name: '📈 Gang Bonus',
+      value: `Your gang network increased your payout by **${Math.round((multiplier - 1) * 100)}%**.`
+    });
+  }
 
   const buttons = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -54,7 +61,6 @@ async function runCrime(channel, user, level, guildId) {
   };
 }
 
-
 async function resolveCrimeOutcome(customId, interaction, userData) {
   const isRisk = customId.startsWith('crime_risk');
   const { mission, baseReward, xpReward, failPenalty, itemDropChance } = userData;
@@ -67,7 +73,7 @@ async function resolveCrimeOutcome(customId, interaction, userData) {
     await addCash(interaction.user.id, interaction.guild.id, baseReward);
     await Levels.appendXp(interaction.user.id, interaction.guild.id, xpReward);
 
-    embed.setDescription(`✅ You pulled off the **${mission}**!\nYou gained **$${baseReward}** + **${xpReward} XP**.`)
+    embed.setDescription(`✅ You pulled off the **${mission}**!\nYou gained **$${Math.floor(baseReward)}** + **${Math.floor(xpReward)} XP**.`)
          .setColor('#00ff88');
 
     if (Math.random() < itemDropChance) {

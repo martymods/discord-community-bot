@@ -1,5 +1,6 @@
 // systems/crimeTierSystem.js
-const Currency = require('../economy/currency');
+const { Currency } = require('../economy/currency');
+
 
 const tiers = {
   1: {

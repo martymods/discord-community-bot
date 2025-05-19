@@ -1,25 +1,27 @@
 // systems/crimeMissions.js
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { addCash, removeCash } = require('../economy/currency');
+const { addCash, removeCash, Currency } = require('../economy/currency');
 const Levels = require('../economy/xpRewards');
 const { getInventory, addItemToInventory } = require('../economy/inventory');
 const items = require('../economy/items');
+const { getAvailableCrimes, getTierData, getTierProgressBar, incrementCrimeProgress } = require('./crimeTierSystem');
 
 // Modular Prefixes + Suffixes
 const crimePrefixes = ['Silent', 'Back-alley', 'Messy', 'Covert', 'Brazen', 'Late-night', 'Crowded'];
-const crimeTypes = ['Package Theft', 'Phone Scam', 'Crypto Rugpull', 'Corner Store Robbery', 'Art Gallery Heist', 'ATM Hack'];
 const crimeSuffixes = ['on Main Street', 'during a parade', 'while cops ate', 'at the port', 'after curfew', 'under drone surveillance'];
 
-function generateCrimeMission() {
+function generateCrimeMission(type) {
   const prefix = crimePrefixes[Math.floor(Math.random() * crimePrefixes.length)];
-  const type = crimeTypes[Math.floor(Math.random() * crimeTypes.length)];
   const suffix = crimeSuffixes[Math.floor(Math.random() * crimeSuffixes.length)];
   return `${prefix} ${type} ${suffix}`;
 }
 
 async function runCrime(channel, user, level, guildId, multiplier = 1) {
-  const mission = generateCrimeMission();
+  const crimes = await getAvailableCrimes(user.id, guildId);
+  const type = crimes[Math.floor(Math.random() * crimes.length)];
+  const mission = generateCrimeMission(type);
+
   const baseReward = (100 + Math.floor(Math.random() * 100) + level * 20) * multiplier;
   const xpReward = (15 + Math.floor(Math.random() * 10) + level * 2) * multiplier;
   const failPenalty = Math.floor(baseReward / 2);
@@ -80,6 +82,17 @@ async function resolveCrimeOutcome(customId, interaction, userData) {
       const drop = items[Math.floor(Math.random() * items.length)];
       await addItemToInventory(interaction.user.id, interaction.guild.id, drop.name, 1);
       embed.addFields({ name: '🎁 You Found Something!', value: `**${drop.name}** was added to your inventory.` });
+    }
+
+    // ✅ Tier Progression
+    await incrementCrimeProgress(interaction.user.id, interaction.guild.id);
+    const profile = await Currency.findOne({ userId: interaction.user.id, guildId: interaction.guild.id });
+    const tierData = getTierData(profile.crimeTier + 1);
+    if (tierData) {
+      embed.addFields({
+        name: '🧱 Tier Progress',
+        value: getTierProgressBar(profile.crimesCompleted, tierData.crimesRequired)
+      });
     }
 
   } else {

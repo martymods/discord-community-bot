@@ -1041,6 +1041,48 @@ Every signup who joins Discord counts as a referral — tracked automatically.
         .setColor('#ff0055'),
 
         new EmbedBuilder()
+  .setTitle('🔫 Crime Missions & Payout Scaling')
+  .setDescription(`
+Commit risky heists to level up, earn XP, and get rich — or lose it all.
+
+📦 **Command**
+\`!crime\` — Launch a randomized mission with two options:
+- 💣 **Risk It** — Bigger rewards, lower success chance
+- 😎 **Lay Low** — Safer reward, but lower payout
+
+📈 **Payout & XP Scaling**
+- Your **level** increases base reward
+- Your **gang size** increases payout multiplier (up to **10x**)
+> Being in a gang means more backup = more profit
+
+🎁 **Loot Drops**
+- Every mission has a small chance to drop bonus items  
+- Items are added directly to your stash  
+
+📊 **Gang Bonuses**
+- Gang members earn more:  
+  - More members = higher multiplier  
+  - Bonuses display on mission start  
+- Example: 6 gang members = **+30% payout**
+
+🔥 **Optional Upgrades**
+- [Coming Soon] Crimes raise your **heat level**  
+  - High heat may lead to random **police raids** or forced prison  
+  - Use \`!hideout\` or items like **disguise** to reduce heat  
+
+🧠 **Strategy Tips**
+- Higher level = higher reward  
+- Gangs multiply your gains  
+- Risk It = ~60% success chance  
+- Lay Low = ~90% success chance  
+- XP helps you unlock more systems (stealing, bounty, duels, etc.)
+
+`)
+  .setFooter({ text: 'Heists scale with level and power. Recruit gang members to multiply payouts.' })
+  .setColor('#d40000'),
+
+
+        new EmbedBuilder()
   .setTitle('💸 Player Stealing & Dog Theft')
   .setDescription(`
 Become a street legend by **robbing real players** for their money and items.

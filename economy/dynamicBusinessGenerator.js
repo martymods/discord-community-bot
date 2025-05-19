@@ -37,14 +37,18 @@ function getRandomTier(price) {
 }
 
 async function generateDynamicProperties() {
-  await Property.deleteMany({});
+  const existing = await Property.find({});
+  if (existing.length > 0) {
+    console.log(`⚠️ Skipped generation — ${existing.length} properties already exist.`);
+    return;
+  }
 
   let idCount = 1;
   const newProps = [];
 
   for (let i = 0; i < 93; i++) {
     const biz = businessTypes[Math.floor(Math.random() * businessTypes.length)];
-    const dynamicPrice = Math.floor(biz.base * (0.9 + Math.random() * 0.2));
+    const dynamicPrice = Math.floor(biz.base * (0.9 + Math.random() * 0.2)); // ✅ adds variety
     const stashBonus = Math.floor(dynamicPrice / 1e7) + 1;
     const tier = getRandomTier(dynamicPrice);
     const prop = new Property({
@@ -56,15 +60,16 @@ async function generateDynamicProperties() {
       area: getRandomArea(),
       ownerId: null,
       purchaseDate: null,
-      eventType: assignEventType(biz.type) // 🎉 New: assign event type
+      eventType: assignEventType(biz.type)
     });
     newProps.push(prop);
     idCount++;
   }
 
   await Property.insertMany(newProps);
-  console.log(`✅ Generated ${newProps.length} properties.`);
+  console.log(`✅ Generated ${newProps.length} dynamic properties.`);
 }
+
 
 function assignEventType(bizType) {
   const events = {

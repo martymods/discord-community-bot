@@ -67,7 +67,25 @@ async function resolveCrimeOutcome(customId, interaction, userData) {
   const isRisk = customId.startsWith('crime_risk');
   const { mission, baseReward, xpReward, failPenalty, itemDropChance } = userData;
 
-  const successChance = isRisk ? 0.6 : 0.9;
+let successChance;
+if (isRisk) {
+  // 📈 Gang-based success boost
+  const { getGangMembers } = require('../commands/gangs'); // Adjust if needed
+  const Currency = require('../economy/currency').Currency;
+  const profile = await Currency.findOne({ userId: interaction.user.id, guildId: interaction.guild.id });
+  const gangKey = profile?.gang;
+  let bonus = 0;
+
+  if (gangKey) {
+    const members = await getGangMembers(gangKey, interaction.guild.id);
+    bonus = Math.min(members.length - 1, 49) * 0.008; // Max +0.392 (≈39.2%)
+  }
+
+  successChance = 0.6 + bonus; // Max 0.992
+} else {
+  successChance = 0.9;
+}
+
   const success = Math.random() < successChance;
   const embed = new EmbedBuilder().setTitle(success ? '💸 Mission Success!' : '🚨 You Got Caught!').setTimestamp();
 

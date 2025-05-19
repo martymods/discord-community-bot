@@ -107,7 +107,7 @@ const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
 const runAutoBusinessPayout = require('./task/autoBusinessIncome');
 const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
-
+const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -3435,7 +3435,7 @@ if (interaction.isButton() && interaction.customId.startsWith('gang_')) {
   let index = parseInt(oldIndexStr);
 
   // ✅ Import from module once, cleanly
-  const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
+
   const gangArray = Object.entries(gangs);
 
   // 🔄 Calculate new index
@@ -5130,11 +5130,14 @@ await message.channel.send({
 client.commands.set('crime', {
   async execute(message) {
     const userId = message.author.id;
+    const guildId = message.guild.id;
+
     // ⛔ Prevent using while hiding
-const playerHideout = hideoutMap.get(userId);
-if (playerHideout && playerHideout > Date.now()) {
-  return message.reply("⛔ You cannot use `!crime` while hiding in a hideout.");
-}
+    const playerHideout = hideoutMap.get(userId);
+    if (playerHideout && playerHideout > Date.now()) {
+      return message.reply("⛔ You cannot use `!crime` while hiding in a hideout.");
+    }
+
     const now = Date.now();
     const cooldown = stealCooldowns.get(userId) || 0;
     const timeLeft = cooldown - now;
@@ -5148,16 +5151,31 @@ if (playerHideout && playerHideout > Date.now()) {
       return message.reply({ embeds: [embed] });
     }
 
-    const userLevel = await Levels.fetchLevel(userId, message.guild.id) || 1;
+    const userLevel = await Levels.fetchLevel(userId, guildId) || 1;
+
+    // 🔍 Get user’s gang and member count
+    const userData = await Currency.findOne({ userId, guildId });
+    const gangId = userData?.gang;
+    let payoutMultiplier = 1;
+
+    if (gangId && gangs[gangId]) {
+      const gangMembers = await getGangMembers(gangId, guildId);
+      payoutMultiplier = 1 + Math.min(gangMembers.length * 0.05, 10); // Cap at 10x
+    }
 
     // ✅ Send crime mission to the channel
-    const missionData = await runCrime(message.channel, message.author, userLevel, message.guild.id);
-    activeCrimeData.set(userId, missionData);
+    const missionData = await runCrime(
+      message.channel,
+      message.author,
+      userLevel,
+      guildId,
+      payoutMultiplier
+    );
 
+    activeCrimeData.set(userId, missionData);
     stealCooldowns.set(userId, now + 10 * 60 * 1000);
   }
 });
-
 
 client.commands.set('wanted', {
   execute(message, args) {

@@ -104,7 +104,6 @@ const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
-client.commands.set('listbusinesses', require('./commands/listbusinesses'));
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -8076,6 +8075,7 @@ client.commands.set('2kprofile', require('./commands/2kprofile'));
 client.commands.set('2kleaderboard', require('./commands/2kleaderboard'));
 client.commands.set('unlinkpsn', require('./commands/unlinkpsn'));
 client.commands.set('2kpool', require('./commands/2kpool'));
+client.commands.set('listbusinesses', require('./commands/listbusinesses'));
 
 
 

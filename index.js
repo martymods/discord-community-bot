@@ -104,6 +104,7 @@ const { resolveMatch } = require('./systems/matchManager');
 const { startMatchVerificationInterval } = require('./cron/matchVerifier');
 const { getDog: getDogProfile } = require('./events/npc/defense/dogSystem');
 const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
+client.commands.set('listbusinesses', require('./commands/listbusinesses'));
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -3155,6 +3156,74 @@ client.on('interactionCreate', async interaction => {
 
     const { customId, user, message } = interaction;
     const userId = user.id;
+
+// 🏢 Handle Business Purchase Button
+if (interaction.isButton() && interaction.customId.startsWith('buy_business_')) {
+  const Property = require('./economy/propertyModel');
+  const DealerProfile = require('./economy/dealerProfileModel');
+  const { getBalance, removeCash } = require('./economy/currency');
+  const { EmbedBuilder } = require('discord.js');
+
+  const userId = interaction.user.id;
+  const guildId = interaction.guildId;
+  const propId = interaction.customId.replace('buy_business_', '');
+
+  const business = await Property.findOne({ id: propId });
+  if (!business) return interaction.reply({ content: '❌ Business not found.', ephemeral: true });
+  if (business.ownerId) return interaction.reply({ content: '🚫 This business is already owned.', ephemeral: true });
+
+  const balance = await getBalance(userId, guildId);
+  if (balance < business.price) {
+    return interaction.reply({ content: `💸 You need $${business.price.toLocaleString()} to buy this business.`, ephemeral: true });
+  }
+
+  await removeCash(userId, guildId, business.price);
+  business.ownerId = userId;
+  business.purchaseDate = new Date();
+  await business.save();
+
+  let profile = await DealerProfile.findOne({ userId, guildId });
+  if (!profile) {
+    profile = await DealerProfile.create({ userId, guildId, stashCap: 30 });
+  }
+
+  profile.stashCap += business.stashBonus;
+  await profile.save();
+
+  const eventMsg = getBusinessEventEffect(business.eventType);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`✅ Business Acquired: ${business.type}`)
+    .setDescription(`🏷️ Tier: **${business.tier}**
+📍 Location: **${business.area}**
+💰 Paid: **$${business.price.toLocaleString()}**
+📦 +${business.stashBonus} Stash Cap
+
+${eventMsg}`)
+    .setColor('#00cc66')
+    .setFooter({ text: `Owned by ${interaction.user.username}` });
+
+  await interaction.reply({ embeds: [embed], ephemeral: true });
+
+  function getBusinessEventEffect(eventType) {
+    const events = {
+      heist: "💣 Security Notice: This location may trigger a future **Casino Heist** mission.",
+      ipo: "📈 Early IPO access unlocked. Expect share fluctuations.",
+      robbery: "🔫 Increased heat. This bank might get targeted soon.",
+      rent_spike: "📊 Passive income from apartments raised 20%.",
+      viral_tiktok: "🎬 Viral ad boost! This shop starts with double income.",
+      gaming_night: "🕹️ Tournaments active. XP gain from missions increased.",
+      investigation: "🛰️ Government scrutiny expected. Be cautious.",
+      leak_risk: "💧 Risk of environmental disaster. Might disable passive income.",
+      celebrity_visit: "🌟 Tourist surge expected. Daily profit x5 for 1 day.",
+      premiere_bonanza: "🎥 Premiere ready. Revenue spike this week!",
+      clearance_sale: "💵 Clearance mode: Extra sales but +5 heat."
+    };
+
+    return events[eventType] || "— No special event triggered.";
+  }
+}
+
     
     // NBA BETTING BTTONS
     if (interaction.isButton() && interaction.customId.startsWith('nbabet_')) {

@@ -2370,13 +2370,29 @@ client.commands.set('topxp', {
 client.commands.set('richest', {
   async execute(message) {
     try {
+      const Currency = require('../economy/currency');
+      const Property = require('../economy/propertyModel');
+      const Business = require('../economy/businessModel'); // ✅ ADD this line if not imported
+
       const currencyList = await Currency.find({ guildId: message.guild.id });
 
       const netWorthList = await Promise.all(currencyList.map(async (entry) => {
-        const userProperties = await Property.find({ ownerId: entry.userId }); // ✅ Use ownerId
-        const propertyValue = userProperties.reduce((acc, prop) => acc + (prop.price || 0), 0); // ✅ Use price
-        const totalValue = entry.cash + propertyValue;
-        return { ...entry.toObject(), totalValue, propertyValue };
+        const userId = entry.userId;
+
+        const userProperties = await Property.find({ ownerId: userId });
+        const propertyValue = userProperties.reduce((acc, p) => acc + (p.price || 0), 0);
+
+        const userBusinesses = await Business.find({ ownerId: userId });
+        const businessValue = userBusinesses.reduce((acc, b) => acc + (b.price || 0), 0);
+
+        const totalValue = entry.cash + propertyValue + businessValue;
+
+        return {
+          ...entry.toObject(),
+          totalValue,
+          propertyValue,
+          businessValue
+        };
       }));
 
       const top = netWorthList
@@ -2395,9 +2411,12 @@ client.commands.set('richest', {
 
         const embed = new EmbedBuilder()
           .setTitle(`#${i + 1} — ${user.user.username}`)
-          .setDescription(
-            `💰 **$${entry.cash.toLocaleString()}** + 🏠 **$${entry.propertyValue.toLocaleString()}**\n🧮 Total Net Worth: **$${entry.totalValue.toLocaleString()}**`
-          )
+          .setDescription(`
+💰 **Cash**: $${entry.cash.toLocaleString()}
+🏠 **Property**: $${entry.propertyValue.toLocaleString()}
+🏢 **Business**: $${entry.businessValue.toLocaleString()}
+🧮 **Total Net Worth**: $${entry.totalValue.toLocaleString()}
+          `)
           .setThumbnail(user.user.displayAvatarURL({ dynamic: true }))
           .setFooter({ text: `ID: ${entry.userId}` })
           .setColor('#ffd700');
@@ -2427,6 +2446,7 @@ client.commands.set('richest', {
     }
   }
 });
+
 
 client.commands.set('topcollectors', {
   async execute(message) {

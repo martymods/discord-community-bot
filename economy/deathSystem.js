@@ -103,6 +103,26 @@ function dropExpiredLoot() {
     }
   }
 }
+// Add near the bottom
+global.deadCooldownMap = global.deadCooldownMap || new Map();
+
+async function killPlayerTemporarily(userId, guildId) {
+  global.deadCooldownMap.set(userId, Date.now() + 60 * 1000);
+  setTimeout(async () => {
+    await resetHP(userId, guildId);
+    global.deadCooldownMap.delete(userId);
+  }, 60 * 1000);
+}
+
+function getTimeUntilRespawn(userId) {
+  const end = global.deadCooldownMap.get(userId);
+  if (!end) return 0;
+  return Math.max(0, Math.ceil((end - Date.now()) / 1000));
+}
+
+function isPlayerDead(userId) {
+  return global.deadCooldownMap.has(userId);
+}
 
 module.exports = {
   getHP,
@@ -114,5 +134,8 @@ module.exports = {
   handleDeath,
   recoverInventory,
   dropExpiredLoot,
-  Health
+  Health,
+  killPlayerTemporarily,
+  isPlayerDead,
+  getTimeUntilRespawn,
 };

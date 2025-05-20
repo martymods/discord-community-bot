@@ -2371,7 +2371,8 @@ client.commands.set('richest', {
   async execute(message) {
     try {
       const { getFashionValue } = require('./commands/fashionboard');
-      const Currency = require('./economy/currency');
+const Currency = require('./economy/currency').Currency;
+
       const Property = require('./economy/propertyModel');
       const Fashion = require('./models/FashionModel');
 

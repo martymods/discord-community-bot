@@ -8147,7 +8147,8 @@ client.commands.set('kill', {
     if (!target) return message.reply("Tag someone to kill: `!kill @user`");
     if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
 
-    const { getPlayerStats } = require('./utils/statUtils');
+const { getPlayerStats } = require('./statUtils');
+
     const { getHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem');
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');

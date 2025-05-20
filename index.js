@@ -3319,6 +3319,98 @@ client.on('interactionCreate', async interaction => {
     const { customId, user, message } = interaction;
     const userId = user.id;
 
+if (customId.startsWith('attack_dog_withdog_')) {
+  const targetId = customId.split('_')[4];
+  const attackerId = interaction.user.id;
+  const guildId = interaction.guildId;
+
+  const { getDog, setDog, getDogImage } = require('./dogSystem');
+  const attackerDog = await getDog(attackerId, guildId);
+  const targetDog = await getDog(targetId, guildId);
+
+  if (!attackerDog || attackerDog.hp <= 0) return interaction.reply({ content: `❌ You have no active dog.`, ephemeral: true });
+  if (!targetDog || targetDog.hp <= 0) return interaction.reply({ content: `❌ Target has no active dog.`, ephemeral: true });
+
+  const pow = attackerDog.stats?.POW || 0;
+  const def = targetDog.stats?.DEF || 0;
+
+  const dmg = Math.max(5, 10 + pow - def);
+  targetDog.hp = Math.max(0, targetDog.hp - dmg);
+  let desc = `🐶 Your dog attacked ${targetDog.name || 'the dog'} for **${dmg}** damage!`;
+
+  const attackerPic = getDogImage(attackerDog.breed, attackerDog.level, 'attack');
+
+  // Defender retaliates
+  const counter = Math.floor((targetDog.stats?.POW || 0) * 0.6 + 5);
+  attackerDog.hp = Math.max(0, attackerDog.hp - counter);
+  desc += `\n🔁 ${targetDog.name || 'The dog'} countered for **${counter}**!`;
+
+  const defenderPic = getDogImage(targetDog.breed, targetDog.level, targetDog.hp <= 0 ? 'death' : 'attack');
+
+  if (targetDog.hp <= 0) {
+    desc += `\n☠️ ${targetDog.name || 'The dog'} has died!`;
+    await targetDog.deleteOne();
+  } else {
+    await targetDog.save();
+  }
+
+  if (attackerDog.hp <= 0) {
+    desc += `\n💀 Your dog has died too!`;
+    await attackerDog.deleteOne();
+  } else {
+    await attackerDog.save();
+  }
+
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setTitle("🐕 Dog vs Dog Battle")
+      .setDescription(desc)
+      .setImage(attackerPic) // Optional: show one or both
+      .setColor('#ffaa00')]
+  });
+}
+
+
+    if (customId.startsWith('attack_dog_self_')) {
+  const targetId = customId.split('_')[3];
+  const attackerId = interaction.user.id;
+  const guildId = interaction.guildId;
+
+  const { getDog, setDog, getDogImage } = require('./dogSystem');
+  const targetDog = await getDog(targetId, guildId);
+  if (!targetDog || targetDog.hp <= 0) {
+    return interaction.reply({ content: `❌ Target has no active dog.`, ephemeral: true });
+  }
+
+  const dmg = Math.floor(Math.random() * 10) + 10; // base 10–20
+  targetDog.hp = Math.max(0, targetDog.hp - dmg);
+
+  const dogImg = getDogImage(targetDog.breed, targetDog.level, targetDog.hp <= 0 ? 'death' : 'attack');
+  let result = `👊 You hit ${targetDog.name || 'the dog'} for **${dmg}** damage!`;
+
+  if (targetDog.hp <= 0) {
+    result += `\n☠️ ${targetDog.name || 'The dog'} has died!`;
+    await targetDog.deleteOne();
+  } else {
+    await targetDog.save();
+  }
+
+  // Dog counterattack
+  const counter = Math.floor((targetDog.stats?.POW || 0) * 0.8 + 5);
+  const { applyDamage, getHP } = require('./economy/deathSystem');
+  const hpLeft = await applyDamage(attackerId, guildId, counter);
+  result += `\n🐶 The dog bit you back for **${counter}** damage! You now have ${hpLeft} HP.`;
+
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setTitle("🐾 PvP Dog Combat")
+      .setDescription(result)
+      .setImage(dogImg)
+      .setColor('#ff7777')]
+  });
+}
+
+
 // ⚔️ Handle Duel Attack/Counter Buttons
 if (interaction.isButton() && interaction.customId.startsWith('duel_')) {
   const [_, type, attackerId, defenderId] = interaction.customId.split('_');
@@ -8292,10 +8384,12 @@ client.commands.set('kill', {
     if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
 
     const { getPlayerStats } = require('./statUtils');
-    const { getHP, resetHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem'); // ⬅️ add resetHP
+    const { getHP, resetHP } = require('./economy/deathSystem');
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');
     const Levels = require('./economy/xpRewards');
+    const { getDog } = require('./dogSystem');
+    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
     // 💡 Ensure both players are fully healed before combat
     await resetHP(userId, guildId);         // attacker
@@ -8319,18 +8413,36 @@ HP: **${targetHP.hp} / ${targetHP.maxHp}**
 `)
       .setColor('#cc0000');
 
-    const row = new ActionRowBuilder().addComponents(
+    // 🐶 Dog Combat Buttons
+    const targetDog = await getDog(target.id, guildId);
+    const attackerDog = await getDog(userId, guildId);
+
+    const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`duel_attack_${userId}_${target.id}`)
-        .setLabel(`🗡️ Attack Again`)
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId(`duel_counter_${target.id}_${userId}`)
-        .setLabel(`⚔️ Counterattack`)
-        .setStyle(ButtonStyle.Primary)
+        .setLabel(`🗡️ Attack Player`)
+        .setStyle(ButtonStyle.Danger)
     );
 
-    await message.channel.send({ embeds: [duelEmbed], components: [row] });
+    if (targetDog) {
+      buttons.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`attack_dog_self_${target.id}`)
+          .setLabel(`👊 Attack Dog Directly`)
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      if (attackerDog) {
+        buttons.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`attack_dog_withdog_${target.id}`)
+            .setLabel(`🐶 Send Your Dog`)
+            .setStyle(ButtonStyle.Success)
+        );
+      }
+    }
+
+    await message.channel.send({ embeds: [duelEmbed], components: [buttons] });
   }
 });
 
@@ -8339,13 +8451,31 @@ client.commands.set('hp', {
   async execute(message) {
     const { getHP, getMaxHP } = require('./economy/deathSystem');
     const { getPlayerStats } = require('./statUtils');
-    const stats = await getPlayerStats(message.author.id, message.guild.id);
-    const max = getMaxHP(stats);
-    const hp = await getHP(message.author.id, message.guild.id);
+    const { EmbedBuilder } = require('discord.js');
 
-    message.reply(`❤️ Your HP: ${hp.hp} / ${max} (VIT: ${stats.vitality})`);
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    const stats = await getPlayerStats(userId, guildId);
+    const maxHp = getMaxHP(stats);
+    const currentHp = await getHP(userId, guildId);
+
+    const hpBar = generateHPBar(currentHp.hp, maxHp, 20);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`❤️ ${message.author.username}'s HP`)
+      .setDescription(`**${currentHp.hp} / ${maxHp} HP**\n${hpBar}`)
+      .setColor('#ff5555');
+
+    return message.reply({ embeds: [embed] });
   }
 });
+
+// ✅ Helper to create a visual bar
+function generateHPBar(current, max, length = 20) {
+  const filled = Math.round((current / max) * length);
+  return '█'.repeat(filled) + '░'.repeat(length - filled);
+}
 
 client.commands.set('heal', {
   async execute(message) {

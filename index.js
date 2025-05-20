@@ -1131,6 +1131,52 @@ Become a street legend by **robbing real players** for their money and items.
   .setFooter({ text: 'True hustlers use dogs, gangs, and stats to rob smarter.' })
   .setColor('#ffcc00'),
 
+  new EmbedBuilder()
+  .setTitle('☠️ PvP Kill System')
+  .setDescription(`
+Engage in real-time duels using \`!kill @user\` or PvP buttons. Attack, counter, and **slay** your enemies for **loot, XP, and dominance**.
+
+🗡️ **How It Works**
+- Use \`!kill @user\` or press **Attack** on a scouted target  
+- Your damage = \`10 + Strength - (Enemy Grit × 0.5)\`  
+- Their **Agility** gives dodge chance (10% per point)  
+- Damage applies in real-time, HP updates after each strike
+
+💥 **Interactive Combat**
+- Both attacker and defender get clickable buttons  
+- Spam your button to finish the fight  
+- First player to reduce the other's HP to 0 **wins**  
+- Victory grants XP and drops enemy loot (wallet + items)
+
+🩸 **Death Consequences**
+- The loser drops all wallet cash + full inventory  
+- They are **banned from all commands for 60s**  
+- Auto-revived after 1 minute with full HP  
+- Loot remains on the ground with a pickup button
+
+🎮 **Strategic Stats**
+- 💪 **Strength**: Boosts damage you deal  
+- 💥 **Grit**: Reduces damage you take  
+- 🦶 **Agility**: Chance to dodge the attack entirely  
+- ❤️ **Vitality**: Increases your max HP  
+- 🤖 Smart builds = better survival odds
+
+🧠 **Tips**
+- Kill weak or rich players to gain fast XP  
+- Use dogs, hideouts, or gang support for protection  
+- Stay alert — getting caught off guard could cost everything  
+- Dead players **cannot use any command** until they revive
+
+🏆 **XP Reward Formula**
+> \`100 + (20 × Victim’s Level)\` → Kill high-level targets to rise fast
+
+⚠️ **Warning**
+- Kills are real. Death means loot loss. 
+- No crying in Dreamworld. Stay dangerous.
+`)
+  .setFooter({ text: 'Master PvP and claim dominance. Weakness gets you looted.' })
+  .setColor('#ff2222'),
+
       
         new EmbedBuilder()
         .setTitle('🧥 Fashion System')

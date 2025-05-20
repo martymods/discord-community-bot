@@ -8388,7 +8388,7 @@ client.commands.set('kill', {
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');
     const Levels = require('./economy/xpRewards');
-const { getDog } = require('./events/npc/defense/dogSystem');
+    const { getDog } = require('./events/npc/defense/dogSystem');
     const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
     // 💡 Ensure both players are fully healed before combat
@@ -8421,7 +8421,11 @@ HP: **${targetHP.hp} / ${targetHP.maxHp}**
       new ButtonBuilder()
         .setCustomId(`duel_attack_${userId}_${target.id}`)
         .setLabel(`🗡️ Attack Player`)
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`duel_counter_${target.id}_${userId}`)
+        .setLabel(`⚔️ Counterattack`)
+        .setStyle(ButtonStyle.Primary)
     );
 
     if (targetDog) {

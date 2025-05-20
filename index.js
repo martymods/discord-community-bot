@@ -8137,6 +8137,67 @@ client.commands.set('trash', {
   }
 });
 
+client.commands.set('kill', {
+  async execute(message) {
+    const target = message.mentions.users.first();
+    const attacker = message.author;
+    const userId = attacker.id;
+    const guildId = message.guild.id;
+
+    if (!target) return message.reply("Tag someone to kill: `!kill @user`");
+    if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
+
+    const { getPlayerStats } = require('./utils/statUtils');
+    const { getHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem');
+    const { getBalance, removeCash } = require('./economy/currency');
+    const { getInventory, removeItem } = require('./economy/inventory');
+    const Levels = require('./economy/xpRewards');
+
+    const attackerStats = await getPlayerStats(userId, guildId);
+    const targetStats = await getPlayerStats(target.id, guildId);
+
+    // 🧠 Dodge logic (10% per Agility point)
+    const dodgeChance = (targetStats.agility || 0) * 0.1;
+    if (Math.random() < dodgeChance) {
+      return message.reply(`🦶 <@${target.id}> dodged your attack with agility!`);
+    }
+
+    // 🗡️ Damage = 10 + Strength – (Grit × 0.5)
+    const base = 10;
+    const dmg = Math.max(1, base + (attackerStats.strength || 0) - ((targetStats.grit || 0) * 0.5));
+    const remainingHP = await applyDamage(target.id, guildId, dmg);
+
+    if (remainingHP > 0) {
+      return message.reply(`🩸 You hit <@${target.id}> for **${dmg}** damage! HP left: **${remainingHP}**`);
+    }
+
+    // 💀 Handle death
+    const inv = await getInventory(target.id, guildId);
+    const cash = await getBalance(target.id, guildId);
+    const dropped = [];
+
+    for (const [itemId, qty] of inv.entries()) {
+      if (qty > 0) {
+        await removeItem(target.id, guildId, itemId, qty);
+        dropped.push(`${itemId} x${qty}`);
+      }
+    }
+
+    await removeCash(target.id, guildId, cash);
+    await handleDeath(target, message.guild, message.channel);
+
+    // ✨ XP gain for killer
+    const targetXP = await Levels.fetch(target.id, guildId);
+    const gainXP = 100 + (20 * (targetXP?.level || 1));
+    await Levels.appendXp(userId, guildId, gainXP);
+
+    await message.channel.send({
+      content: `🔪 <@${userId}> **killed** <@${target.id}> and stole:\n💰 **$${cash}**\n🎒 ${dropped.join(', ') || 'Nothing'}\n🧠 Gained **${gainXP} XP**`
+    });
+  }
+});
+
+
 client.commands.set('grantbank', require('./commands/grantbank'));
 client.commands.set('deposit', require('./commands/deposit'));
 client.commands.set('withdraw', require('./commands/withdraw'));

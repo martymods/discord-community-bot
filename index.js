@@ -2370,22 +2370,32 @@ client.commands.set('topxp', {
 client.commands.set('richest', {
   async execute(message) {
     try {
-      const { Currency } = require('./economy/currency');
+      const { getFashionValue } = require('./commands/fashionboard');
+      const Currency = require('./economy/currency');
       const Property = require('./economy/propertyModel');
-      const FashionModel = require('./models/FashionModel');
+      const Fashion = require('./models/FashionModel');
+
+      const tierRates = {
+        F: 10000,
+        E: 25000,
+        D: 50000,
+        C: 100000,
+        B: 250000,
+        A: 500000,
+        S: 1000000
+      };
 
       const currencyList = await Currency.find({ guildId: message.guild.id });
 
       const netWorthList = await Promise.all(currencyList.map(async (entry) => {
         const userId = entry.userId;
 
-        // Property (homes + businesses)
-        const properties = await Property.find({ ownerId: userId });
-        const propertyValue = properties.reduce((acc, prop) => acc + (prop.price || 0), 0);
+        const userProperties = await Property.find({ ownerId: userId });
+        const propertyValue = userProperties.reduce((acc, p) => acc + (p.price || 0), 0);
+        const passiveIncome = userProperties.reduce((acc, p) => acc + (tierRates[p.tier] || 0), 0);
 
-        // Fashion Items
-        const fashion = await FashionModel.find({ userId, guildId: entry.guildId });
-        const fashionValue = fashion.reduce((acc, item) => acc + (item.price || 0), 0);
+        const fashionProfile = await Fashion.findOne({ userId, guildId: message.guild.id });
+        const fashionValue = fashionProfile?.items?.reduce((acc, item) => acc + (item.price || 0), 0) || 0;
 
         const totalValue = entry.cash + propertyValue + fashionValue;
 
@@ -2393,13 +2403,12 @@ client.commands.set('richest', {
           ...entry.toObject(),
           totalValue,
           propertyValue,
+          passiveIncome,
           fashionValue
         };
       }));
 
-      const top = netWorthList
-        .sort((a, b) => b.totalValue - a.totalValue)
-        .slice(0, 5);
+      const top = netWorthList.sort((a, b) => b.totalValue - a.totalValue).slice(0, 5);
 
       const embeds = [];
       const rows = [];
@@ -2414,10 +2423,11 @@ client.commands.set('richest', {
         const embed = new EmbedBuilder()
           .setTitle(`#${i + 1} — ${user.user.username}`)
           .setDescription(
-            `💰 Cash: **$${entry.cash.toLocaleString()}**  
-🏠 Property/Businesses: **$${entry.propertyValue.toLocaleString()}**  
-🧥 Fashion: **$${entry.fashionValue.toLocaleString()}**  
-🧮 **Total Net Worth:** $${entry.totalValue.toLocaleString()}`
+            `💰 Cash: **$${entry.cash.toLocaleString()}**\n` +
+            `🏠 Property/Businesses: **$${entry.propertyValue.toLocaleString()}**\n` +
+            `🧥 Fashion: **$${entry.fashionValue.toLocaleString()}**\n\n` +
+            `🧮 Total Net Worth: **$${entry.totalValue.toLocaleString()}**\n\n` +
+            `📈 Passive Income Projections: **$${entry.passiveIncome.toLocaleString()}** / day`
           )
           .setThumbnail(user.user.displayAvatarURL({ dynamic: true }))
           .setFooter({ text: `ID: ${entry.userId}` })

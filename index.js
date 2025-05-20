@@ -108,6 +108,7 @@ const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
 const runAutoBusinessPayout = require('./task/autoBusinessIncome');
 const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
 const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
+const { isPlayerDead, getTimeUntilRespawn } = require('./economy/deathSystem');
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -3256,6 +3257,10 @@ client.on('messageCreate', async (message) => {
       message.author.send('You must pay before submitting music.');
     }
   }
+  if (isPlayerDead(message.author.id)) {
+  const timeLeft = getTimeUntilRespawn(message.author.id);
+  return message.reply(`💀 You're dead. Respawning in **${timeLeft}s**...`);
+}
 });
 
 client.on('interactionCreate', async interaction => {
@@ -3305,9 +3310,14 @@ if (interaction.isButton() && interaction.customId.startsWith('duel_')) {
     await removeCash(defenderId, guildId, cash);
     await handleDeath(defender, interaction.guild, interaction.channel);
 
+    const { killPlayerTemporarily } = require('./economy/deathSystem');
+
+
     const victimXP = await Levels.fetch(defenderId, guildId);
     const gainXP = 100 + (20 * (victimXP?.level || 1));
     await Levels.appendXp(attackerId, guildId, gainXP);
+    await killPlayerTemporarily(defenderId, guildId);
+
 
     return await interaction.update({
       embeds: [

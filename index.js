@@ -108,7 +108,9 @@ const { shopItems } = require('./economy/shop'); // ✅ CRUCIAL FIX
 const runAutoBusinessPayout = require('./task/autoBusinessIncome');
 const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
 const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
-const { isPlayerDead, getTimeUntilRespawn } = require('./economy/deathSystem');
+const { isPlayerDead, getTimeUntilRespawn, resetHP } = require('./economy/deathSystem');
+
+
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
@@ -8290,10 +8292,14 @@ client.commands.set('kill', {
     if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
 
     const { getPlayerStats } = require('./statUtils');
-    const { getHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem');
+    const { getHP, resetHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem'); // ⬅️ add resetHP
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');
     const Levels = require('./economy/xpRewards');
+
+    // 💡 Ensure both players are fully healed before combat
+    await resetHP(userId, guildId);         // attacker
+    await resetHP(target.id, guildId);      // defender
 
     const attackerStats = await getPlayerStats(userId, guildId);
     const targetStats = await getPlayerStats(target.id, guildId);
@@ -8328,6 +8334,26 @@ HP: **${targetHP.hp} / ${targetHP.maxHp}**
   }
 });
 
+
+client.commands.set('hp', {
+  async execute(message) {
+    const { getHP, getMaxHP } = require('./economy/deathSystem');
+    const { getPlayerStats } = require('./statUtils');
+    const stats = await getPlayerStats(message.author.id, message.guild.id);
+    const max = getMaxHP(stats);
+    const hp = await getHP(message.author.id, message.guild.id);
+
+    message.reply(`❤️ Your HP: ${hp.hp} / ${max} (VIT: ${stats.vitality})`);
+  }
+});
+
+client.commands.set('heal', {
+  async execute(message) {
+    const { resetHP } = require('./economy/deathSystem');
+    await resetHP(message.author.id, message.guild.id);
+    return message.reply('❤️ You are fully healed.');
+  }
+});
 
 
 client.commands.set('grantbank', require('./commands/grantbank'));

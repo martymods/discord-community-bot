@@ -8388,7 +8388,7 @@ client.commands.set('kill', {
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');
     const Levels = require('./economy/xpRewards');
-    const { getDog } = require('./dogSystem');
+const { getDog } = require('./events/npc/defense/dogSystem');
     const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
     // 💡 Ensure both players are fully healed before combat

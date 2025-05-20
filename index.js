@@ -5045,8 +5045,12 @@ client.commands.set('steal', {
     const embed = new EmbedBuilder().setTimestamp();
 
     if (success) {
-      let stealPercent = 0.1 + Math.min(lvlDiff * 0.02, 0.9);
-      let cash = Math.floor(targetBal * stealPercent);
+let stealPercent = 0.1 + Math.min(lvlDiff * 0.02, 0.9);
+let currentBal = await getBalance(target.id, guildId); // ⏱️ Re-fetch live balance
+let cash = Math.min(Math.floor(targetBal * stealPercent), currentBal); // 🛡️ Clamp
+
+console.log(`[STEAL DEBUG] Calculated payout: $${cash}, Live balance: $${currentBal}`);
+
 
       if (targetInv.has('vest')) {
         cash = Math.floor(cash * 0.5);

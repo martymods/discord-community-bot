@@ -3266,6 +3266,92 @@ client.on('interactionCreate', async interaction => {
     const { customId, user, message } = interaction;
     const userId = user.id;
 
+// ⚔️ Handle Duel Attack/Counter Buttons
+if (interaction.isButton() && interaction.customId.startsWith('duel_')) {
+  const [_, type, attackerId, defenderId] = interaction.customId.split('_');
+  if (!['attack', 'counter'].includes(type)) return;
+
+  const { getPlayerStats } = require('./statUtils');
+  const { getHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem');
+  const { getBalance, removeCash } = require('./economy/currency');
+  const { getInventory, removeItem } = require('./economy/inventory');
+  const Levels = require('./economy/xpRewards');
+  const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+  const guildId = interaction.guildId;
+
+  const attacker = await interaction.client.users.fetch(attackerId);
+  const defender = await interaction.client.users.fetch(defenderId);
+  const attackerStats = await getPlayerStats(attackerId, guildId);
+  const defenderStats = await getPlayerStats(defenderId, guildId);
+
+  // 🦶 Dodge chance
+  const dodgeChance = (defenderStats.agility || 0) * 0.1;
+  if (Math.random() < dodgeChance) {
+    return await interaction.reply({ content: `🦶 ${defender.username} dodged the attack!`, ephemeral: true });
+  }
+
+  // 🗡️ Damage = 10 + strength – grit × 0.5
+  const dmg = Math.max(1, 10 + (attackerStats.strength || 0) - ((defenderStats.grit || 0) * 0.5));
+  const hpLeft = await applyDamage(defenderId, guildId, dmg);
+
+  if (hpLeft <= 0) {
+    const inv = await getInventory(defenderId, guildId);
+    const cash = await getBalance(defenderId, guildId);
+
+    for (const [itemId, qty] of inv.entries()) {
+      if (qty > 0) await removeItem(defenderId, guildId, itemId, qty);
+    }
+    await removeCash(defenderId, guildId, cash);
+    await handleDeath(defender, interaction.guild, interaction.channel);
+
+    const victimXP = await Levels.fetch(defenderId, guildId);
+    const gainXP = 100 + (20 * (victimXP?.level || 1));
+    await Levels.appendXp(attackerId, guildId, gainXP);
+
+    return await interaction.update({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle(`☠️ ${defender.username} has died!`)
+          .setDescription(`💰 Dropped: $${cash}\n🎒 Inventory lost\n🧠 ${attacker.username} gained **${gainXP} XP**`)
+          .setColor('#550000')
+      ],
+      components: []
+    });
+  }
+
+  // ♻️ Still alive: Update embed with new HP
+  const atkHP = await getHP(attackerId, guildId);
+  const defHP = await getHP(defenderId, guildId);
+
+  const updatedEmbed = new EmbedBuilder()
+    .setTitle(`⚔️ PvP Duel: ${attacker.username} vs ${defender.username}`)
+    .setDescription(`
+🟥 **${attacker.username}**
+HP: **${atkHP.hp} / ${atkHP.maxHp}**
+
+🟦 **${defender.username}**
+HP: **${defHP.hp} / ${defHP.maxHp}**
+
+🎮 Keep clicking to finish the fight!
+`)
+    .setColor('#cc0000');
+
+  const newRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`duel_attack_${attackerId}_${defenderId}`)
+      .setLabel(`🗡️ Attack Again`)
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`duel_counter_${defenderId}_${attackerId}`)
+      .setLabel(`⚔️ Counterattack`)
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  return await interaction.update({ embeds: [updatedEmbed], components: [newRow] });
+}
+
+
 // 🏢 Handle Business Purchase Button
 if (interaction.isButton() && interaction.customId.startsWith('buy_business_')) {
   const Property = require('./economy/propertyModel');
@@ -8147,8 +8233,7 @@ client.commands.set('kill', {
     if (!target) return message.reply("Tag someone to kill: `!kill @user`");
     if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
 
-const { getPlayerStats } = require('./statUtils');
-
+    const { getPlayerStats } = require('./statUtils');
     const { getHP, applyDamage, isDead, handleDeath } = require('./economy/deathSystem');
     const { getBalance, removeCash } = require('./economy/currency');
     const { getInventory, removeItem } = require('./economy/inventory');
@@ -8156,47 +8241,37 @@ const { getPlayerStats } = require('./statUtils');
 
     const attackerStats = await getPlayerStats(userId, guildId);
     const targetStats = await getPlayerStats(target.id, guildId);
+    const attackerHP = await getHP(userId, guildId);
+    const targetHP = await getHP(target.id, guildId);
 
-    // 🧠 Dodge logic (10% per Agility point)
-    const dodgeChance = (targetStats.agility || 0) * 0.1;
-    if (Math.random() < dodgeChance) {
-      return message.reply(`🦶 <@${target.id}> dodged your attack with agility!`);
-    }
+    const duelEmbed = new EmbedBuilder()
+      .setTitle(`⚔️ PvP Duel: ${attacker.username} vs ${target.username}`)
+      .setDescription(`
+🟥 **${attacker.username}**
+HP: **${attackerHP.hp} / ${attackerHP.maxHp}**
 
-    // 🗡️ Damage = 10 + Strength – (Grit × 0.5)
-    const base = 10;
-    const dmg = Math.max(1, base + (attackerStats.strength || 0) - ((targetStats.grit || 0) * 0.5));
-    const remainingHP = await applyDamage(target.id, guildId, dmg);
+🟦 **${target.username}**
+HP: **${targetHP.hp} / ${targetHP.maxHp}**
 
-    if (remainingHP > 0) {
-      return message.reply(`🩸 You hit <@${target.id}> for **${dmg}** damage! HP left: **${remainingHP}**`);
-    }
+🎮 First to drop to 0 HP dies. Click to attack!
+`)
+      .setColor('#cc0000');
 
-    // 💀 Handle death
-    const inv = await getInventory(target.id, guildId);
-    const cash = await getBalance(target.id, guildId);
-    const dropped = [];
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`duel_attack_${userId}_${target.id}`)
+        .setLabel(`🗡️ Attack Again`)
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`duel_counter_${target.id}_${userId}`)
+        .setLabel(`⚔️ Counterattack`)
+        .setStyle(ButtonStyle.Primary)
+    );
 
-    for (const [itemId, qty] of inv.entries()) {
-      if (qty > 0) {
-        await removeItem(target.id, guildId, itemId, qty);
-        dropped.push(`${itemId} x${qty}`);
-      }
-    }
-
-    await removeCash(target.id, guildId, cash);
-    await handleDeath(target, message.guild, message.channel);
-
-    // ✨ XP gain for killer
-    const targetXP = await Levels.fetch(target.id, guildId);
-    const gainXP = 100 + (20 * (targetXP?.level || 1));
-    await Levels.appendXp(userId, guildId, gainXP);
-
-    await message.channel.send({
-      content: `🔪 <@${userId}> **killed** <@${target.id}> and stole:\n💰 **$${cash}**\n🎒 ${dropped.join(', ') || 'Nothing'}\n🧠 Gained **${gainXP} XP**`
-    });
+    await message.channel.send({ embeds: [duelEmbed], components: [row] });
   }
 });
+
 
 
 client.commands.set('grantbank', require('./commands/grantbank'));

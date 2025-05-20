@@ -2370,28 +2370,30 @@ client.commands.set('topxp', {
 client.commands.set('richest', {
   async execute(message) {
     try {
-      const Currency = require('../economy/currency');
-      const Property = require('../economy/propertyModel');
-      const Business = require('../economy/businessModel'); // ✅ ADD this line if not imported
+      const { Currency } = require('./economy/currency');
+      const Property = require('./economy/propertyModel');
+      const FashionModel = require('./models/FashionModel');
 
       const currencyList = await Currency.find({ guildId: message.guild.id });
 
       const netWorthList = await Promise.all(currencyList.map(async (entry) => {
         const userId = entry.userId;
 
-        const userProperties = await Property.find({ ownerId: userId });
-        const propertyValue = userProperties.reduce((acc, p) => acc + (p.price || 0), 0);
+        // Property (homes + businesses)
+        const properties = await Property.find({ ownerId: userId });
+        const propertyValue = properties.reduce((acc, prop) => acc + (prop.price || 0), 0);
 
-        const userBusinesses = await Business.find({ ownerId: userId });
-        const businessValue = userBusinesses.reduce((acc, b) => acc + (b.price || 0), 0);
+        // Fashion Items
+        const fashion = await FashionModel.find({ userId, guildId: entry.guildId });
+        const fashionValue = fashion.reduce((acc, item) => acc + (item.price || 0), 0);
 
-        const totalValue = entry.cash + propertyValue + businessValue;
+        const totalValue = entry.cash + propertyValue + fashionValue;
 
         return {
           ...entry.toObject(),
           totalValue,
           propertyValue,
-          businessValue
+          fashionValue
         };
       }));
 
@@ -2411,12 +2413,12 @@ client.commands.set('richest', {
 
         const embed = new EmbedBuilder()
           .setTitle(`#${i + 1} — ${user.user.username}`)
-          .setDescription(`
-💰 **Cash**: $${entry.cash.toLocaleString()}
-🏠 **Property**: $${entry.propertyValue.toLocaleString()}
-🏢 **Business**: $${entry.businessValue.toLocaleString()}
-🧮 **Total Net Worth**: $${entry.totalValue.toLocaleString()}
-          `)
+          .setDescription(
+            `💰 Cash: **$${entry.cash.toLocaleString()}**  
+🏠 Property/Businesses: **$${entry.propertyValue.toLocaleString()}**  
+🧥 Fashion: **$${entry.fashionValue.toLocaleString()}**  
+🧮 **Total Net Worth:** $${entry.totalValue.toLocaleString()}`
+          )
           .setThumbnail(user.user.displayAvatarURL({ dynamic: true }))
           .setFooter({ text: `ID: ${entry.userId}` })
           .setColor('#ffd700');
@@ -2440,6 +2442,7 @@ client.commands.set('richest', {
       for (let i = 0; i < embeds.length; i++) {
         await message.channel.send({ embeds: [embeds[i]], components: [rows[i]] });
       }
+
     } catch (err) {
       console.error("❌ Error running richest command:", err);
       await message.reply("❌ Something went wrong running the richest leaderboard.");

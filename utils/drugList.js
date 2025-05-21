@@ -18,4 +18,9 @@ const drugs = [
   { id: 'creditcards', name: '💳 Stolen Credit Cards', base: 900, volatility: 400, type: 'street_drug' }
 ];
 
-module.exports = { drugs };
+function getDrugName(id) {
+  const drug = drugs.find(d => d.id === id);
+  return drug ? drug.name : 'Unknown Drug';
+}
+
+module.exports = { drugs, getDrugName };

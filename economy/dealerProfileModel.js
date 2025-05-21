@@ -24,7 +24,14 @@ const dealerProfileSchema = new mongoose.Schema({
 
   // 🏦 Bank system additions
   bankAccess: { type: Boolean, default: false },
-  bankBalance: { type: Number, default: 0 }
+  bankBalance: { type: Number, default: 0 },
+
+  // 🌟 Drug Enhancement System
+  enhancements: {
+    type: Map,
+    of: Number,
+    default: {}
+  }
 });
 
 dealerProfileSchema.index({ userId: 1, guildId: 1 }, { unique: true });

@@ -111,7 +111,7 @@ const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
 const { isPlayerDead, getTimeUntilRespawn, resetHP } = require('./economy/deathSystem');
 const { handleLabButton } = require('./handlers/labButtons');
 const { enhanceDrug } = require('./economy/drugEnhance');
-const { getDrugName } = require('../utils/drugList');
+const { getDrugName } = require('./utils/drugList');
 
 
 

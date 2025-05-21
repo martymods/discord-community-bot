@@ -3319,7 +3319,8 @@ client.on('interactionCreate', async interaction => {
 
     const { customId, user, message } = interaction;
     const userId = user.id;
-    
+      const activeTables = new Map(); // tableId => { players: [userId], gameState }
+
 if (customId === 'bj_join_lobby') {
   const userId = interaction.user.id;
   const guildId = interaction.guildId;
@@ -4226,7 +4227,7 @@ if (customId.startsWith('mule_decline_')) {
 
 if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
-  const activeTables = new Map(); // tableId => { players: [userId], gameState }
+
   const cardDeck = [
     "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king", "ace"
   ];

@@ -109,7 +109,8 @@ const runAutoBusinessPayout = require('./task/autoBusinessIncome');
 const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
 const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
 const { isPlayerDead, getTimeUntilRespawn, resetHP } = require('./economy/deathSystem');
-
+const { handleLabButton } = require('./handlers/labButtons');
+const { enhanceDrug } = require('../economy/drugEnhance');
 
 
 
@@ -3472,6 +3473,10 @@ if (customId.startsWith('attack_dog_withdog_')) {
       .setColor('#ff7777')]
   });
 }
+
+  if (interaction.isButton() && interaction.customId.startsWith('enhance_drug_')) {
+    return await handleLabButton(interaction);
+  }
 
 
 // ⚔️ Handle Duel Attack/Counter Buttons
@@ -8576,6 +8581,22 @@ client.commands.set('heal', {
     const { resetHP } = require('./economy/deathSystem');
     await resetHP(message.author.id, message.guild.id);
     return message.reply('❤️ You are fully healed.');
+  }
+});
+
+client.commands.set('enhance', {
+  async execute(message, args) {
+    const drugId = args[0];
+    try {
+      const result = await enhanceDrug(message.author.id, message.guild.id, drugId);
+      const emoji = result.success ? '✅' : '❌';
+      const msg = result.success
+        ? `${emoji} Enhancement succeeded! New level: ⭐ ${result.level}`
+        : `${emoji} Enhancement failed. New level: ⭐ ${result.level}`;
+      return message.reply(msg);
+    } catch (err) {
+      return message.reply(`❌ ${err.message}`);
+    }
   }
 });
 

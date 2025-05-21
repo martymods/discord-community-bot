@@ -312,7 +312,7 @@ const items = [
 {
   id: 'yield_x10',
   name: '📦 Yield Booster x10',
-  price: 100,
+  price: 1500,
   rarity: 'Common',
   description: 'Multiplies crafting result by 10.',
   stock: 10,

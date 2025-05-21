@@ -21,6 +21,34 @@ const RECIPES = {
     },
     result: 'ultra_meth',
     name: '🔥 Ultra Meth'
+  },
+  // rainbow_acid x1 + yield_x10 = rainbow_acid x10
+  rainbow_acid_x10: {
+    requires: {
+      rainbow_acid: 1,
+      yield_x10: 1
+    },
+    result: 'rainbow_acid',
+    name: '🌈 Rainbow Acid x10',
+    quantity: 10
+  },
+  rainbow_acid_x50: {
+    requires: {
+      rainbow_acid: 1,
+      yield_x50: 1
+    },
+    result: 'rainbow_acid',
+    name: '🌈 Rainbow Acid x50',
+    quantity: 50
+  },
+  ultra_meth_x100: {
+    requires: {
+      ultra_meth: 1,
+      yield_x100: 1
+    },
+    result: 'ultra_meth',
+    name: '🔥 Ultra Meth x100',
+    quantity: 100
   }
 };
 
@@ -51,13 +79,12 @@ module.exports = {
       return message.reply(`❌ Missing ingredients: ${missing.join(', ')}`);
     }
 
-    // Deduct ingredients
     for (const [item, qty] of Object.entries(recipe.requires)) {
       await removeItem(userId, guildId, item, qty);
     }
 
-    // Add result
-    await addItem(userId, guildId, recipe.result);
+    const amount = recipe.quantity || 1;
+    await addItem(userId, guildId, recipe.result, amount);
 
     const embed = new EmbedBuilder()
       .setTitle('🔬 Recipe Complete!')

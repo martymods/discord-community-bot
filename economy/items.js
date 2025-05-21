@@ -308,7 +308,35 @@ const items = [
   description: 'Used to enhance drug purity in the lab.',
   stock: 25,
   usable: false
+},
+{
+  id: 'yield_x10',
+  name: '📦 Yield Booster x10',
+  price: 100,
+  rarity: 'Common',
+  description: 'Multiplies crafting result by 10.',
+  stock: 10,
+  usable: false
+},
+{
+  id: 'yield_x50',
+  name: '🚚 Yield Booster x50',
+  price: 12000,
+  rarity: 'Rare',
+  description: 'Multiplies crafting result by 50.',
+  stock: 5,
+  usable: false
+},
+{
+  id: 'yield_x100',
+  name: '🏭 Yield Booster x100',
+  price: 100000,
+  rarity: 'Legendary',
+  description: 'Multiplies crafting result by 100.',
+  stock: 2,
+  usable: false
 }
+
 
   ];
 

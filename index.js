@@ -109,6 +109,7 @@ const runAutoBusinessPayout = require('./task/autoBusinessIncome');
 const updateBusinessPricesDaily = require('./task/dailyPriceFluctuation');
 const { gangs, getGangMembers, buildGangEmbed } = require('./commands/gangs');
 const { isPlayerDead, getTimeUntilRespawn, resetHP } = require('./economy/deathSystem');
+const { sendToUE5 } = require('./websocketBridge');
 
 
 
@@ -8382,6 +8383,19 @@ client.commands.set('kill', {
 
     if (!target) return message.reply("Tag someone to kill: `!kill @user`");
     if (target.bot || target.id === userId) return message.reply("You can't kill that target.");
+
+    // ⛔ Prevent killing someone who's hiding
+    const targetHideout = hideoutMap.get(target.id);
+    if (targetHideout && targetHideout > Date.now()) {
+      return message.reply("🛡️ That player is currently hiding in a hideout and cannot be killed.");
+    }
+
+    // ⛔ Prevent using kill while you are hiding
+    const attackerHideout = hideoutMap.get(userId);
+    if (attackerHideout && attackerHideout > Date.now()) {
+      return message.reply("🚪 You’re hiding right now. Leave the hideout before attacking others.");
+    }
+
 
     const { getPlayerStats } = require('./statUtils');
     const { getHP, resetHP } = require('./economy/deathSystem');

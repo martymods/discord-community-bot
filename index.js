@@ -8622,6 +8622,8 @@ client.commands.set('2kpool', require('./commands/2kpool'));
 client.commands.set('listbusinesses', require('./commands/listbusinesses'));
 client.commands.set('lab', require('./commands/lab'));
 client.commands.set('combine', require('./commands/combine'));
+client.commands.set('craftbook', require('./commands/craftbook'));
+
 
 
 // ✅ Automatically trigger mule if player is overstocked

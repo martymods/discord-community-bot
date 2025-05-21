@@ -3319,6 +3319,62 @@ client.on('interactionCreate', async interaction => {
 
     const { customId, user, message } = interaction;
     const userId = user.id;
+    
+if (customId === 'bj_join_lobby') {
+  const userId = interaction.user.id;
+  const guildId = interaction.guildId;
+  const betAmount = 100;
+  const { getBalance, removeCash } = require('./economy/currency');
+  const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+  const balance = await getBalance(userId, guildId);
+  if (balance < betAmount) {
+    return interaction.reply({ content: '❌ Not enough funds to join Blackjack.', ephemeral: true });
+  }
+
+  await removeCash(userId, guildId, betAmount);
+
+  // Find or create a table
+  let table = [...activeTables.values()].find(t => t.players.length < 8 && t.status === 'waiting');
+  if (!table) {
+    const tableId = `table_${Date.now()}`;
+    table = {
+      id: tableId,
+      deck: createDeck(),
+      players: [],
+      hands: {},
+      dealerHand: [],
+      status: 'waiting'
+    };
+    activeTables.set(tableId, table);
+  }
+
+  // Add user
+  table.players.push(userId);
+  table.hands[userId] = [table.deck.pop(), table.deck.pop()];
+
+  // Start game if table is full
+  if (table.players.length === 8) {
+    table.dealerHand = [table.deck.pop(), table.deck.pop()];
+    table.status = 'in-progress';
+  }
+
+  const hand = table.hands[userId];
+  const handValue = calculateHandValue(hand);
+  const embed = new EmbedBuilder()
+    .setTitle(`🃏 Blackjack Table (${table.players.length}/8)`)
+    .setDescription(`Your hand: ${hand.map(c => c.name).join(", ")}\nValue: ${handValue}`)
+    .setColor("#ffaa00");
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`hit_${table.id}_${userId}`).setLabel("🂠 Hit").setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`hold_${table.id}_${userId}`).setLabel("✋ Hold").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`leave_${table.id}_${userId}`).setLabel("🚪 Leave").setStyle(ButtonStyle.Danger)
+  );
+
+  return await interaction.reply({ content: `<@${userId}>`, embeds: [embed], components: [row], ephemeral: true });
+}
+
 
 if (customId.startsWith('attack_dog_withdog_')) {
   const targetId = customId.split('_')[4];
@@ -4354,7 +4410,25 @@ if (interaction.isButton() && customId.startsWith("bj_")) {
 
     const game = interaction.values[0];
 
-    if (game === "blackjack") {
+if (game === "blackjack") {
+  const blackjackLobby = new EmbedBuilder()
+    .setTitle('🃏 Blackjack Lobby')
+    .setDescription('Click the button below to join the game.\nMax 8 players per table.')
+    .setColor('#ffaa00');
+
+  const joinRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`bj_join_lobby`)
+      .setLabel('♠️ Join Blackjack Table')
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  return await interaction.reply({
+    content: `<@${userId}> Let me know if you'd like me to automate the full 8-player table + dealer logic next.`,
+    embeds: [blackjackLobby],
+    components: [joinRow],
+    ephemeral: true
+  });
       // Trigger the blackjack command instead
       const blackjackCommand = require('./commands/blackjackCommand');
       return blackjackCommand.execute(interaction);

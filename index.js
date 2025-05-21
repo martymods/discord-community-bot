@@ -8619,6 +8619,7 @@ client.commands.set('2kleaderboard', require('./commands/2kleaderboard'));
 client.commands.set('unlinkpsn', require('./commands/unlinkpsn'));
 client.commands.set('2kpool', require('./commands/2kpool'));
 client.commands.set('listbusinesses', require('./commands/listbusinesses'));
+client.commands.set('lab', require('./commands/lab'));
 
 
 

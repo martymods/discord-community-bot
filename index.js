@@ -913,6 +913,7 @@ client.commands.set('help', {
 !ping — Test the Slave is alive  
 !balance — Check your DreamworldPoints  
 !daily — Claim daily rewards (streaks)  
+!dealer - Buy low sell high Street Market
 !inventory — View your item stash  
 !use <item> [amount] — Use gem, dice, skull, etc.  
 > Example: \`!use gem 5\`  
@@ -923,9 +924,49 @@ client.commands.set('help', {
 !lurk — Gain slow XP (drama may trigger)  
 !scavenge — Search for XP or items  
 !stats — View and assign stat points  
-!heal — Restore health (if you have items)
         `)
         .setColor('#00ffaa'),
+
+        new EmbedBuilder()
+  .setTitle('🧪 Drug Lab & Crafting System')
+  .setDescription(`
+Upgrade, mutate, and multiply your drugs in the **Dreamworld Drug Lab**.
+
+📦 **Commands**
+\`!lab\` — View and enhance owned drugs  
+\`!combine <id>\` — Combine drugs & boosters into rare forms  
+> Example: \`!combine rainbow_acid\`  
+\`!craftbook\` — Browse all known crafting recipes
+
+⭐ **Purity Enhancements**
+- Every drug can be enhanced up to **5 levels of purity**  
+- Enhancing boosts **resale value** and **combine success**  
+- Requires ✨ **Purity Crystals** + DreamworldPoints  
+
+🌈 **Rare Mutations**
+- Combine drugs to create ultra-rare versions:
+  - \`rainbow_acid\` = 3x Acid + 1x Purity Crystal  
+  - \`ultra_meth\` = 2x Meth + 1x Purity Crystal  
+  - \`god_shrooms\` = 3x Shrooms + 1x Purity Crystal  
+  - \`void_heroin\` = 2x Heroin + 1x Purity Crystal  
+
+📦 **Yield Boosting**
+Multiply your outputs using yield boosters:
+- \`rainbow_acid_x10\` = 1x Rainbow Acid + 📦 Booster x10  
+- \`meth_x50\` = 1x Meth + 🚚 Booster x50  
+- \`shrooms_x100\` = 1x Shrooms + 🏭 Booster x100  
+
+🧠 **Tips**
+- View recipes with \`!craftbook\`  
+- Use \`!combine\` for any result shown in the book  
+- Purity stars show up in your \`!lab\` panel  
+- Higher rarity = more profit
+
+🎯 This system is built for **RPG grinders** — mutate your way to millions.
+`)
+  .setFooter({ text: 'Enhance. Combine. Profit. Welcome to the lab.' })
+  .setColor('#cc66ff'),
+
 
         new EmbedBuilder()
   .setTitle('🔗 Referral Rewards')

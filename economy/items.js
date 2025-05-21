@@ -299,7 +299,17 @@ const items = [
       chance: 0.02,
       description: 'Extend your hideout protection by 10 minutes.',
       usable: true
-    }
+    },
+    {
+  id: 'purity_crystal',
+  name: '✨ Purity Crystal',
+  price: 350,
+  rarity: 'Rare',
+  description: 'Used to enhance drug purity in the lab.',
+  stock: 25,
+  usable: false
+}
+
   ];
 
   function reduceItemStock(itemId, qty = 1) {

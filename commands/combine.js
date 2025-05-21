@@ -12,6 +12,15 @@ const RECIPES = {
     },
     result: 'rainbow_acid',
     name: '🌈 Rainbow Acid'
+  },
+  // meth x2 + purity_crystal = ultra_meth
+  ultra_meth: {
+    requires: {
+      meth: 2,
+      purity_crystal: 1
+    },
+    result: 'ultra_meth',
+    name: '🔥 Ultra Meth'
   }
 };
 

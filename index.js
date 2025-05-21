@@ -8620,7 +8620,7 @@ client.commands.set('unlinkpsn', require('./commands/unlinkpsn'));
 client.commands.set('2kpool', require('./commands/2kpool'));
 client.commands.set('listbusinesses', require('./commands/listbusinesses'));
 client.commands.set('lab', require('./commands/lab'));
-
+client.commands.set('combine', require('./commands/combine'));
 
 
 // ✅ Automatically trigger mule if player is overstocked

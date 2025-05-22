@@ -4736,7 +4736,7 @@ if (customId.startsWith('crime_risk_') || customId.startsWith('crime_safe_')) {
     }
   }
 
-// 🔥 NPC Buyer Sell Handler (FINAL FIXED + Mood Bonus Applied)
+// 🔥 NPC Buyer Sell Handler (FULL UPDATED + Enhancement & Rare Support)
 if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
   try {
     await interaction.deferReply({ ephemeral: true });
@@ -4758,8 +4758,9 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
     }
 
     const buyer = isDM
-    ? [...activeBuyers.values()].find(b => b.name === buyerName && b.drug === drugId)
-    : [...activeBuyers.values()].find(b => b.drug === drugId && b.name); // safer match
+      ? [...activeBuyers.values()].find(b => b.name === buyerName && b.drug === drugId)
+      : [...activeBuyers.values()].find(b => b.drug === drugId && b.name);
+
     console.log('[NPC SELL DEBUG]', {
       isDM,
       drugId,
@@ -4767,16 +4768,16 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
       foundBuyer: buyer,
       activeBuyers: [...activeBuyers.values()]
     });
-    
 
     if (!buyer) return interaction.editReply({ content: "❌ That buyer is gone." });
-    // ⛔ Check for mood block (Phase 9)
-if (isBlocked(user.id, buyer.name)) {
-  return interaction.editReply({
-    content: `🚫 ${buyer.name} refuses to deal with you. Mood too low.`,
-    ephemeral: true
-  });
-}
+
+    if (isBlocked(user.id, buyer.name)) {
+      return interaction.editReply({
+        content: `🚫 ${buyer.name} refuses to deal with you. Mood too low.`,
+        ephemeral: true
+      });
+    }
+
     if ((inv[drugId] || 0) < buyer.quantity) {
       return interaction.editReply({ content: `❌ You need ${buyer.quantity} ${drugId} to sell.` });
     }
@@ -4786,10 +4787,24 @@ if (isBlocked(user.id, buyer.name)) {
       : new Map(Object.entries(profile.prices));
     const basePrice = prices.get(drugId) || 100;
 
-    // 🌡️ Apply Mood Modifier (Phase 8)
+    // 🌟 Purity Enhancement Multiplier
+    const enhancementLevel = profile.enhancements?.[drugId] || 0;
+    const purityMultiplier = 1 + (enhancementLevel * 0.25); // 25% per level
+
+    // 🌈 Rare Mutations Multiplier
+    const rareDrugBase = {
+      rainbow_acid: 5000,
+      ultra_meth: 7500,
+      god_shrooms: 6200,
+      void_heroin: 9000
+    };
+    const isRareDrug = rareDrugBase.hasOwnProperty(drugId);
+    const adjustedBasePrice = isRareDrug ? rareDrugBase[drugId] : basePrice * purityMultiplier;
+
+    // 🌡️ Apply Mood Bonus
     const mood = getMood(user.id, buyer.name);
     const moodEffect = getMoodEffect(mood);
-    const moodAdjustedPayout = Math.floor(basePrice * buyer.bonus * buyer.quantity * moodEffect);
+    const moodAdjustedPayout = Math.floor(adjustedBasePrice * buyer.bonus * buyer.quantity * moodEffect);
 
     await addCash(user.id, interaction.guildId, moodAdjustedPayout);
     inv[drugId] -= buyer.quantity;
@@ -4817,9 +4832,19 @@ if (isBlocked(user.id, buyer.name)) {
       cancelPrivateWindow(user.id, buyer.name);
     }
 
-    await interaction.editReply({
-      content: `💸 Sold ${buyer.quantity}x ${drugId.toUpperCase()} to **${buyer.name}** for **$${moodAdjustedPayout}**`
+    const resultMsg = `💸 Sold ${buyer.quantity}x ${drugId.toUpperCase()} to **${buyer.name}** for **$${moodAdjustedPayout}**`;
+    const note = isRareDrug ? '🌈 Rare item bonus applied!' : enhancementLevel > 0 ? `⭐ Purity Level: ${enhancementLevel}` : '';
+    console.log('[NPC SELL COMPLETE]', {
+      user: user.id,
+      drugId,
+      enhancementLevel,
+      isRareDrug,
+      adjustedBasePrice,
+      moodEffect,
+      payout: moodAdjustedPayout
     });
+
+    await interaction.editReply({ content: `${resultMsg}\n${note}` });
 
     await maybeSpawnMule(interaction.client, user.id, interaction.guildId, interaction.channel);
 
@@ -4834,6 +4859,7 @@ if (isBlocked(user.id, buyer.name)) {
     }
   }
 }
+
 
  // 💊 BULK SELL
 if (interaction.isButton() && customId.startsWith('bulk_sell_')) {

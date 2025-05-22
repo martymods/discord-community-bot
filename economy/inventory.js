@@ -20,22 +20,44 @@ module.exports = {
   Inventory,
 
   async addItem(userId, guildId, itemName, quantity = 1) {
-    let user = await Inventory.findOne({ userId, guildId });
-    if (!user) user = await Inventory.create({ userId, guildId });
+    try {
+      let user = await Inventory.findOne({ userId, guildId });
+      if (!user) user = await Inventory.create({ userId, guildId });
 
-    user.items.set(itemName, (user.items.get(itemName) || 0) + quantity);
-    await user.save();
+      const prevQty = user.items.get(itemName) || 0;
+      user.items.set(itemName, prevQty + quantity);
+      await user.save();
+
+      console.log(`[INVENTORY ADD] ${itemName} +${quantity} for ${userId} (was ${prevQty}, now ${prevQty + quantity})`);
+      return true;
+    } catch (err) {
+      console.error(`[INVENTORY ERROR][ADD] ${err.message}`);
+      return false;
+    }
   },
 
   async removeItem(userId, guildId, itemName, quantity = 1) {
-    const user = await Inventory.findOne({ userId, guildId });
-    if (!user) return;
+    try {
+      const user = await Inventory.findOne({ userId, guildId });
+      if (!user) {
+        console.warn(`[INVENTORY WARN][REMOVE] No user found for ${userId}`);
+        return false;
+      }
 
-    const current = user.items.get(itemName) || 0;
-    if (current <= 0) return;
+      const current = user.items.get(itemName) || 0;
+      if (current <= 0) {
+        console.warn(`[INVENTORY WARN][REMOVE] Tried to remove ${itemName} from ${userId} but has none.`);
+        return false;
+      }
 
-    user.items.set(itemName, Math.max(0, current - quantity));
-    await user.save();
+      user.items.set(itemName, Math.max(0, current - quantity));
+      await user.save();
+      console.log(`[INVENTORY REMOVE] ${itemName} -${quantity} for ${userId} (was ${current}, now ${Math.max(0, current - quantity)})`);
+      return true;
+    } catch (err) {
+      console.error(`[INVENTORY ERROR][REMOVE] ${err.message}`);
+      return false;
+    }
   },
 
   async getInventory(userId, guildId) {
@@ -46,3 +68,4 @@ module.exports = {
 
   hasItem // ✅ Exported so it can be used in commands like !lurk
 };
+

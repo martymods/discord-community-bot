@@ -3,25 +3,23 @@ const { Inventory, removeItem, addItem } = require('../economy/inventory');
 const DealerProfile = require('../economy/dealerProfileModel');
 const { EmbedBuilder } = require('discord.js');
 
+// ✅ All crafting recipes
 const RECIPES = {
-  // Core drug enhancements
   rainbow_acid: { requires: { acid: 3, purity_crystal: 1 }, result: 'rainbow_acid', name: '🌈 Rainbow Acid' },
   ultra_meth: { requires: { meth: 2, purity_crystal: 1 }, result: 'ultra_meth', name: '🔥 Ultra Meth' },
+  god_acid: { requires: { acid: 3, purity_crystal: 2 }, result: 'god_acid', name: '💫 God Acid' },
+  omega_meth: { requires: { meth: 3, purity_crystal: 2 }, result: 'omega_meth', name: '🧪 Omega Meth' },
+  dream_heroin: { requires: { heroin: 3, purity_crystal: 2 }, result: 'dream_heroin', name: '💤 Dream Heroin' },
+  void_heroin: { requires: { heroin: 2, purity_crystal: 1 }, result: 'void_heroin', name: '🌌 Void Heroin' },
+  quantum_shrooms: { requires: { shrooms: 2, purity_crystal: 1 }, result: 'quantum_shrooms', name: '🧠 Quantum Shrooms' },
+  holo_shrooms: { requires: { shrooms: 3, purity_crystal: 2 }, result: 'holo_shrooms', name: '🌈 Holo Shrooms' },
+  time_shrooms: { requires: { shrooms: 3, purity_crystal: 3 }, result: 'time_shrooms', name: '⏳ Time Shrooms' },
 
-  // Advanced evolutions
-  god_acid: { requires: { rainbow_acid: 2, purity_crystal: 2 }, result: 'god_acid', name: '🧬 God Acid' },
-  omega_meth: { requires: { ultra_meth: 2, purity_crystal: 2 }, result: 'omega_meth', name: '💥 Omega Meth' },
-  dream_heroin: { requires: { heroin: 2, purity_crystal: 1 }, result: 'dream_heroin', name: '🌙 Dream Heroin' },
-  void_heroin: { requires: { dream_heroin: 2, purity_crystal: 2 }, result: 'void_heroin', name: '🌌 Void Heroin' },
-  quantum_shrooms: { requires: { shrooms: 2, purity_crystal: 1 }, result: 'quantum_shrooms', name: '🍄 Quantum Shrooms' },
-  holo_shrooms: { requires: { quantum_shrooms: 2, purity_crystal: 1 }, result: 'holo_shrooms', name: '🪐 Holo Shrooms' },
-  time_shrooms: { requires: { holo_shrooms: 2, purity_crystal: 2 }, result: 'time_shrooms', name: '⏳ Time Shrooms' },
-
-  // Yield-enhanced combinations
   rainbow_acid_x10: { requires: { rainbow_acid: 1, yield_x10: 1 }, result: 'rainbow_acid', name: '🌈 Rainbow Acid x10', quantity: 10 },
   rainbow_acid_x50: { requires: { rainbow_acid: 1, yield_x50: 1 }, result: 'rainbow_acid', name: '🌈 Rainbow Acid x50', quantity: 50 },
   ultra_meth_x100: { requires: { ultra_meth: 1, yield_x100: 1 }, result: 'ultra_meth', name: '🔥 Ultra Meth x100', quantity: 100 },
-  god_acid_x50: { requires: { god_acid: 1, yield_x50: 1 }, result: 'god_acid', name: '🧬 God Acid x50', quantity: 50 },
+
+  god_acid_x50: { requires: { god_acid: 1, yield_x50: 1 }, result: 'god_acid', name: '💫 God Acid x50', quantity: 50 },
   void_heroin_x50: { requires: { void_heroin: 1, yield_x50: 1 }, result: 'void_heroin', name: '🌌 Void Heroin x50', quantity: 50 },
   time_shrooms_x100: { requires: { time_shrooms: 1, yield_x100: 1 }, result: 'time_shrooms', name: '⏳ Time Shrooms x100', quantity: 100 },
 
@@ -40,7 +38,7 @@ const RECIPES = {
   heroin_x100: { requires: { heroin: 1, yield_x100: 1 }, result: 'heroin', name: '🩸 Heroin x100', quantity: 100 },
   shrooms_x10: { requires: { shrooms: 1, yield_x10: 1 }, result: 'shrooms', name: '🍄 Shrooms x10', quantity: 10 },
   shrooms_x50: { requires: { shrooms: 1, yield_x50: 1 }, result: 'shrooms', name: '🍄 Shrooms x50', quantity: 50 },
-  shrooms_x100: { requires: { shrooms: 1, yield_x100: 1 }, result: 'shrooms', name: '🍄 Shrooms x100', quantity: 100 }
+  shrooms_x100: { requires: { shrooms: 1, yield_x100: 1 }, result: 'shrooms', name: '🍄 Shrooms x100', quantity: 100 },
 };
 
 module.exports = {
@@ -62,6 +60,7 @@ module.exports = {
 
     const items = inv.items || new Map();
     const missing = [];
+
     for (const [item, qty] of Object.entries(recipe.requires)) {
       if ((items.get(item) || 0) < qty) missing.push(`${item} x${qty}`);
     }
@@ -70,18 +69,23 @@ module.exports = {
       return message.reply(`❌ Missing ingredients: ${missing.join(', ')}`);
     }
 
-    for (const [item, qty] of Object.entries(recipe.requires)) {
-      await removeItem(userId, guildId, item, qty);
+    try {
+      for (const [item, qty] of Object.entries(recipe.requires)) {
+        await removeItem(userId, guildId, item, qty);
+      }
+
+      const amount = recipe.quantity || 1;
+      await addItem(userId, guildId, recipe.result, amount);
+
+      const embed = new EmbedBuilder()
+        .setTitle('🔬 Recipe Complete!')
+        .setDescription(`You created **${recipe.name}**!`)
+        .setColor('#ff66cc');
+
+      return message.reply({ embeds: [embed] });
+    } catch (err) {
+      console.error(`[COMBINE ERROR] ${err.message}`);
+      return message.reply('❌ Something went wrong. Your items were not processed.');
     }
-
-    const amount = recipe.quantity || 1;
-    await addItem(userId, guildId, recipe.result, amount);
-
-    const embed = new EmbedBuilder()
-      .setTitle('🔬 Recipe Complete!')
-      .setDescription(`You created **${recipe.name}**!`)
-      .setColor('#ff66cc');
-
-    return message.reply({ embeds: [embed] });
   }
 };

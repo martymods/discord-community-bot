@@ -79,7 +79,9 @@ module.exports = {
 
       const amount = recipe.quantity || 1;
       console.log(`[COMBINE ADD] Adding ${amount}x ${recipe.result} to ${userId}`);
-      const added = await addItem(userId, guildId, recipe.result, amount);
+     const success = await addItem(userId, guildId, recipe.result, amount);
+console.log(`[COMBINE RESULT] Success=${success} — ${recipe.result} x${amount} to ${userId}`);
+
 
       console.log(`[COMBINE RESULT] Success=${added} — ${recipe.result} x${amount} to ${userId}`);
 

@@ -58,11 +58,11 @@ module.exports = {
     const inv = await Inventory.findOne({ userId, guildId });
     if (!inv) return message.reply('❌ You have no inventory.');
 
-    const items = inv.items || new Map();
+    const items = inv.items instanceof Map ? Object.fromEntries(inv.items) : { ...inv.items };
     const missing = [];
 
     for (const [item, qty] of Object.entries(recipe.requires)) {
-      if ((items.get(item) || 0) < qty) missing.push(`${item} x${qty}`);
+      if ((items[item] || 0) < qty) missing.push(`${item} x${qty}`);
     }
 
     if (missing.length) {
@@ -70,12 +70,18 @@ module.exports = {
     }
 
     try {
+      console.log(`[COMBINE INITIATED] ${userId} attempting: ${recipeKey}`);
+
       for (const [item, qty] of Object.entries(recipe.requires)) {
+        console.log(`[COMBINE REMOVE] Removing ${qty}x ${item} from ${userId}`);
         await removeItem(userId, guildId, item, qty);
       }
 
       const amount = recipe.quantity || 1;
-      await addItem(userId, guildId, recipe.result, amount);
+      console.log(`[COMBINE ADD] Adding ${amount}x ${recipe.result} to ${userId}`);
+      const added = await addItem(userId, guildId, recipe.result, amount);
+
+      console.log(`[COMBINE RESULT] Success=${added} — ${recipe.result} x${amount} to ${userId}`);
 
       const embed = new EmbedBuilder()
         .setTitle('🔬 Recipe Complete!')
@@ -84,7 +90,7 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (err) {
-      console.error(`[COMBINE ERROR] ${err.message}`);
+      console.error(`[COMBINE ERROR] ${err.message}`, err);
       return message.reply('❌ Something went wrong. Your items were not processed.');
     }
   }

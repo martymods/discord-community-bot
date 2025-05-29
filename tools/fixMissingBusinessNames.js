@@ -28,7 +28,16 @@ mongoose.connect(MONGO_URI, {
 });
 
 async function fixMissingNames() {
-  const properties = await Property.find({ name: { $in: [null, '', undefined] } }).sort({ price: 1 });
+const properties = await Property.find({
+  $or: [
+    { name: null },
+    { name: '' },
+    { name: { $exists: false } }
+  ]
+}).sort({ price: 1 });
+
+console.log(`🔍 Found ${properties.length} properties missing names`);
+
 
   let updated = 0;
   for (let i = 0; i < properties.length && i < fallbackNames.length; i++) {

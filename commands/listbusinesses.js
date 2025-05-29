@@ -13,22 +13,34 @@ module.exports = {
     let page = 0;
     const perPage = 1;
 
-    const renderEmbed = (index) => {
-      const prop = all[index];
-      const embed = new EmbedBuilder()
-        .setTitle(`🏢 ${prop.name || prop.type || prop.id}`)
-        .setDescription(`
+const renderEmbed = (index) => {
+  const prop = all[index];
+
+  // 🪵 DEBUG LOGGING
+  console.log("[LISTBUSINESSES DEBUG]", {
+    id: prop.id,
+    name: prop.name,
+    type: prop.type,
+    tier: prop.tier,
+    area: prop.area
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🏢 ${prop.name || prop.type || prop.id}`)
+    .setDescription(`
 📍 **Location**: ${prop.area}
 🏷️ **Tier**: ${prop.tier}
 💰 **Price**: $${prop.price.toLocaleString()}
 📦 **+${prop.stashBonus} Stash Cap**
 
 ${prop.eventType ? `🎲 **Event Chance**: ${formatEvent(prop.eventType)}` : '—'}
-        `)
-        .setFooter({ text: `Page ${index + 1}/${all.length}` })
-        .setColor('#33cc99');
-      return embed;
-    };
+    `)
+    .setFooter({ text: `Page ${index + 1}/${all.length}` })
+    .setColor('#33cc99');
+
+  return embed;
+};
+
 
     const renderButtons = (index) => {
       const prop = all[index];

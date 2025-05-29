@@ -1,27 +1,35 @@
-// ✅ tools/assignBusinessPayouts.js
+// 📁 tools/assignBusinessPayouts.js
 const mongoose = require('mongoose');
 const Property = require('../economy/propertyModel');
 
-module.exports = async function assignPayouts() {
-  const all = await Property.find({});
+module.exports = async function assignBusinessPayouts() {
+  const payoutMap = {
+    basic: 10000,
+    standard: 25000,
+    enhanced: 50000,
+    premium: 100000,
+    elite: 250000,
+    legendary: 500000,
+    mythic: 1000000
+  };
+
+  const businesses = await Property.find({});
   let updated = 0;
 
-  for (const biz of all) {
-    if (typeof biz.payoutPerHour === 'number' && biz.payoutPerHour > 0) continue;
-
+  for (const biz of businesses) {
     const tier = (biz.tier || '').toLowerCase();
-    let payout = 1000;
+    const payout = payoutMap[tier];
 
-    if (tier === 'basic') payout = 1000;
-    else if (tier === 'premium') payout = 6000;
-    else if (tier === 'legendary') payout = 25000;
+    if (!payout) {
+      console.log(`❌ No payout tier match for ${biz.name || biz.id} — tier: ${tier}`);
+      continue;
+    }
 
     biz.payoutPerHour = payout;
     await biz.save();
-    console.log(`✅ Set ${biz.name || biz.id} → $${payout}/hr`);
     updated++;
+    console.log(`✅ Set ${biz.name || biz.id} (${tier}) → $${payout.toLocaleString()}/day`);
   }
 
-  console.log(`🎉 Finished. Updated ${updated} businesses with payoutPerHour.`);
+  console.log(`🎉 Finished. Updated ${updated} businesses.`);
 };
-

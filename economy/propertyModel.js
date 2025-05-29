@@ -11,6 +11,7 @@ const PropertySchema = new mongoose.Schema({
   purchaseDate: Date,
 
   // ✅ NEW FIELDS
+  payoutPerHour: { type: Number, default: 0 },
   name: { type: String, default: null }, // e.g., "📦 Corner Supply Co."
   type: { type: String, default: null }  // optional: could be used for filtering later
 });

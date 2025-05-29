@@ -28,22 +28,18 @@ mongoose.connect(MONGO_URI, {
 });
 
 async function fixMissingNames() {
-  const properties = await Property.find({ ownerId: null }).sort({ price: 1 });
+  const properties = await Property.find({ name: { $in: [null, '', undefined] } }).sort({ price: 1 });
 
   let updated = 0;
-  for (let i = 0; i < properties.length; i++) {
+  for (let i = 0; i < properties.length && i < fallbackNames.length; i++) {
     const prop = properties[i];
-    const missing = !prop.name || typeof prop.name !== 'string' || prop.name.trim() === '';
-
-    if (missing && fallbackNames[i]) {
-      prop.name = fallbackNames[i];
-      await prop.save();
-      console.log(`✅ Fixed: ${prop.id} → ${prop.name}`);
-      updated++;
-    }
+    prop.name = fallbackNames[i];
+    await prop.save();
+    console.log(`✅ Patched: ${prop.id} → ${prop.name}`);
+    updated++;
   }
 
-  console.log(`\n🎉 Fixed ${updated} properties missing .name`);
+  console.log(`\n🎯 Total patched: ${updated}`);
   mongoose.connection.close();
 }
 

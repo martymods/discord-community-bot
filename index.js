@@ -1723,6 +1723,8 @@ client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
   startNPCBuyers(client); // ✅ Now it's safe!
   rotateSnipers(); // ✅ keep this one
+  require('./tools/assignBusinessPayouts')(); // TEMP RUN ONCE
+
 });
 
 fetchFashionDrop(); // initial run

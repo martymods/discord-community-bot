@@ -1,47 +1,27 @@
-// tools/assignBusinessPayouts.js
+// ✅ tools/assignBusinessPayouts.js
 const mongoose = require('mongoose');
 const Property = require('../economy/propertyModel');
 
-// Your Mongo URI (update if needed)
-const MONGO_URI = process.env.MONGO_URI || 'YOUR_MONGO_URI_HERE';
-
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-const tierPayouts = {
-  basic: 2000,
-  premium: 6000,
-  legendary: 15000
-};
-
-async function assignPayouts() {
-  const properties = await Property.find({});
+module.exports = async function assignPayouts() {
+  const all = await Property.find({});
   let updated = 0;
 
-  for (const prop of properties) {
-    const tier = (prop.tier || '').toLowerCase();
-    const proposedPayout = tierPayouts[tier] || 0;
+  for (const biz of all) {
+    if (typeof biz.payoutPerHour === 'number' && biz.payoutPerHour > 0) continue;
 
-    if (!proposedPayout) {
-      console.log(`❌ Skipped: ${prop.name} (${prop.id}) — Unknown tier`);
-      continue;
-    }
+    const tier = (biz.tier || '').toLowerCase();
+    let payout = 1000;
 
-    if (prop.payoutPerHour && prop.payoutPerHour > 0) {
-      console.log(`⏩ Already has payout: ${prop.name} ($${prop.payoutPerHour})`);
-      continue;
-    }
+    if (tier === 'basic') payout = 1000;
+    else if (tier === 'premium') payout = 6000;
+    else if (tier === 'legendary') payout = 25000;
 
-    prop.payoutPerHour = proposedPayout;
-    await prop.save();
-    console.log(`✅ Set ${prop.name} (${prop.id}) → $${proposedPayout}/hr`);
+    biz.payoutPerHour = payout;
+    await biz.save();
+    console.log(`✅ Set ${biz.name || biz.id} → $${payout}/hr`);
     updated++;
   }
 
-  console.log(`🎉 Finished. Updated ${updated} businesses.`);
-  mongoose.connection.close();
-}
+  console.log(`🎉 Finished. Updated ${updated} businesses with payoutPerHour.`);
+};
 
-assignPayouts();

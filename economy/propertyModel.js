@@ -8,7 +8,11 @@ const PropertySchema = new mongoose.Schema({
   price: Number,
   stashBonus: Number,
   ownerId: { type: String, default: null },
-  purchaseDate: Date
+  purchaseDate: Date,
+
+  // ✅ NEW FIELDS
+  name: { type: String, default: null }, // e.g., "📦 Corner Supply Co."
+  type: { type: String, default: null }  // optional: could be used for filtering later
 });
 
 module.exports = mongoose.model('Property', PropertySchema);

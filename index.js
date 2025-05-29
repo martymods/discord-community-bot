@@ -8728,6 +8728,12 @@ client.commands.set('lab', require('./commands/lab'));
 client.commands.set('combine', require('./commands/combine'));
 client.commands.set('craftbook', require('./commands/craftbook'));
 
+client.commands.set('testpayouts', {
+  async execute(message) {
+    const { runForUser } = require('./tools/autoBusinessIncome');
+    await runForUser(message.author.id, message.guild.id, message);
+  }
+});
 
 
 // ✅ Automatically trigger mule if player is overstocked

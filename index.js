@@ -8735,6 +8735,96 @@ client.commands.set('testpayouts', {
   }
 });
 
+client.commands.set('payoutall', {
+  async execute(message) {
+    // ✅ Only admins can run this
+    if (!message.member.permissions.has('Administrator')) {
+      return message.reply("⛔ Only server admins can run this.");
+    }
+
+    const Property = require('./economy/propertyModel');
+    const { addCash } = require('./economy/currency');
+
+    const allProps = await Property.find({ ownerId: { $ne: null } });
+
+    if (!allProps.length) {
+      return message.reply("📭 No business owners to pay out.");
+    }
+
+    const payouts = new Map(); // Map<userId, { total, businesses: [{ name, payout }] }>
+
+    for (const prop of allProps) {
+      const payout = prop.payoutPerHour || 0;
+      if (!payout) continue;
+
+      const data = payouts.get(prop.ownerId) || { total: 0, businesses: [] };
+      data.total += payout;
+      data.businesses.push({ name: prop.name || prop.id, payout });
+      payouts.set(prop.ownerId, data);
+    }
+
+    // Send DMs & Apply Cash
+    const results = [];
+
+    for (const [userId, { total, businesses }] of payouts.entries()) {
+      const user = await message.guild.members.fetch(userId).catch(() => null);
+      if (!user) continue;
+
+      await addCash(userId, message.guild.id, total);
+
+      // Send DM
+      try {
+        await user.send({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle("💰 Daily Business Income")
+              .setDescription(`You earned **$${total.toLocaleString()}** from ${businesses.length} business${businesses.length > 1 ? 'es' : ''}.`)
+              .addFields(
+                businesses.map(biz => ({
+                  name: biz.name,
+                  value: `💸 $${biz.payout.toLocaleString()}`,
+                  inline: true
+                }))
+              )
+              .setColor("#33cc99")
+              .setFooter({ text: "Dreamworld Payout Engine" })
+          ]
+        });
+      } catch (err) {
+        console.log(`❌ Failed to DM ${user.user.username}: ${err.message}`);
+      }
+
+      results.push({
+        name: user.user.username,
+        amount: total,
+        count: businesses.length
+      });
+    }
+
+    // Summary Embed in #bank
+    const summaryEmbed = new EmbedBuilder()
+      .setTitle("🏦 Business Payout Report")
+      .setDescription("Today's payouts from owned businesses:")
+      .addFields(
+        results.map(r => ({
+          name: `👤 ${r.name}`,
+          value: `🏢 ${r.count} businesses\n💸 $${r.amount.toLocaleString()}`,
+          inline: false
+        }))
+      )
+      .setColor("#ffaa00")
+      .setFooter({ text: "Manual payout triggered by admin" });
+
+    // Post to #bank
+    const bankChannel = message.guild.channels.cache.find(c => c.name === 'bank');
+    if (bankChannel) {
+      bankChannel.send({ embeds: [summaryEmbed] });
+    }
+
+    message.reply("✅ Payouts complete. DMs sent. Summary posted to #bank.");
+  }
+});
+
 
 // ✅ Automatically trigger mule if player is overstocked
 async function maybeSpawnMule(client, userId, guildId, channel) {

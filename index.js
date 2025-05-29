@@ -8737,13 +8737,13 @@ client.commands.set('testpayouts', {
 
 client.commands.set('payoutall', {
   async execute(message) {
-    // ✅ Only admins can run this
     if (!message.member.permissions.has('Administrator')) {
       return message.reply("⛔ Only server admins can run this.");
     }
 
     const Property = require('./economy/propertyModel');
-    const { addCash } = require('./economy/currency');
+    const { addCash, getBalance } = require('./economy/currency');
+    const { EmbedBuilder } = require('discord.js');
 
     const allProps = await Property.find({ ownerId: { $ne: null } });
 
@@ -8751,11 +8751,14 @@ client.commands.set('payoutall', {
       return message.reply("📭 No business owners to pay out.");
     }
 
-    const payouts = new Map(); // Map<userId, { total, businesses: [{ name, payout }] }>
+    const payouts = new Map();
 
     for (const prop of allProps) {
       const payout = prop.payoutPerHour || 0;
-      if (!payout) continue;
+      if (!payout || payout <= 0) {
+        console.log(`⚠️ SKIPPED: ${prop.name} (${prop.id}) — Invalid payout`);
+        continue;
+      }
 
       const data = payouts.get(prop.ownerId) || { total: 0, businesses: [] };
       data.total += payout;
@@ -8763,16 +8766,28 @@ client.commands.set('payoutall', {
       payouts.set(prop.ownerId, data);
     }
 
-    // Send DMs & Apply Cash
     const results = [];
 
     for (const [userId, { total, businesses }] of payouts.entries()) {
       const user = await message.guild.members.fetch(userId).catch(() => null);
-      if (!user) continue;
+      if (!user) {
+        console.log(`❌ Could not fetch user ${userId}`);
+        continue;
+      }
 
+      const oldBalance = await getBalance(userId, message.guild.id);
       await addCash(userId, message.guild.id, total);
+      const newBalance = await getBalance(userId, message.guild.id);
 
-      // Send DM
+      console.log(`✅ Payout for ${user.user.tag} (${userId})`);
+      console.log(`→ Starting Balance: $${oldBalance.toLocaleString()}`);
+      businesses.forEach(b => {
+        console.log(`🏢 ${b.name}: +$${b.payout.toLocaleString()}`);
+      });
+      console.log(`→ Total Paid: $${total.toLocaleString()}`);
+      console.log(`→ New Balance: $${newBalance.toLocaleString()}`);
+      console.log('---');
+
       try {
         await user.send({
           embeds: [
@@ -8791,7 +8806,7 @@ client.commands.set('payoutall', {
           ]
         });
       } catch (err) {
-        console.log(`❌ Failed to DM ${user.user.username}: ${err.message}`);
+        console.log(`📪 Failed to DM ${user.user.tag}: ${err.message}`);
       }
 
       results.push({
@@ -8801,7 +8816,7 @@ client.commands.set('payoutall', {
       });
     }
 
-    // Summary Embed in #bank
+    // 📊 Summary Embed
     const summaryEmbed = new EmbedBuilder()
       .setTitle("🏦 Business Payout Report")
       .setDescription("Today's payouts from owned businesses:")
@@ -8815,13 +8830,12 @@ client.commands.set('payoutall', {
       .setColor("#ffaa00")
       .setFooter({ text: "Manual payout triggered by admin" });
 
-    // Post to #bank
     const bankChannel = message.guild.channels.cache.find(c => c.name === 'bank');
     if (bankChannel) {
       bankChannel.send({ embeds: [summaryEmbed] });
     }
 
-    message.reply("✅ Payouts complete. DMs sent. Summary posted to #bank.");
+    message.reply("✅ Payouts complete. Logs printed to console. Summary posted to #bank.");
   }
 });
 

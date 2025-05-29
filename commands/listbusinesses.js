@@ -1,4 +1,4 @@
-// 📜 commands/listbusinesses.js
+// 📜 commands/listbusinesses.js (UPDATED FOR .name FIELD)
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const Property = require('../economy/propertyModel');
 const { getBalance, removeCash } = require('../economy/currency');
@@ -16,7 +16,7 @@ module.exports = {
     const renderEmbed = (index) => {
       const prop = all[index];
       const embed = new EmbedBuilder()
-        .setTitle(`🏢 ${prop.type} — ${prop.id}`)
+        .setTitle(`🏢 ${prop.name || prop.type || prop.id}`)
         .setDescription(`
 📍 **Location**: ${prop.area}
 🏷️ **Tier**: ${prop.tier}
@@ -72,5 +72,4 @@ function formatEvent(type) {
     clearance_sale: "💵 Clearance Sale (Fast Boost + Heat)"
   };
   return events[type] || 'No special event.';
-} 
- 
+}

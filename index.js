@@ -4736,7 +4736,7 @@ if (customId.startsWith('crime_risk_') || customId.startsWith('crime_safe_')) {
     }
   }
 
-// 🔥 NPC Buyer Sell Handler (FULL UPDATED + Enhancement & Rare Support)
+// 🔥 NPC Buyer Sell Handler (RARE & PURITY AWARE)
 if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
   try {
     await interaction.deferReply({ ephemeral: true });
@@ -4749,9 +4749,13 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
     const profile = await DealerProfile.findOne({ userId: user.id, guildId: interaction.guildId });
     if (!profile) return interaction.editReply({ content: "❌ You don’t have any profile. Use `!dealer` first." });
 
-    const inv = profile.inventory instanceof Map
-      ? Object.fromEntries(profile.inventory)
-      : { ...profile.inventory };
+    if (!profile.enhancements) profile.enhancements = {};
+    if (!(profile.inventory instanceof Map)) {
+      profile.inventory = new Map(Object.entries(profile.inventory));
+    }
+
+    const inv = Object.fromEntries(profile.inventory);
+    const enhancementLevel = profile.enhancements[drugId] || 0;
 
     if (!inv[drugId] || inv[drugId] <= 0) {
       return interaction.editReply({ content: "❌ You don’t have enough to sell." });
@@ -4771,6 +4775,7 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
 
     if (!buyer) return interaction.editReply({ content: "❌ That buyer is gone." });
 
+    // ⛔ Mood Block
     if (isBlocked(user.id, buyer.name)) {
       return interaction.editReply({
         content: `🚫 ${buyer.name} refuses to deal with you. Mood too low.`,
@@ -4782,29 +4787,29 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
       return interaction.editReply({ content: `❌ You need ${buyer.quantity} ${drugId} to sell.` });
     }
 
+    // 🔒 Rare drugs must be explicitly requested
+    const rareOnlyDrugs = ['rainbow_acid', 'ultra_meth', 'god_shrooms', 'void_heroin'];
+    if (rareOnlyDrugs.includes(drugId) && buyer.drug !== drugId) {
+      return interaction.editReply({ content: `❌ ${buyer.name} is not asking for ${drugId}.` });
+    }
+
+    // 📏 Purity Requirement (Optional)
+    if (buyer.minPurity && enhancementLevel < buyer.minPurity) {
+      return interaction.editReply({
+        content: `❌ ${buyer.name} only accepts **Purity ${buyer.minPurity}+** ${drugId}. You have level ${enhancementLevel}.`
+      });
+    }
+
     const prices = profile.prices instanceof Map
       ? profile.prices
       : new Map(Object.entries(profile.prices));
     const basePrice = prices.get(drugId) || 100;
 
-    // 🌟 Purity Enhancement Multiplier
-    const enhancementLevel = profile.enhancements?.[drugId] || 0;
-    const purityMultiplier = 1 + (enhancementLevel * 0.25); // 25% per level
-
-    // 🌈 Rare Mutations Multiplier
-    const rareDrugBase = {
-      rainbow_acid: 5000,
-      ultra_meth: 7500,
-      god_shrooms: 6200,
-      void_heroin: 9000
-    };
-    const isRareDrug = rareDrugBase.hasOwnProperty(drugId);
-    const adjustedBasePrice = isRareDrug ? rareDrugBase[drugId] : basePrice * purityMultiplier;
-
-    // 🌡️ Apply Mood Bonus
+    // 🌡️ Mood Modifier
     const mood = getMood(user.id, buyer.name);
     const moodEffect = getMoodEffect(mood);
-    const moodAdjustedPayout = Math.floor(adjustedBasePrice * buyer.bonus * buyer.quantity * moodEffect);
+    const purityMultiplier = 1 + (enhancementLevel * 0.25);
+    const moodAdjustedPayout = Math.floor(basePrice * buyer.bonus * buyer.quantity * moodEffect * purityMultiplier);
 
     await addCash(user.id, interaction.guildId, moodAdjustedPayout);
     inv[drugId] -= buyer.quantity;
@@ -4832,26 +4837,15 @@ if (customId.startsWith('npc_sell_') || customId.startsWith('npc_dm_sell_')) {
       cancelPrivateWindow(user.id, buyer.name);
     }
 
-    const resultMsg = `💸 Sold ${buyer.quantity}x ${drugId.toUpperCase()} to **${buyer.name}** for **$${moodAdjustedPayout}**`;
-    const note = isRareDrug ? '🌈 Rare item bonus applied!' : enhancementLevel > 0 ? `⭐ Purity Level: ${enhancementLevel}` : '';
-    console.log('[NPC SELL COMPLETE]', {
-      user: user.id,
-      drugId,
-      enhancementLevel,
-      isRareDrug,
-      adjustedBasePrice,
-      moodEffect,
-      payout: moodAdjustedPayout
+    await interaction.editReply({
+      content: `💸 Sold ${buyer.quantity}x ${drugId.toUpperCase()} (Purity ${enhancementLevel}) to **${buyer.name}** for **$${moodAdjustedPayout}**`
     });
-
-    await interaction.editReply({ content: `${resultMsg}\n${note}` });
 
     await maybeSpawnMule(interaction.client, user.id, interaction.guildId, interaction.channel);
 
     if (!isDM && shouldDM(user.id, buyer)) {
       await spawnPrivateBuyer(interaction.client, user, buyer);
     }
-
   } catch (err) {
     console.error('❌ NPC Sell Error:', err);
     if (!interaction.replied) {
@@ -8667,6 +8661,49 @@ client.commands.set('enhance', {
     }
   }
 });
+
+// 🧩 PATCH MISSING BUSINESS NAMES ONCE (ONLY RUN IF NEEDED)
+(async () => {
+  try {
+    const Property = require('./economy/propertyModel');
+    const existing = await Property.findOne({ name: { $ne: null } });
+    if (!existing) {
+      console.log("🚧 No business names detected. Running one-time patch...");
+
+      const names = [
+        "📦 Corner Supply Co.", "🥡 Late Night Bodega", "🧯 Urban Auto Garage", "🍔 StackBurger Stand",
+        "🧺 QuickWash Laundry", "🛠️ Rustbelt Repair Shop", "🧃 Juice & Boost Bar", "🪙 Pawn Power",
+        "🚖 Hustle Cab Service", "🕹️ Retro Arcade Express", "🍗 Hot Wings Central", "🎒 Backpack Hustlers LLC",
+        "🎮 Used Game Traders", "🧼 Squeaky Clean Detailing", "📀 Mixtape Distribution Co.",
+        "🍦 Icebox Deluxe Parlor", "📱 Burner Phone Outlet", "🪩 LED Party Supply", "🧃 Trap Smoothie Lab",
+        "🥇 Grime Gold Exchange", "🔐 VaultSide Lock & Key", "🛢️ Gas-N-Go Chain", "🐍 Serpent Sneaker Plug",
+        "🧃 Hood Energy Drink Co.", "🏀 Street Legend Gym", "💈 Fade Up Barbershop", "🔌 Stream Scheme Studios",
+        "🚨 Bail Bonds Unlimited", "🎯 Risky Bets Casino", "🔥 Heat Merchandising Inc.",
+        "⛓️ Hustle & Flow Trucking", "🏗️ Foundation Flips LLC", "🧠 ThinkFast Ad Agency",
+        "📦 GrimeLogix Logistics", "🐾 Exotic Pet Broker", "🍬 OffBrand Candy Labs", "🎤 Mic Check Studios",
+        "🏬 TrapMall Retail Inc.", "🛰️ Dark Web Services", "💊 MetaMeds Pharma", "💼 Crypto Grit Exchange",
+        "🎥 GrimeFlix Originals", "🌆 Hustle Housing Group", "📊 Flex Metrics Analytics",
+        "🧳 Passport Hustlers Intl", "🧬 Clone Life Biotech", "🧿 Vision Vault Syndicate",
+        "🚁 DreamAir Luxury Travel", "🧱 Pyramid Ventures Corp", "💽 DataFarm Underground",
+        "👁️ The Network HQ", "⚖️ Underworld Finance Inc.", "🪙 GhostBank Holdings",
+        "🧠 AI Syndicate Systems", "🏛️ Dreamworld Capital"
+      ];
+
+      const all = await Property.find({}).sort({ price: 1 });
+      for (let i = 0; i < all.length && i < names.length; i++) {
+        all[i].name = names[i];
+        await all[i].save();
+        console.log(`🔁 Patched ${all[i].id} → ${names[i]}`);
+      }
+
+      console.log(`✅ Patched ${all.length} business names`);
+    } else {
+      console.log("✅ Business names already exist. No patch needed.");
+    }
+  } catch (err) {
+    console.error("❌ Business name patch error:", err);
+  }
+})();
 
 
 client.commands.set('grantbank', require('./commands/grantbank'));

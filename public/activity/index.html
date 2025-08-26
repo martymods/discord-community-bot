@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Dreamworld Typing (Discord)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { overflow:auto; }
+    .panel { background: rgba(0,0,0,.6); padding:12px; border-radius:12px; }
+    .input { width:100%; font:inherit; padding:.6rem .8rem; border-radius:10px; border:1px solid #7e00ff33; background:#0b0013; color:#e0caff; outline:none }
+    .btn { margin-top:.6rem; padding:.6rem .9rem; border-radius:10px; background:#7e00ff; color:white; border:0; cursor:pointer }
+    .leaderboard-item { display:flex; gap:.5rem; align-items:center }
+    .leaderboard-item img { width:24px; height:24px; border-radius:50% }
+  </style>
+</head>
+<body>
+  <h2>Dreamworld Typing — Discord</h2>
+  <div id="bg"></div>
+
+  <div id="word-display-container">
+    <div id="word-display">Loading…</div>
+  </div>
+
+  <div class="panel" style="max-width:520px; width:100%;">
+    <div id="timer">⏱️ 12</div>
+    <form id="answer-form">
+      <input id="answer" class="input" placeholder="Type the word and press Enter…" autocomplete="off" />
+      <button class="btn" type="submit">Submit</button>
+    </form>
+  </div>
+
+  <div id="leaderboard" class="panel" style="max-width:520px; width:100%;"></div>
+
+  <script type="module">
+    import DiscordSDK from "https://cdn.discordapp.com/embedded-apps/sdk/3.0.0/discord.js";
+
+    // --- Discord SDK handshake (identify the player in-app) ---
+    const clientId = "{{APP_ID}}"; // replaced at serve time if you want; fine to leave as string
+    const discordSdk = new DiscordSDK(clientId);
+    await discordSdk.ready();
+
+    // Minimal authorize → authenticate (identify only)
+    let user = { id: 'anon', username: 'Guest', avatar: '' };
+    try {
+      const { code } = await discordSdk.commands.authorize({
+        client_id: clientId,
+        response_type: 'code',
+        scope: ['identify']
+      });
+      const token = await discordSdk.commands.authenticate({ code });
+      if (token.user) {
+        user = {
+          id: token.user.id,
+          username: token.user.username,
+          avatar: token.user.avatar ? `https://cdn.discordapp.com/avatars/${token.user.id}/${token.user.avatar}.png` : ''
+        };
+      }
+    } catch (e) {
+      // If auth fails, continue as Guest (you can gateplay if you prefer)
+      console.warn('Discord auth failed; continuing as guest', e);
+    }
+
+    // --- Game logic (ported from your script, but with an input instead of TikFinity chat) ---
+    const socket = io(); // same origin
+    const wordDisplay = document.getElementById('word-display');
+    const leaderboardDiv = document.getElementById('leaderboard');
+    const timerDisplay = document.getElementById('timer');
+    const answerForm = document.getElementById('answer-form');
+    const answerInput = document.getElementById('answer');
+
+    const deathSounds = ["/sounds/PillDeathSound.mp3","/sounds/PillDeathSound0.mp3","/sounds/PillDeathSound1.mp3","/sounds/PillDeathSound2.mp3","/sounds/PillDeathSound3.mp3"];
+    const pillImage = document.createElement("img");
+    pillImage.id = "pillImage";
+    pillImage.src = "/photos/Character_Pill_1_AIM.gif";
+    document.getElementById("word-display-container").appendChild(pillImage);
+
+    let currentWord = '';
+    let countdown = 12;
+    let wordTimer;
+
+    // reuse your weighted picker & animation conventions
+    const easyWords   = ['Glow','Club','Beat','Crowd','Neon','Vibe','Loop','Code','Tap','Ring'];
+    const mediumWords = ['Voltage','Silencer','Daydream','Overclock','Spectrum','Phantom'];
+    const hardWords   = ['Psychoacoustics','Anthropocene','Hyperconvergence','Transcendental'];
+
+    function pickRandomWord() {
+      const r = Math.random();
+      if (r < 0.6) return easyWords[Math.floor(Math.random()*easyWords.length)];
+      if (r < 0.9) return mediumWords[Math.floor(Math.random()*mediumWords.length)];
+      return hardWords[Math.floor(Math.random()*hardWords.length)];
+    }
+
+    function startCountdown() {
+      clearInterval(wordTimer);
+      countdown = 12;
+      timerDisplay.textContent = `⏱️ ${countdown}`;
+      wordTimer = setInterval(() => {
+        countdown--;
+        if (countdown >= 0) timerDisplay.textContent = `⏱️ ${countdown}`;
+        else clearInterval(wordTimer);
+      }, 1000);
+    }
+
+    function displayWord() {
+      currentWord = pickRandomWord();
+      wordDisplay.textContent = currentWord;
+      // scale anim similar to your main page
+      wordDisplay.style.transition = 'none';
+      pillImage.style.transition = 'none';
+      wordDisplay.style.opacity = '0';
+      pillImage.style.opacity = '0';
+      wordDisplay.style.transform = 'scale(1)';
+      pillImage.style.transform = 'translate(-50%, -50%) scale(1)';
+      void wordDisplay.offsetWidth;
+      wordDisplay.style.transition = 'transform 10s ease-in-out, opacity 1s ease-in';
+      pillImage.style.transition = 'transform 10s ease-in-out, opacity 1s ease-in';
+      wordDisplay.style.opacity = '1';
+      pillImage.style.opacity = '1';
+      wordDisplay.style.transform = 'scale(3)';
+      pillImage.style.transform = 'translate(-50%, -50%) scale(3)';
+      // difficulty color
+      let color = 'white';
+      if (currentWord.length <= 5) color = 'limegreen';
+      else if (currentWord.length <= 8) color = 'gold';
+      else color = 'red';
+      wordDisplay.style.color = color;
+
+      startCountdown();
+      setTimeout(displayWord, 12000);
+      answerInput.value = '';
+      answerInput.focus();
+    }
+
+    answerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const guess = answerInput.value.trim();
+      if (!guess) return;
+      if (guess.toLowerCase() === currentWord.toLowerCase()) {
+        // ✅ same server path you already use
+        socket.emit('correct-word', {
+          username: user.username,
+          profilePic: user.avatar
+        });
+        // mini feedback (borrow from your effects)
+        pillImage.src = "/photos/Character_Pill_1_DEATH.gif";
+        new Audio(deathSounds[Math.floor(Math.random()*deathSounds.length)]).play();
+        setTimeout(() => { pillImage.src = "/photos/Character_Pill_1_AIM.gif"; }, 800);
+      }
+      answerInput.value = '';
+    });
+
+    socket.on('leaderboard-update', (leaderboard) => {
+      leaderboardDiv.innerHTML = leaderboard.map(p =>
+        `<div class="leaderboard-item">
+           <img src="${p.profilePic || ''}" alt="${p.username || ''}" />
+           <strong>${p.username}</strong>: ${p.points}
+         </div>`
+      ).join('');
+    });
+
+    displayWord();
+  </script>
+</body>
+</html>

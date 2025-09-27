@@ -532,6 +532,22 @@ const client = new Client({
 });
 
 client.commands = new Collection(); // ✅ ADD THIS LINE
+client.slashCommands = new Collection();
+
+const slashCommandFiles = fs
+  .readdirSync(path.join(__dirname, 'commands'))
+  .filter(file => file.endsWith('_Slash.js'));
+
+for (const file of slashCommandFiles) {
+  try {
+    const commandModule = require(path.join(__dirname, 'commands', file));
+    if (commandModule?.data?.name && typeof commandModule.execute === 'function') {
+      client.slashCommands.set(commandModule.data.name, commandModule);
+    }
+  } catch (err) {
+    console.error(`❌ Failed to load slash command from ${file}:`, err);
+  }
+}
 
 
 
@@ -3508,8 +3524,30 @@ client.on('messageCreate', async (message) => {
 });
 
 client.on('interactionCreate', async interaction => {
-  
+
   try {
+    if (interaction.isChatInputCommand()) {
+      const slashCommand = interaction.client.slashCommands?.get(interaction.commandName);
+      if (!slashCommand) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '❌ That command is not available.', ephemeral: true }).catch(() => {});
+        }
+        return;
+      }
+
+      try {
+        await slashCommand.execute(interaction);
+      } catch (commandError) {
+        console.error(`❌ Slash command ${interaction.commandName} failed:`, commandError);
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply({ content: '❌ Something went wrong running that command.' }).catch(() => {});
+        } else {
+          await interaction.reply({ content: '❌ Something went wrong running that command.', ephemeral: true }).catch(() => {});
+        }
+      }
+      return;
+    }
+
     if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
     const { customId, user, message } = interaction;

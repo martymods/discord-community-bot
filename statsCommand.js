@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const { getPlayerStats, syncStatPointsWithLevel } = require('./utils/statUtils');
 const buildStatButtons = require('./components/statsButtons');
-const Levels = require('discord-xp');
+const Levels = require('./economy/xpRewards');
 
 module.exports = {
   name: 'stats',

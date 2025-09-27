@@ -1,6 +1,6 @@
 // discord-community-bot/economy/dealerProfileModel.js
 
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const dealerProfileSchema = new mongoose.Schema({
   userId: { type: String, required: true },

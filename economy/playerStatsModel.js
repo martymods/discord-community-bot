@@ -1,5 +1,5 @@
 // economy/playerStatsModel.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const schema = new mongoose.Schema({
   userId: String,

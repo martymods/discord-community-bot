@@ -1,5 +1,4 @@
 // 📁 tools/assignBusinessPayouts.js
-const mongoose = require('mongoose');
 const Property = require('../economy/propertyModel');
 
 module.exports = async function assignBusinessPayouts() {

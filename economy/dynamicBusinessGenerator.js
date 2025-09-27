@@ -1,5 +1,5 @@
 // 📈 economy/dynamicBusinessGenerator.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 const Property = require('./propertyModel');
 
 const businessTypes = [

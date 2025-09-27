@@ -18,12 +18,10 @@
     "axios": "^1.9.0",
     "cheerio": "^1.0.0",
     "discord-player": "^7.1.0",
-    "discord-xp": "^1.1.16",
     "discord.js": "^14.18.0",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "ffmpeg-static": "^5.2.0",
-    "mongoose": "^8.13.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^2.6.11",
     "openai": "^4.97.0",
@@ -33,4 +31,3 @@
     "ytdl-core": "^4.11.5"
   }
 }
-

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const purchaseSchema = new mongoose.Schema({
   userId: String,

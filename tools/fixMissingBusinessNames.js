@@ -1,7 +1,5 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 const Property = require('../economy/propertyModel');
-
-const MONGO_URI = 'mongodb+srv://martmods:FsTuWhnJnPsaY4VX@tiktikwordgamecluster.ymb4b.mongodb.net/tiktokgame?retryWrites=true&w=majority&appName=TikTikWordGameCluster';
 
 const fallbackNames = [
   "📦 Corner Supply Co.", "🥡 Late Night Bodega", "🧯 Urban Auto Garage", "🍔 StackBurger Stand",
@@ -22,22 +20,17 @@ const fallbackNames = [
   "🧠 AI Syndicate Systems", "🏛️ Dreamworld Capital"
 ];
 
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
 async function fixMissingNames() {
-const properties = await Property.find({
-  $or: [
-    { name: null },
-    { name: '' },
-    { name: { $exists: false } }
-  ]
-}).sort({ price: 1 });
+  await mongoose.connect();
+  const properties = await Property.find({
+    $or: [
+      { name: null },
+      { name: '' },
+      { name: { $exists: false } }
+    ]
+  }).sort({ price: 1 });
 
-console.log(`🔍 Found ${properties.length} properties missing names`);
-
+  console.log(`🔍 Found ${properties.length} properties missing names`);
 
   let updated = 0;
   for (let i = 0; i < properties.length && i < fallbackNames.length; i++) {
@@ -49,7 +42,7 @@ console.log(`🔍 Found ${properties.length} properties missing names`);
   }
 
   console.log(`\n🎯 Total patched: ${updated}`);
-  mongoose.connection.close();
+  await mongoose.disconnect();
 }
 
 fixMissingNames();

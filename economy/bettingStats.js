@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 // SAFELY reuse model
 const schema = new mongoose.Schema({

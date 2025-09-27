@@ -493,8 +493,14 @@ function getHeatRank(value) {
 const app = require('./keep_alive');
 
 // now it's safe to add this 👇
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/sharedphotos', express.static('public/sharedphotos'));
+
+app.get('/activity/config.json', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ clientId: process.env.ACTIVITY_APP_ID || null });
+});
 
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
@@ -504,6 +510,10 @@ app.get('/dashboard/state', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json(dashboardState.getState(client));
 });
+
+// Embedded activity sync routes
+const gameSync = require('./server/api/gameSync');
+app.use('/api/game', gameSync);
 
 // Webhooks & Keep Alive
 

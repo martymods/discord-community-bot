@@ -5,7 +5,6 @@
   <title>Dreamworld Typing (Discord)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/style.css" />
-  <script src="/socket.io/socket.io.js"></script>
   <style>
     body { overflow:auto; }
     .panel { background: rgba(0,0,0,.6); padding:12px; border-radius:12px; }
@@ -36,60 +35,51 @@
   <script type="module">
     import DiscordSDK from "https://cdn.discordapp.com/embedded-apps/sdk/3.0.0/discord.js";
 
-    // --- Discord SDK handshake (identify the player in-app) ---
-    const clientId = "{{APP_ID}}"; // replaced at serve time if you want; fine to leave as string
-    const discordSdk = new DiscordSDK(clientId);
-    await discordSdk.ready();
-
-    // Minimal authorize → authenticate (identify only)
-    let user = { id: 'anon', username: 'Guest', avatar: '' };
-    try {
-      const { code } = await discordSdk.commands.authorize({
-        client_id: clientId,
-        response_type: 'code',
-        scope: ['identify']
-      });
-      const token = await discordSdk.commands.authenticate({ code });
-      if (token.user) {
-        user = {
-          id: token.user.id,
-          username: token.user.username,
-          avatar: token.user.avatar ? `https://cdn.discordapp.com/avatars/${token.user.id}/${token.user.avatar}.png` : ''
-        };
-      }
-    } catch (e) {
-      // If auth fails, continue as Guest (you can gateplay if you prefer)
-      console.warn('Discord auth failed; continuing as guest', e);
-    }
-
-    // --- Game logic (ported from your script, but with an input instead of TikFinity chat) ---
-    const socket = io(); // same origin
     const wordDisplay = document.getElementById('word-display');
     const leaderboardDiv = document.getElementById('leaderboard');
     const timerDisplay = document.getElementById('timer');
     const answerForm = document.getElementById('answer-form');
     const answerInput = document.getElementById('answer');
 
-    const deathSounds = ["/sounds/PillDeathSound.mp3","/sounds/PillDeathSound0.mp3","/sounds/PillDeathSound1.mp3","/sounds/PillDeathSound2.mp3","/sounds/PillDeathSound3.mp3"];
+    const deathSounds = [
+      "/sounds/PillDeathSound.mp3",
+      "/sounds/PillDeathSound0.mp3",
+      "/sounds/PillDeathSound1.mp3",
+      "/sounds/PillDeathSound2.mp3",
+      "/sounds/PillDeathSound3.mp3"
+    ];
+
     const pillImage = document.createElement("img");
     pillImage.id = "pillImage";
     pillImage.src = "/photos/Character_Pill_1_AIM.gif";
     document.getElementById("word-display-container").appendChild(pillImage);
 
-    let currentWord = '';
-    let countdown = 12;
-    let wordTimer;
-
-    // reuse your weighted picker & animation conventions
     const easyWords   = ['Glow','Club','Beat','Crowd','Neon','Vibe','Loop','Code','Tap','Ring'];
     const mediumWords = ['Voltage','Silencer','Daydream','Overclock','Spectrum','Phantom'];
     const hardWords   = ['Psychoacoustics','Anthropocene','Hyperconvergence','Transcendental'];
+
+    const rewards = {
+      easy:  { cash: 50,  xp: 5 },
+      medium:{ cash: 120, xp: 15 },
+      hard:  { cash: 300, xp: 40 }
+    };
+
+    let currentWord = '';
+    let countdown = 12;
+    let wordTimer;
 
     function pickRandomWord() {
       const r = Math.random();
       if (r < 0.6) return easyWords[Math.floor(Math.random()*easyWords.length)];
       if (r < 0.9) return mediumWords[Math.floor(Math.random()*mediumWords.length)];
       return hardWords[Math.floor(Math.random()*hardWords.length)];
+    }
+
+    function difficultyFor(word) {
+      if (!word) return 'easy';
+      if (word.length <= 5) return 'easy';
+      if (word.length <= 8) return 'medium';
+      return 'hard';
     }
 
     function startCountdown() {
@@ -103,10 +93,13 @@
       }, 1000);
     }
 
+    function scheduleNextWord() {
+      setTimeout(displayWord, 12000);
+    }
+
     function displayWord() {
       currentWord = pickRandomWord();
       wordDisplay.textContent = currentWord;
-      // scale anim similar to your main page
       wordDisplay.style.transition = 'none';
       pillImage.style.transition = 'none';
       wordDisplay.style.opacity = '0';
@@ -120,47 +113,169 @@
       pillImage.style.opacity = '1';
       wordDisplay.style.transform = 'scale(3)';
       pillImage.style.transform = 'translate(-50%, -50%) scale(3)';
-      // difficulty color
-      let color = 'white';
-      if (currentWord.length <= 5) color = 'limegreen';
-      else if (currentWord.length <= 8) color = 'gold';
-      else color = 'red';
-      wordDisplay.style.color = color;
+
+      const difficulty = difficultyFor(currentWord);
+      if (difficulty === 'easy') wordDisplay.style.color = 'limegreen';
+      else if (difficulty === 'medium') wordDisplay.style.color = 'gold';
+      else wordDisplay.style.color = 'red';
 
       startCountdown();
-      setTimeout(displayWord, 12000);
+      scheduleNextWord();
       answerInput.value = '';
       answerInput.focus();
     }
 
-    answerForm.addEventListener('submit', (e) => {
-      e.preventDefault();
+    function renderEmptyLeaderboard(message) {
+      leaderboardDiv.innerHTML = `<p style="margin:0;">${message}</p>`;
+    }
+
+    async function refreshLeaderboard(guildId) {
+      if (!guildId) {
+        renderEmptyLeaderboard('Join this activity from a Discord server to see the live leaderboard.');
+        return;
+      }
+      try {
+        const response = await fetch(`/api/game/leaderboard/${guildId}?limit=8`, { cache: 'no-store' });
+        if (!response.ok) throw new Error('bad status');
+        const payload = await response.json();
+        const entries = payload?.leaderboard || [];
+        if (!entries.length) {
+          renderEmptyLeaderboard('Be the first to earn rewards and top the board.');
+          return;
+        }
+        leaderboardDiv.innerHTML = entries.map((entry, index) => {
+          const rank = index + 1;
+          const pic = entry.avatar || '';
+          const name = entry.username || `Player ${rank}`;
+          const cash = entry.totalCashAwarded ?? 0;
+          const xp = entry.totalXpAwarded ?? 0;
+          return `
+            <div class="leaderboard-item">
+              ${pic ? `<img src="${pic}" alt="${name}" />` : '<span style="width:24px;height:24px;display:inline-block"></span>'}
+              <strong>#${rank} ${name}</strong>
+              <span style="margin-left:auto;">💰 ${cash.toLocaleString()} • ⭐ ${xp.toLocaleString()}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Failed to load leaderboard', err);
+        renderEmptyLeaderboard('Leaderboard temporarily unavailable.');
+      }
+    }
+
+    async function bootstrapDiscord() {
+      let clientId = '';
+      try {
+        const configRes = await fetch('/activity/config.json', { cache: 'no-store' });
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg?.clientId) clientId = cfg.clientId;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch activity config', err);
+      }
+
+      const discordSdk = new DiscordSDK(clientId || '0');
+      try {
+        await discordSdk.ready();
+      } catch (err) {
+        console.warn('Discord SDK failed to become ready', err);
+      }
+
+      let context = {};
+      try {
+        context = await discordSdk.commands.getContext();
+      } catch (err) {
+        console.warn('Unable to fetch Discord context', err);
+      }
+
+      let userInfo = context?.user || null;
+      let accessToken = null;
+
+      if (clientId) {
+        try {
+          const { code } = await discordSdk.commands.authorize({
+            client_id: clientId,
+            response_type: 'code',
+            scope: ['identify']
+          });
+          const token = await discordSdk.commands.authenticate({ client_id: clientId, code });
+          if (token?.user) userInfo = token.user;
+          if (token?.access_token) accessToken = token.access_token;
+        } catch (err) {
+          console.warn('Discord auth failed; continuing as guest', err);
+        }
+      }
+
+      const guildId = context?.guild?.id || null;
+      const username = userInfo?.global_name || userInfo?.username || 'Guest';
+      const avatar = userInfo?.avatar
+        ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
+        : '';
+
+      window.__discord = {
+        userId: userInfo?.id || null,
+        guildId,
+        accessToken,
+        username,
+        avatar
+      };
+
+      await refreshLeaderboard(guildId);
+      return window.__discord;
+    }
+
+    function localCelebrate() {
+      pillImage.src = "/photos/Character_Pill_1_DEATH.gif";
+      new Audio(deathSounds[Math.floor(Math.random()*deathSounds.length)]).play();
+      setTimeout(() => { pillImage.src = "/photos/Character_Pill_1_AIM.gif"; }, 800);
+    }
+
+    async function awardDiscordProgress(difficulty) {
+      const identity = window.__discord || {};
+      if (!identity.userId || !identity.guildId || !identity.accessToken) {
+        return;
+      }
+
+      const reward = rewards[difficulty] || rewards.easy;
+      try {
+        await fetch('/api/game/award', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: identity.userId,
+            guildId: identity.guildId,
+            cash: reward.cash,
+            xp: reward.xp,
+            unlocks: difficulty === 'hard' ? ['legendary_typer'] : [],
+            accessToken: identity.accessToken,
+            username: identity.username,
+            avatar: identity.avatar
+          })
+        });
+        await refreshLeaderboard(identity.guildId);
+      } catch (err) {
+        console.error('Failed to sync award to Discord bot', err);
+      }
+    }
+
+    answerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
       const guess = answerInput.value.trim();
       if (!guess) return;
       if (guess.toLowerCase() === currentWord.toLowerCase()) {
-        // ✅ same server path you already use
-        socket.emit('correct-word', {
-          username: user.username,
-          profilePic: user.avatar
-        });
-        // mini feedback (borrow from your effects)
-        pillImage.src = "/photos/Character_Pill_1_DEATH.gif";
-        new Audio(deathSounds[Math.floor(Math.random()*deathSounds.length)]).play();
-        setTimeout(() => { pillImage.src = "/photos/Character_Pill_1_AIM.gif"; }, 800);
+        const diff = difficultyFor(currentWord);
+        localCelebrate();
+        await awardDiscordProgress(diff);
       }
       answerInput.value = '';
     });
 
-    socket.on('leaderboard-update', (leaderboard) => {
-      leaderboardDiv.innerHTML = leaderboard.map(p =>
-        `<div class="leaderboard-item">
-           <img src="${p.profilePic || ''}" alt="${p.username || ''}" />
-           <strong>${p.username}</strong>: ${p.points}
-         </div>`
-      ).join('');
-    });
-
+    await bootstrapDiscord();
     displayWord();
+    setInterval(() => {
+      if (window.__discord?.guildId) refreshLeaderboard(window.__discord.guildId);
+    }, 30000);
   </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // 📦 Updated models/Dog.js (MongoDB Schema)
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const dogSchema = new mongoose.Schema({
   userId: String,

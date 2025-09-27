@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 const { v4: uuidv4 } = require('uuid');
 
 const matchSchema = new mongoose.Schema({

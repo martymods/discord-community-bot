@@ -1,7 +1,7 @@
 process.on('unhandledRejection', err => console.error('❌ Unhandled Rejection:', err));
 process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
 const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, } = require('discord.js');
-const mongoose = require('mongoose');
+const mongoose = require('./utils/localMongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
@@ -1794,11 +1794,10 @@ client.commands.set('tips', {
 });
 
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('MongoDB Connected'));
+// Initialize local data store
+mongoose.connect().then(() => console.log('Local data store ready')).catch(err => {
+  console.error('Failed to initialize local data store:', err);
+});
 
 
 

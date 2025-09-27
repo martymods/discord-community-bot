@@ -1,5 +1,5 @@
 // 📁 models/FashionModel.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const fashionItemSchema = new mongoose.Schema({
   id: String,               // Unique item ID, e.g., 'fashion_gucci_jacket'

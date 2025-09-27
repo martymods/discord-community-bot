@@ -1,5 +1,5 @@
 // economy/bettingStatsModel.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const BettingStatsSchema = new mongoose.Schema({
   userId: String,

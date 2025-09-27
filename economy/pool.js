@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const poolSchema = new mongoose.Schema({
   guildId: String,

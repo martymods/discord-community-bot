@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const xpSchema = new mongoose.Schema({
   userId: String,

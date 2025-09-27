@@ -1,5 +1,5 @@
 // 📁 economy/propertyModel.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const PropertySchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },

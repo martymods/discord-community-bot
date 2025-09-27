@@ -1,6 +1,6 @@
 // /economy/deathSystem.js
 
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 const { EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
 const PlayerStats = require('./playerStatsModel');
 const Inventory = require('./inventory');

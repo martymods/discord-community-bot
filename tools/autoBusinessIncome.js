@@ -1,5 +1,4 @@
 // 📁 tools/autoBusinessIncome.js (Enhanced Logging for Testing)
-const mongoose = require('mongoose');
 const Property = require('../economy/propertyModel');
 const { addCash } = require('../economy/currency');
 

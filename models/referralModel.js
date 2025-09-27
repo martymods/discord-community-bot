@@ -1,5 +1,5 @@
 // models/referralModel.js
-const mongoose = require('mongoose');
+const mongoose = require('../utils/localMongoose');
 
 const referralSchema = new mongoose.Schema({
   userId: String, // Referrer

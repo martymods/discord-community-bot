@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
 const { getBalance, addCash, removeCash } = require("../economy/currency");
-const Levels = require("discord-xp");
+const Levels = require("../economy/xpRewards");
 
 const xpPerTier = {
   10: 2,

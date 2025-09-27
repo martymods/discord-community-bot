@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dreamworld Console Viewer</title>
+    <link rel="stylesheet" href="/dashboard/style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="hero">
+        <div class="hero__status">
+          <div class="hero__light" id="bot-status-indicator"></div>
+          <div>
+            <h1>Dreamworld Live Control Room</h1>
+            <p class="hero__subtitle">
+              Discord is the console. This dashboard is the TV. Watch every system heartbeat in real time.
+            </p>
+          </div>
+        </div>
+        <div class="hero__meta">
+          <div>
+            <span class="label">Last update</span>
+            <span class="value" id="last-updated">—</span>
+          </div>
+          <div>
+            <span class="label">Uptime</span>
+            <span class="value" id="bot-uptime">—</span>
+          </div>
+          <div>
+            <span class="label">Latency</span>
+            <span class="value" id="bot-ping">—</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="card card--wide" id="bot-overview">
+          <h2>Bot Overview</h2>
+          <div class="bot-overview__content">
+            <div class="bot-overview__identity">
+              <img id="bot-avatar" alt="Bot avatar" class="bot-overview__avatar" />
+              <div>
+                <h3 id="bot-name">—</h3>
+                <p id="bot-id" class="muted">—</p>
+                <p id="bot-ready" class="muted">Status: —</p>
+              </div>
+            </div>
+            <div class="bot-overview__guilds">
+              <h4>Connected Guilds</h4>
+              <ul id="guild-list" class="list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="activity-feed">
+          <div class="card__header">
+            <h2>Live Activity</h2>
+            <span class="badge" id="activity-count">0</span>
+          </div>
+          <div class="activity-log" id="activity-log"></div>
+        </section>
+
+        <section class="card card--wide" id="command-directory">
+          <div class="card__header">
+            <h2>Command Directory</h2>
+            <div class="command-search">
+              <input type="text" id="command-search" placeholder="Search command" aria-label="Search commands" />
+              <span class="badge" id="command-count">0</span>
+            </div>
+          </div>
+          <div class="commands" id="command-list"></div>
+        </section>
+
+        <section class="card" id="maps-overview">
+          <div class="card__header">
+            <h2>Feature Maps</h2>
+            <span class="badge" id="map-count">0</span>
+          </div>
+          <div class="maps" id="maps-container"></div>
+        </section>
+
+        <section class="card" id="dataset-overview">
+          <div class="card__header">
+            <h2>Live Data Snapshots</h2>
+            <span class="badge" id="dataset-count">0</span>
+          </div>
+          <div class="datasets" id="dataset-container"></div>
+        </section>
+
+        <section class="card card--wide" id="asset-gallery">
+          <div class="card__header">
+            <h2>Shared Assets</h2>
+          </div>
+          <div class="assets" id="asset-container"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="activity-template">
+      <article class="activity">
+        <div class="activity__meta">
+          <span class="activity__type"></span>
+          <span class="activity__time"></span>
+        </div>
+        <div class="activity__body"></div>
+      </article>
+    </template>
+
+    <template id="command-template">
+      <article class="command">
+        <header>
+          <h3 class="command__name"></h3>
+          <div class="command__meta"></div>
+        </header>
+        <p class="command__description"></p>
+        <div class="command__details"></div>
+      </article>
+    </template>
+
+    <script src="/dashboard/app.js" type="module"></script>
+  </body>
+</html>

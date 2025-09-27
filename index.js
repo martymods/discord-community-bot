@@ -112,15 +112,84 @@ const { isPlayerDead, getTimeUntilRespawn, resetHP } = require('./economy/deathS
 const { handleLabButton } = require('./handlers/labButtons');
 const { enhanceDrug } = require('./economy/drugEnhance');
 const { getDrugName } = require('./utils/drugList');
+const dashboardState = require('./utils/dashboardState');
 
 
 
 global.bountyMap = global.bountyMap || new Map();
 global.dogshop = global.dogshop || new Map(); // ✅ Add this here
 
+dashboardState.registerMap('bountyMap', global.bountyMap);
+dashboardState.registerMap('dogshop', global.dogshop);
+
 let rotatingShop = [];
 let nextRotationTimestamp = Date.now() + 20 * 60 * 1000; // 20 minutes from now
 let lastShopMessage = null;
+
+dashboardState.registerMap('stealCooldowns', stealCooldowns);
+dashboardState.registerMap('wantedMap', wantedMap);
+dashboardState.registerMap('hideoutMap', hideoutMap);
+dashboardState.registerMap('hideoutFreeCooldownMap', hideoutFreeCooldownMap);
+dashboardState.registerMap('crimeStreaks', crimeStreaks);
+dashboardState.registerMap('heatMap', heatMap);
+dashboardState.registerMap('pvpTasks', pvpTasks);
+dashboardState.registerMap('survivalAchievements', survivalAchievements);
+dashboardState.registerMap('playerAchievements', playerAchievements);
+dashboardState.registerMap('pvpStats', pvpStats);
+dashboardState.registerMap('crimeBadges', crimeBadges);
+dashboardState.registerMap('gangMap', gangMap);
+dashboardState.registerMap('turfZones', turfZones);
+dashboardState.registerMap('turfRaidCooldowns', turfRaidCooldowns);
+dashboardState.registerMap('turfFortifications', turfFortifications);
+dashboardState.registerMap('scavengeCooldowns', scavengeCooldowns);
+dashboardState.registerMap('winStreaks', winStreaks);
+dashboardState.registerMap('fireBuffs', fireBuffs);
+dashboardState.registerMap('lootboxCooldowns', lootboxCooldowns);
+dashboardState.registerMap('itemComboTracker', itemComboTracker);
+dashboardState.registerMap('comboBuffs', comboBuffs);
+dashboardState.registerMap('raidStrikes', raidStrikes);
+dashboardState.registerMap('prisonUsers', prisonUsers);
+dashboardState.registerMap('prisonBalances', prisonBalances);
+dashboardState.registerMap('prisonQuests', prisonQuests);
+dashboardState.registerMap('buyerLoyalty', buyerLoyalty);
+dashboardState.registerMap('privateBuyTimers', privateBuyTimers);
+dashboardState.registerMap('deliveryLoyalty', deliveryLoyalty);
+dashboardState.registerMap('strayDogs', strayDogs);
+dashboardState.registerMap('activeBulkBuyers', activeBulkBuyers);
+dashboardState.registerMap('activeBuyers', activeBuyers);
+dashboardState.registerMap('dogMap', dogMap);
+dashboardState.registerMap('streaks', streaks);
+dashboardState.registerMap('blackjackTables', blackjackTables);
+dashboardState.registerMap('cooldowns', cooldowns);
+dashboardState.registerMap('activeCrimeData', activeCrimeData);
+
+dashboardState.registerAccessor('rotatingShop', () => ({
+  nextRotationTimestamp,
+  items: rotatingShop
+}));
+dashboardState.registerAccessor('coreTips', () => coreTips);
+dashboardState.registerAccessor('gangTips', () => gangTips);
+dashboardState.registerAccessor('bountyTips', () => bountyTips);
+dashboardState.registerAccessor('prisonTips', () => prisonTips);
+dashboardState.registerAccessor('xpPerTier', () => xpPerTier);
+dashboardState.registerAccessor('robberMoods', () => robberMoods);
+dashboardState.registerAccessor('todaySnipes', () => todaySnipes);
+
+dashboardState.registerStaticDirectory(
+  'sharedPhotos',
+  path.join(__dirname, 'public/sharedphotos'),
+  '/sharedphotos'
+);
+dashboardState.registerStaticDirectory(
+  'activityAssets',
+  path.join(__dirname, 'public/activity'),
+  '/activity'
+);
+dashboardState.registerStaticDirectory(
+  'sfxAssets',
+  path.join(__dirname, 'public/sfx'),
+  '/sfx'
+);
 
 
 const coreTips = [
@@ -373,6 +442,10 @@ function rotateShop() {
   }
 
   nextRotationTimestamp = Date.now() + 20 * 60 * 1000;
+  dashboardState.recordEvent('rotatingShopUpdated', {
+    itemCount: rotatingShop.length,
+    nextRotationTimestamp
+  });
 }
 
 function getSeedYield(seedId) {
@@ -420,7 +493,17 @@ function getHeatRank(value) {
 const app = require('./keep_alive');
 
 // now it's safe to add this 👇
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/sharedphotos', express.static('public/sharedphotos'));
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+});
+
+app.get('/dashboard/state', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(dashboardState.getState(client));
+});
 
 // Webhooks & Keep Alive
 
@@ -448,6 +531,10 @@ global.client = client; // So Stripe/Paypal access your client
 global.lootboxCooldowns = global.lootboxCooldowns || new Map();
 global.lootboxProfiles = global.lootboxProfiles || new Map();
 global.comboBuffs = global.comboBuffs || new Map();
+
+dashboardState.registerMap('globalLootboxCooldowns', global.lootboxCooldowns);
+dashboardState.registerMap('globalLootboxProfiles', global.lootboxProfiles);
+dashboardState.registerMap('globalComboBuffs', global.comboBuffs);
 
 const { getBalance, addCash, removeCash } = require('./economy/currency');
 const games = require('./economy/games');
@@ -1721,6 +1808,10 @@ console.log("📦 Registered commands:", Array.from(client.commands.keys()).join
 // Bot Ready
 client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
+  dashboardState.recordEvent('botReady', {
+    tag: client.user.tag,
+    guilds: client.guilds.cache.size
+  });
   startNPCBuyers(client); // ✅ Now it's safe!
   rotateSnipers(); // ✅ keep this one
   require('./tools/assignBusinessPayouts')(); // TEMP RUN ONCE
@@ -1728,12 +1819,17 @@ client.once('ready', () => {
 });
 
 fetchFashionDrop(); // initial run
-setInterval(fetchFashionDrop, 1000 * 60 * 60); // refresh every hour
+dashboardState.recordEvent('fashionDropFetched', { source: 'initial' });
+setInterval(() => {
+  fetchFashionDrop();
+  dashboardState.recordEvent('fashionDropFetched', { source: 'interval' });
+}, 1000 * 60 * 60); // refresh every hour
 
 
 // Drama Timer
 setInterval(() => {
   triggerDrama(client);
+  dashboardState.recordEvent('dramaTick', { intervalMs: 60 * 60 * 1000 });
 }, 60 * 60 * 1000); // Every 1 hour
 
 
@@ -1911,6 +2007,7 @@ if (shouldTrigger) {
 
     const args = message.content.slice(1).split(/ +/);
     const command = args.shift().toLowerCase();
+    const commandArgs = [...args];
 // ⛓️ Prison Command Blocker
     if (isInPrison(message.author.id) && disabledWhileInPrison.includes(command)) {
       return message.reply('🚫 That command is disabled while you are in prison. Do your time.');
@@ -1956,13 +2053,57 @@ if (shouldTrigger) {
       console.log(`✅ Running command: ${command}`);
       try {
         await client.commands.get(command).execute(message, args, client); // ✅ Pass client here
-    
+        dashboardState.recordCommandEvent({
+          command,
+          user: {
+            id: message.author.id,
+            tag: message.author.tag,
+            username: message.author.username
+          },
+          guild: message.guild
+            ? { id: message.guild.id, name: message.guild.name }
+            : null,
+          channel: message.channel
+            ? { id: message.channel.id, name: message.channel.name }
+            : null,
+          args: commandArgs,
+          messageId: message.id
+        });
+
       } catch (err) {
         console.error(`❌ Error executing command ${command}:`, err);
+        dashboardState.recordCommandEvent({
+          command,
+          user: {
+            id: message.author.id,
+            tag: message.author.tag,
+            username: message.author.username
+          },
+          guild: message.guild
+            ? { id: message.guild.id, name: message.guild.name }
+            : null,
+          channel: message.channel
+            ? { id: message.channel.id, name: message.channel.name }
+            : null,
+          args: commandArgs,
+          messageId: message.id,
+          error: { message: err.message }
+        });
         message.reply("Something went wrong running that command.");
       }
     } else {
       console.warn(`⚠️ Unknown command: ${command}`);
+      dashboardState.recordEvent('unknownCommand', {
+        command,
+        user: {
+          id: message.author.id,
+          tag: message.author.tag,
+          username: message.author.username
+        },
+        guild: message.guild
+          ? { id: message.guild.id, name: message.guild.name }
+          : null
+      });
     }
 
     // Random Item Drop
@@ -5255,12 +5396,20 @@ function rotateSnipers() {
   const channel = client.channels.cache.get(FINANCE_CHANNEL_ID);
   const currentRotation = getSniperRotation();
 
+  if (!channel) {
+    dashboardState.recordEvent('rotateSnipers', { tickers: currentRotation, note: 'finance channel missing' });
+    return;
+  }
+
   if (!currentRotation.length) {
     channel.send("⚠️ No tickers found for rotation.");
+    dashboardState.recordEvent('rotateSnipers', { tickers: [], note: 'empty rotation' });
     return;
   }
 
   todaySnipes = currentRotation; // ✅ Save this for the interval scans
+
+  dashboardState.recordEvent('rotateSnipers', { tickers: currentRotation });
 
   channel.send(`🧠 **Daily Sniper Rotation Activated**\nTracking:\n${currentRotation.map(t => `• $${t}`).join('\n')}\n\nStay alert.`);
 
@@ -8783,6 +8932,7 @@ try {
 
 setInterval(() => {
   scanAllSnipers(client);
+  dashboardState.recordEvent('scanAllSnipers', { intervalMs: 144000 * 60 * 5 });
 }, 144000 * 60 * 5); // Every 5 minutes
 
 setInterval(() => {
@@ -8790,10 +8940,12 @@ setInterval(() => {
   for (const [id, end] of hideoutMap.entries()) {
     if (end <= now) hideoutMap.delete(id);
   }
+  dashboardState.recordEvent('hideoutSweep', { tracked: hideoutMap.size });
 }, 60 * 1000);
 
 setInterval(() => {
   updateBusinessPricesDaily();
+  dashboardState.recordEvent('businessPricesUpdated', { intervalMs: 20 * 60 * 1000 });
 }, 20 * 60 * 1000); // Rotate every 20 minutes
 
 setInterval(() => {
@@ -8804,6 +8956,7 @@ setInterval(() => {
       heatMap.set(userId, data);
     }
   }
+  dashboardState.recordEvent('heatDecay', { tracked: heatMap.size });
 }, 5 * 60 * 1000); // Check every 5 mins
 
 setInterval(() => {
@@ -8811,13 +8964,20 @@ setInterval(() => {
 }, 20 * 60 * 1000); // Rotate every 20 minutes
 
   // Scan every hour penny
-  setInterval(() => scanForPennySnipers(client), 60 * 60 * 1000); // every 60 mins
+  setInterval(() => {
+    scanForPennySnipers(client);
+    dashboardState.recordEvent('scanForPennySnipers', { intervalMs: 60 * 60 * 1000 });
+  }, 60 * 60 * 1000); // every 60 mins
 
   // Every 15 minutes peeny
-setInterval(() => checkForPriceSpikes(client), 15 * 60 * 1000);
+setInterval(() => {
+  checkForPriceSpikes(client);
+  dashboardState.recordEvent('checkForPriceSpikes', { intervalMs: 15 * 60 * 1000 });
+}, 15 * 60 * 1000);
 
 setInterval(() => {
   runAutoBusinessPayout(client);
+  dashboardState.recordEvent('autoBusinessPayout', { intervalMs: 1000 * 60 * 60 * 24 });
 }, 1000 * 60 * 60 * 24); // Every 24 hours
 
 startMatchVerificationInterval(300000); // every 5 mins

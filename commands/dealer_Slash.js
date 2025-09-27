@@ -1,6 +1,10 @@
 // commands/deal.js
 const {
-  SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  PermissionFlagsBits
 } = require('discord.js');
 
 module.exports = {
@@ -15,9 +19,25 @@ module.exports = {
 
     // Needs Create Invite on that voice channel
     try {
-      const invite = await voice.createInvite({
-        targetApplication: process.env.ACTIVITY_APP_ID, // your Discord App (Embedded App) ID
-        targetType: 2,                                   // 2 = Embedded Application
+      const applicationId = process.env.STREETWALK_APP_ID || process.env.ACTIVITY_APP_ID;
+      if (!applicationId) {
+        return interaction.reply({
+          content: '⚙️ Street Walk activity is not configured. Set STREETWALK_APP_ID (or ACTIVITY_APP_ID) and try again.',
+          ephemeral: true
+        });
+      }
+
+      const permissions = interaction.guild.members.me?.permissionsIn(voice);
+      if (permissions && !permissions.has(PermissionFlagsBits.CreateInstantInvite)) {
+        return interaction.reply({
+          content: '❌ I need the **Create Invite** permission in this voice channel to launch Street Walk.',
+          ephemeral: true
+        });
+      }
+
+      const invite = await interaction.guild.invites.create(voice.id, {
+        targetApplication: applicationId,
+        targetType: 2,
         maxAge: 86400,
         maxUses: 0
       });

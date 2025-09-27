@@ -1,16 +1,16 @@
-// commands/dealer.js
+// commands/deal.js
 const {
-  SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits
+  SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle
 } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('dealer')
-    .setDescription('Launch the Dreamworld Typing Game as a Discord activity'),
+    .setName('deal')
+    .setDescription('Launch the Street Walk experience inside Discord'),
   async execute(interaction) {
     const voice = interaction.member?.voice?.channel;
     if (!voice) {
-      return interaction.reply({ content: '👋 Join a voice channel first, then run /dealer.', ephemeral: true });
+      return interaction.reply({ content: '👋 Join a voice channel first, then run /deal.', ephemeral: true });
     }
 
     // Needs Create Invite on that voice channel
@@ -24,13 +24,13 @@ module.exports = {
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setLabel('Open Dreamworld Game')
+          .setLabel('Open Street Walk')
           .setStyle(ButtonStyle.Link)
           .setURL(`https://discord.com/invite/${invite.code}`)
       );
 
       return interaction.reply({
-        content: `🎮 Click to launch the game in **${voice.name}**`,
+        content: `🚶 Click to launch Street Walk in **${voice.name}**`,
         components: [row],
         ephemeral: true
       });

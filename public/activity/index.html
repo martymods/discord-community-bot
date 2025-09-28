@@ -1,281 +1,238 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Dreamworld Typing (Discord)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/style.css" />
-  <style>
-    body { overflow:auto; }
-    .panel { background: rgba(0,0,0,.6); padding:12px; border-radius:12px; }
-    .input { width:100%; font:inherit; padding:.6rem .8rem; border-radius:10px; border:1px solid #7e00ff33; background:#0b0013; color:#e0caff; outline:none }
-    .btn { margin-top:.6rem; padding:.6rem .9rem; border-radius:10px; background:#7e00ff; color:white; border:0; cursor:pointer }
-    .leaderboard-item { display:flex; gap:.5rem; align-items:center }
-    .leaderboard-item img { width:24px; height:24px; border-radius:50% }
-  </style>
-</head>
-<body>
-  <h2>Dreamworld Typing — Discord</h2>
-  <div id="bg"></div>
-
-  <div id="word-display-container">
-    <div id="word-display">Loading…</div>
-  </div>
-
-  <div class="panel" style="max-width:520px; width:100%;">
-    <div id="timer">⏱️ 12</div>
-    <form id="answer-form">
-      <input id="answer" class="input" placeholder="Type the word and press Enter…" autocomplete="off" />
-      <button class="btn" type="submit">Submit</button>
-    </form>
-  </div>
-
-  <div id="leaderboard" class="panel" style="max-width:520px; width:100%;"></div>
-
-  <script type="module">
-    import DiscordSDK from "https://cdn.discordapp.com/embedded-apps/sdk/3.0.0/discord.js";
-
-    const wordDisplay = document.getElementById('word-display');
-    const leaderboardDiv = document.getElementById('leaderboard');
-    const timerDisplay = document.getElementById('timer');
-    const answerForm = document.getElementById('answer-form');
-    const answerInput = document.getElementById('answer');
-
-    const deathSounds = [
-      "/sounds/PillDeathSound.mp3",
-      "/sounds/PillDeathSound0.mp3",
-      "/sounds/PillDeathSound1.mp3",
-      "/sounds/PillDeathSound2.mp3",
-      "/sounds/PillDeathSound3.mp3"
-    ];
-
-    const pillImage = document.createElement("img");
-    pillImage.id = "pillImage";
-    pillImage.src = "/photos/Character_Pill_1_AIM.gif";
-    document.getElementById("word-display-container").appendChild(pillImage);
-
-    const easyWords   = ['Glow','Club','Beat','Crowd','Neon','Vibe','Loop','Code','Tap','Ring'];
-    const mediumWords = ['Voltage','Silencer','Daydream','Overclock','Spectrum','Phantom'];
-    const hardWords   = ['Psychoacoustics','Anthropocene','Hyperconvergence','Transcendental'];
-
-    const rewards = {
-      easy:  { cash: 50,  xp: 5 },
-      medium:{ cash: 120, xp: 15 },
-      hard:  { cash: 300, xp: 40 }
-    };
-
-    let currentWord = '';
-    let countdown = 12;
-    let wordTimer;
-
-    function pickRandomWord() {
-      const r = Math.random();
-      if (r < 0.6) return easyWords[Math.floor(Math.random()*easyWords.length)];
-      if (r < 0.9) return mediumWords[Math.floor(Math.random()*mediumWords.length)];
-      return hardWords[Math.floor(Math.random()*hardWords.length)];
-    }
-
-    function difficultyFor(word) {
-      if (!word) return 'easy';
-      if (word.length <= 5) return 'easy';
-      if (word.length <= 8) return 'medium';
-      return 'hard';
-    }
-
-    function startCountdown() {
-      clearInterval(wordTimer);
-      countdown = 12;
-      timerDisplay.textContent = `⏱️ ${countdown}`;
-      wordTimer = setInterval(() => {
-        countdown--;
-        if (countdown >= 0) timerDisplay.textContent = `⏱️ ${countdown}`;
-        else clearInterval(wordTimer);
-      }, 1000);
-    }
-
-    function scheduleNextWord() {
-      setTimeout(displayWord, 12000);
-    }
-
-    function displayWord() {
-      currentWord = pickRandomWord();
-      wordDisplay.textContent = currentWord;
-      wordDisplay.style.transition = 'none';
-      pillImage.style.transition = 'none';
-      wordDisplay.style.opacity = '0';
-      pillImage.style.opacity = '0';
-      wordDisplay.style.transform = 'scale(1)';
-      pillImage.style.transform = 'translate(-50%, -50%) scale(1)';
-      void wordDisplay.offsetWidth;
-      wordDisplay.style.transition = 'transform 10s ease-in-out, opacity 1s ease-in';
-      pillImage.style.transition = 'transform 10s ease-in-out, opacity 1s ease-in';
-      wordDisplay.style.opacity = '1';
-      pillImage.style.opacity = '1';
-      wordDisplay.style.transform = 'scale(3)';
-      pillImage.style.transform = 'translate(-50%, -50%) scale(3)';
-
-      const difficulty = difficultyFor(currentWord);
-      if (difficulty === 'easy') wordDisplay.style.color = 'limegreen';
-      else if (difficulty === 'medium') wordDisplay.style.color = 'gold';
-      else wordDisplay.style.color = 'red';
-
-      startCountdown();
-      scheduleNextWord();
-      answerInput.value = '';
-      answerInput.focus();
-    }
-
-    function renderEmptyLeaderboard(message) {
-      leaderboardDiv.innerHTML = `<p style="margin:0;">${message}</p>`;
-    }
-
-    async function refreshLeaderboard(guildId) {
-      if (!guildId) {
-        renderEmptyLeaderboard('Join this activity from a Discord server to see the live leaderboard.');
-        return;
-      }
-      try {
-        const response = await fetch(`/api/game/leaderboard/${guildId}?limit=8`, { cache: 'no-store' });
-        if (!response.ok) throw new Error('bad status');
-        const payload = await response.json();
-        const entries = payload?.leaderboard || [];
-        if (!entries.length) {
-          renderEmptyLeaderboard('Be the first to earn rewards and top the board.');
-          return;
-        }
-        leaderboardDiv.innerHTML = entries.map((entry, index) => {
-          const rank = index + 1;
-          const pic = entry.avatar || '';
-          const name = entry.username || `Player ${rank}`;
-          const cash = entry.totalCashAwarded ?? 0;
-          const xp = entry.totalXpAwarded ?? 0;
-          return `
-            <div class="leaderboard-item">
-              ${pic ? `<img src="${pic}" alt="${name}" />` : '<span style="width:24px;height:24px;display:inline-block"></span>'}
-              <strong>#${rank} ${name}</strong>
-              <span style="margin-left:auto;">💰 ${cash.toLocaleString()} • ⭐ ${xp.toLocaleString()}</span>
-            </div>
-          `;
-        }).join('');
-      } catch (err) {
-        console.error('Failed to load leaderboard', err);
-        renderEmptyLeaderboard('Leaderboard temporarily unavailable.');
-      }
-    }
-
-    async function bootstrapDiscord() {
-      let clientId = '';
-      try {
-        const configRes = await fetch('/activity/config.json', { cache: 'no-store' });
-        if (configRes.ok) {
-          const cfg = await configRes.json();
-          if (cfg?.clientId) clientId = cfg.clientId;
-        }
-      } catch (err) {
-        console.warn('Failed to fetch activity config', err);
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Streetwalk Explorer — Discord</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark;
       }
 
-      const discordSdk = new DiscordSDK(clientId || '0');
-      try {
-        await discordSdk.ready();
-      } catch (err) {
-        console.warn('Discord SDK failed to become ready', err);
+      * {
+        box-sizing: border-box;
       }
 
-      let context = {};
-      try {
-        context = await discordSdk.commands.getContext();
-      } catch (err) {
-        console.warn('Unable to fetch Discord context', err);
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        background: radial-gradient(circle at 20% 20%, #1e0d3a, #05000f 55%, #02000a 100%);
+        color: #f4edff;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        padding: 32px 18px;
       }
 
-      let userInfo = context?.user || null;
-      let accessToken = null;
+      .layout {
+        width: 100%;
+        max-width: 1400px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
 
-      if (clientId) {
-        try {
-          const { code } = await discordSdk.commands.authorize({
-            client_id: clientId,
-            response_type: 'code',
-            scope: ['identify']
-          });
-          const token = await discordSdk.commands.authenticate({ client_id: clientId, code });
-          if (token?.user) userInfo = token.user;
-          if (token?.access_token) accessToken = token.access_token;
-        } catch (err) {
-          console.warn('Discord auth failed; continuing as guest', err);
+      .intro {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .intro h1 {
+        margin: 0;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700;
+      }
+
+      .intro p {
+        margin: 0 auto;
+        max-width: 720px;
+        line-height: 1.6;
+        color: #d5c6ff;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 0.65rem 1.4rem;
+        background: linear-gradient(135deg, #7e00ff, #b388ff);
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        box-shadow: 0 12px 30px rgba(126, 0, 255, 0.35);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .frame-wrapper {
+        position: relative;
+        flex: 1;
+        min-height: min(78vh, 880px);
+        border-radius: 24px;
+        overflow: hidden;
+        background: rgba(5, 0, 18, 0.85);
+        box-shadow: 0 40px 110px rgba(0, 0, 0, 0.55);
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+        background: #050013;
+      }
+
+      iframe.is-visible {
+        opacity: 1;
+      }
+
+      iframe.is-hidden {
+        opacity: 0;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 28px;
+        text-align: center;
+        background: rgba(3, 0, 12, 0.82);
+      }
+
+      .overlay[hidden] {
+        display: none;
+      }
+
+      .spinner {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.18);
+        border-top-color: #c59cff;
+        animation: spin 1.1s linear infinite;
+      }
+
+      .overlay p {
+        margin: 0;
+        color: #e7ddff;
+        line-height: 1.6;
+      }
+
+      .overlay p strong {
+        color: #ffffff;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
       }
 
-      const guildId = context?.guild?.id || null;
-      const username = userInfo?.global_name || userInfo?.username || 'Guest';
-      const avatar = userInfo?.avatar
-        ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
-        : '';
+      @media (max-width: 900px) {
+        body {
+          padding: 24px 12px;
+        }
 
-      window.__discord = {
-        userId: userInfo?.id || null,
-        guildId,
-        accessToken,
-        username,
-        avatar
+        .frame-wrapper {
+          min-height: 70vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="layout">
+      <section class="intro">
+        <h1>Streetwalk — Discord</h1>
+        <p>
+          Explore the live Streetwalk map directly inside Discord. Use the embedded window below to
+          navigate. If the site refuses to load inside Discord, you can open it in a new tab instead.
+        </p>
+        <div class="actions">
+          <button id="open-external" type="button">Open Streetwalk in Browser</button>
+        </div>
+      </section>
+
+      <section class="frame-wrapper">
+        <iframe
+          id="game-frame"
+          title="Streetwalk game window"
+          allow="fullscreen; geolocation"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+
+        <div id="loading-overlay" class="overlay">
+          <div class="spinner" aria-hidden="true"></div>
+          <p><strong>Loading Streetwalk…</strong><br />Hang tight while we pull the city online.</p>
+        </div>
+
+        <div id="fallback-overlay" class="overlay" hidden>
+          <p>
+            We couldn't embed Streetwalk automatically. Some browsers or permissions block external
+            sites inside Discord.<br /><strong>Use the button above to open it in a new tab.</strong>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      const GAME_URL = 'https://streetwalk-web.onrender.com/';
+      const frame = document.getElementById('game-frame');
+      const openExternalButton = document.getElementById('open-external');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const fallbackOverlay = document.getElementById('fallback-overlay');
+
+      frame.src = GAME_URL;
+
+      openExternalButton?.addEventListener('click', () => {
+        window.open(GAME_URL, '_blank', 'noopener');
+      });
+
+      let hasSettled = false;
+      const settleState = (loaded) => {
+        if (hasSettled) return;
+        hasSettled = true;
+
+        loadingOverlay?.setAttribute('hidden', '');
+
+        if (loaded) {
+          frame.classList.add('is-visible');
+          fallbackOverlay?.setAttribute('hidden', '');
+        } else {
+          frame.classList.add('is-hidden');
+          fallbackOverlay?.removeAttribute('hidden');
+        }
       };
 
-      await refreshLeaderboard(guildId);
-      return window.__discord;
-    }
+      const loadTimeout = setTimeout(() => settleState(false), 8000);
 
-    function localCelebrate() {
-      pillImage.src = "/photos/Character_Pill_1_DEATH.gif";
-      new Audio(deathSounds[Math.floor(Math.random()*deathSounds.length)]).play();
-      setTimeout(() => { pillImage.src = "/photos/Character_Pill_1_AIM.gif"; }, 800);
-    }
-
-    async function awardDiscordProgress(difficulty) {
-      const identity = window.__discord || {};
-      if (!identity.userId || !identity.guildId || !identity.accessToken) {
-        return;
-      }
-
-      const reward = rewards[difficulty] || rewards.easy;
-      try {
-        await fetch('/api/game/award', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: identity.userId,
-            guildId: identity.guildId,
-            cash: reward.cash,
-            xp: reward.xp,
-            unlocks: difficulty === 'hard' ? ['legendary_typer'] : [],
-            accessToken: identity.accessToken,
-            username: identity.username,
-            avatar: identity.avatar
-          })
-        });
-        await refreshLeaderboard(identity.guildId);
-      } catch (err) {
-        console.error('Failed to sync award to Discord bot', err);
-      }
-    }
-
-    answerForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const guess = answerInput.value.trim();
-      if (!guess) return;
-      if (guess.toLowerCase() === currentWord.toLowerCase()) {
-        const diff = difficultyFor(currentWord);
-        localCelebrate();
-        await awardDiscordProgress(diff);
-      }
-      answerInput.value = '';
-    });
-
-    await bootstrapDiscord();
-    displayWord();
-    setInterval(() => {
-      if (window.__discord?.guildId) refreshLeaderboard(window.__discord.guildId);
-    }, 30000);
-  </script>
-</body>
+      frame.addEventListener('load', () => {
+        clearTimeout(loadTimeout);
+        settleState(true);
+      });
+    </script>
+  </body>
 </html>

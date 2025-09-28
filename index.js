@@ -14,6 +14,7 @@ const {
 } = require('discord.js');
 const mongoose = require('./utils/localMongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
+const { registerStreetwalkProxy } = require('./server/activity/streetwalkProxy');
 const fs = require('fs');
 const stealCooldowns = new Map(); // userId → timestamp
 const wantedMap = new Map(); // userId -> { fails: Number, watched: Boolean }
@@ -507,6 +508,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/sharedphotos', express.static('public/sharedphotos'));
+
+registerStreetwalkProxy(app);
 
 const activityIndexFile = path.join(__dirname, 'public', 'activity', 'index.html');
 const activityIndexRoutes = [

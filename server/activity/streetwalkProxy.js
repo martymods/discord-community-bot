@@ -21,6 +21,16 @@ function rewriteStreetwalkHtml(html, proxyPrefix) {
   const prefix = proxyPrefix.endsWith('/') ? proxyPrefix.slice(0, -1) : proxyPrefix;
   const $ = cheerio.load(html, { decodeEntities: false });
 
+  const cspSelectors = [
+    'meta[http-equiv="Content-Security-Policy" i]',
+    'meta[http-equiv="X-Content-Security-Policy" i]',
+    'meta[http-equiv="Content-Security-Policy-Report-Only" i]'
+  ];
+
+  cspSelectors.forEach(selector => {
+    $(selector).remove();
+  });
+
   const rewriteUrl = value => {
     if (!value || typeof value !== 'string') {
       return value;

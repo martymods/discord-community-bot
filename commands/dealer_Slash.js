@@ -131,9 +131,17 @@ module.exports = {
           );
 
         if (allInvalidAppIds) {
+          const attemptedIdList = attemptedErrors
+            .map(attempt => attempt?.applicationId)
+            .filter(Boolean)
+            .map(id => `• ${id}`)
+            .join('\n');
+
           return interaction.editReply({
             content:
-              '❌ Discord rejected the Street Walk application ID. Double-check that STREETWALK_APP_ID is set to an embedded activity ID that your server has access to.',
+              '❌ Discord rejected the configured Street Walk activity IDs. ' +
+              'Ensure STREETWALK_APP_ID (or ACTIVITY_APP_ID) only contains embedded Activity IDs your server can launch.' +
+              (attemptedIdList ? `\n\nTried application IDs:\n${attemptedIdList}` : ''),
             components: []
           });
         }

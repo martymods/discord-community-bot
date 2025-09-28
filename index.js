@@ -505,7 +505,26 @@ const app = require('./keep_alive');
 // now it's safe to add this 👇
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/sharedphotos', express.static('public/sharedphotos'));
+
+const activityIndexFile = path.join(__dirname, 'public', 'activity', 'index.html');
+const activityIndexRoutes = [
+  '/activity',
+  '/activity/',
+  '/activity/index.html',
+  '/activity/index.html/',
+  '/public/activity',
+  '/public/activity/',
+  '/public/activity/index.html',
+  '/public/activity/index.html/'
+];
+
+for (const route of activityIndexRoutes) {
+  app.get(route, (req, res) => {
+    res.sendFile(activityIndexFile);
+  });
+}
 
 app.get('/activity/config.json', (req, res) => {
   res.set('Cache-Control', 'no-store');

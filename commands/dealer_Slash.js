@@ -102,7 +102,13 @@ module.exports = {
           break;
         } catch (err) {
           attemptedErrors.push({ applicationId, error: err });
-          console.error('[streetwalk] activity invite error', {
+          const isInvalidAppId =
+            err?.code === 50035 &&
+            typeof err?.message === 'string' &&
+            err.message.includes('GUILD_INVITE_INVALID_APPLICATION');
+          const log = isInvalidAppId ? console.warn : console.error;
+
+          log('[streetwalk] activity invite error', {
             guildId: interaction.guildId,
             channelId: voice.id,
             applicationId,
@@ -111,11 +117,7 @@ module.exports = {
             rawError: err
           });
 
-          if (
-            !(err?.code === 50035 &&
-            typeof err?.message === 'string' &&
-            err.message.includes('GUILD_INVITE_INVALID_APPLICATION'))
-          ) {
+          if (!isInvalidAppId) {
             throw err;
           }
         }
@@ -171,13 +173,27 @@ module.exports = {
     } catch (err) {
       console.error('[streetwalk] activity invite error', {
         guildId: interaction.guildId,
-        channelId: voice.id,
+        channelId: voice?.id ?? null,
         errorMessage: err?.message,
         errorCode: err?.code,
         rawError: err
       });
-      return interaction.editReply({
-        content: '❌ Unable to create activity invite. Check bot permissions.',
+
+      const missingCreateInvite = err?.code === 50013 || err?.code === 50001;
+      const errorContent = missingCreateInvite
+        ? '❌ I need the **Create Invite** permission for that voice channel before I can launch Street Walk.'
+        : '❌ Unable to create the Street Walk activity invite right now. Please check bot permissions and try again shortly.';
+
+      if (interaction.deferred || interaction.replied) {
+        return interaction.editReply({
+          content: errorContent,
+          components: []
+        });
+      }
+
+      return interaction.reply({
+        content: errorContent,
+        flags: MessageFlags.Ephemeral,
         components: []
       });
     }

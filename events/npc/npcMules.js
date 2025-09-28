@@ -55,7 +55,9 @@ async function spawnMule(client, user, guildId) {
   try {
     const profile = await Inventory.findOne({ userId: user.id, guildId });
     if (!profile || !profile.inventory) {
-      console.log(`[MULE SPAWN] No profile or inventory found.`);
+      if (process.env.DEBUG_MULE_SPAWN === 'true') {
+        console.debug(`[MULE SPAWN] No profile or inventory found.`);
+      }
       return;
     }
 

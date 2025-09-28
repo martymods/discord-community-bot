@@ -1,6 +1,16 @@
 process.on('unhandledRejection', err => console.error('❌ Unhandled Rejection:', err));
 process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
-const { Client, GatewayIntentBits, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, } = require('discord.js');
+const {
+  Client,
+  GatewayIntentBits,
+  Collection,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  REST,
+  Routes
+} = require('discord.js');
 const mongoose = require('./utils/localMongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
 const fs = require('fs');
@@ -1830,8 +1840,38 @@ console.log("📦 Registered commands:", Array.from(client.commands.keys()).join
 
 
 // Bot Ready
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
+
+  const slashCommands = Array.from(client.slashCommands?.values() || []);
+  const token = process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
+
+  if (!token) {
+    console.warn('⚠️ Skipping slash command registration: missing DISCORD_TOKEN/BOT_TOKEN.');
+  } else if (slashCommands.length) {
+    try {
+      const rest = new REST({ version: '10' }).setToken(token);
+      const appId = client.application?.id || client.user.id;
+      const route = process.env.GUILD_ID
+        ? Routes.applicationGuildCommands(appId, process.env.GUILD_ID)
+        : Routes.applicationCommands(appId);
+
+      await rest.put(route, {
+        body: slashCommands.map(command => command.data.toJSON())
+      });
+
+      console.log(
+        `✅ Registered ${slashCommands.length} slash command${slashCommands.length === 1 ? '' : 's'} ${
+          process.env.GUILD_ID ? '(guild scope)' : '(global scope)'
+        }.`
+      );
+    } catch (err) {
+      console.error('❌ Failed to register slash commands:', err);
+    }
+  } else {
+    console.log('ℹ️ No slash commands found to register.');
+  }
+
   dashboardState.recordEvent('botReady', {
     tag: client.user.tag,
     guilds: client.guilds.cache.size

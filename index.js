@@ -9,7 +9,8 @@ const {
   ButtonBuilder,
   ButtonStyle,
   REST,
-  Routes
+  Routes,
+  Events
 } = require('discord.js');
 const mongoose = require('./utils/localMongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
@@ -1840,7 +1841,7 @@ console.log("📦 Registered commands:", Array.from(client.commands.keys()).join
 
 
 // Bot Ready
-client.once('ready', async () => {
+client.once(Events.ClientReady, async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
   const slashCommands = Array.from(client.slashCommands?.values() || []);
@@ -1852,19 +1853,26 @@ client.once('ready', async () => {
     try {
       const rest = new REST({ version: '10' }).setToken(token);
       const appId = client.application?.id || client.user.id;
-      const route = process.env.GUILD_ID
-        ? Routes.applicationGuildCommands(appId, process.env.GUILD_ID)
-        : Routes.applicationCommands(appId);
+      const payload = { body: slashCommands.map(command => command.data.toJSON()) };
+      const guildIdsEnv = process.env.GUILD_IDS || process.env.GUILD_ID || '';
+      const guildIds = guildIdsEnv
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
 
-      await rest.put(route, {
-        body: slashCommands.map(command => command.data.toJSON())
-      });
-
-      console.log(
-        `✅ Registered ${slashCommands.length} slash command${slashCommands.length === 1 ? '' : 's'} ${
-          process.env.GUILD_ID ? '(guild scope)' : '(global scope)'
-        }.`
-      );
+      if (guildIds.length) {
+        for (const guildId of guildIds) {
+          await rest.put(Routes.applicationGuildCommands(appId, guildId), payload);
+          console.log(
+            `✅ Registered ${slashCommands.length} slash command${slashCommands.length === 1 ? '' : 's'} in guild ${guildId}.`
+          );
+        }
+      } else {
+        await rest.put(Routes.applicationCommands(appId), payload);
+        console.log(
+          `✅ Registered ${slashCommands.length} slash command${slashCommands.length === 1 ? '' : 's'} globally.`
+        );
+      }
     } catch (err) {
       console.error('❌ Failed to register slash commands:', err);
     }

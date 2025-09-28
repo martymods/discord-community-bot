@@ -1,4 +1,4 @@
-// commands/deal.js
+// commands/streetwalk.js
 const {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -9,12 +9,12 @@ const {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('deal')
+    .setName('streetwalk')
     .setDescription('Launch the Street Walk experience inside Discord'),
   async execute(interaction) {
     const voice = interaction.member?.voice?.channel;
     if (!voice) {
-      return interaction.reply({ content: '👋 Join a voice channel first, then run /deal.', ephemeral: true });
+      return interaction.reply({ content: '👋 Join a voice channel first, then run /streetwalk.', ephemeral: true });
     }
 
     // Needs Create Invite on that voice channel

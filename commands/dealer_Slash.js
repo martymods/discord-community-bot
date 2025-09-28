@@ -4,7 +4,8 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  MessageFlags
 } = require('discord.js');
 
 module.exports = {
@@ -24,8 +25,13 @@ module.exports = {
         guildId: interaction.guildId,
         userId: interaction.user?.id
       });
-      return interaction.reply({ content: '👋 Join a voice channel first, then run /streetwalk.', ephemeral: true });
+      return interaction.reply({
+        content: '👋 Join a voice channel first, then run /streetwalk.',
+        flags: MessageFlags.Ephemeral
+      });
     }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Needs Create Invite on that voice channel
     try {
@@ -34,9 +40,9 @@ module.exports = {
         console.error('[streetwalk] missing STREETWALK_APP_ID/ACTIVITY_APP_ID environment variable', {
           guildId: interaction.guildId
         });
-        return interaction.reply({
+        return interaction.editReply({
           content: '⚙️ Street Walk activity is not configured. Set STREETWALK_APP_ID (or ACTIVITY_APP_ID) and try again.',
-          ephemeral: true
+          components: []
         });
       }
 
@@ -48,9 +54,9 @@ module.exports = {
         permissions: permissions?.toArray?.() ?? null
       });
       if (permissions && !permissions.has(PermissionFlagsBits.CreateInstantInvite)) {
-        return interaction.reply({
+        return interaction.editReply({
           content: '❌ I need the **Create Invite** permission in this voice channel to launch Street Walk.',
-          ephemeral: true
+          components: []
         });
       }
 
@@ -80,10 +86,9 @@ module.exports = {
           .setURL(`https://discord.com/invite/${invite.code}`)
       );
 
-      return interaction.reply({
+      return interaction.editReply({
         content: `🚶 Click to launch Street Walk in **${voice.name}**`,
-        components: [row],
-        ephemeral: true
+        components: [row]
       });
     } catch (err) {
       console.error('[streetwalk] activity invite error', {
@@ -93,7 +98,22 @@ module.exports = {
         errorCode: err?.code,
         rawError: err
       });
-      return interaction.reply({ content: '❌ Unable to create activity invite. Check bot permissions.', ephemeral: true });
+      if (
+        err?.code === 50035 &&
+        typeof err?.message === 'string' &&
+        err.message.includes('GUILD_INVITE_INVALID_APPLICATION')
+      ) {
+        return interaction.editReply({
+          content:
+            '❌ Discord rejected the Street Walk application ID. Double-check that STREETWALK_APP_ID is set to an embedded activity ID that your server has access to.',
+          components: []
+        });
+      }
+
+      return interaction.editReply({
+        content: '❌ Unable to create activity invite. Check bot permissions.',
+        components: []
+      });
     }
   }
 };

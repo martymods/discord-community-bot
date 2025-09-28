@@ -12,8 +12,18 @@ module.exports = {
     .setName('streetwalk')
     .setDescription('Launch the Street Walk experience inside Discord'),
   async execute(interaction) {
+    console.log('[streetwalk] command invoked', {
+      guildId: interaction.guildId,
+      userId: interaction.user?.id,
+      channelId: interaction.channelId
+    });
+
     const voice = interaction.member?.voice?.channel;
     if (!voice) {
+      console.warn('[streetwalk] no voice channel detected for member', {
+        guildId: interaction.guildId,
+        userId: interaction.user?.id
+      });
       return interaction.reply({ content: '👋 Join a voice channel first, then run /streetwalk.', ephemeral: true });
     }
 
@@ -21,6 +31,9 @@ module.exports = {
     try {
       const applicationId = process.env.STREETWALK_APP_ID || process.env.ACTIVITY_APP_ID;
       if (!applicationId) {
+        console.error('[streetwalk] missing STREETWALK_APP_ID/ACTIVITY_APP_ID environment variable', {
+          guildId: interaction.guildId
+        });
         return interaction.reply({
           content: '⚙️ Street Walk activity is not configured. Set STREETWALK_APP_ID (or ACTIVITY_APP_ID) and try again.',
           ephemeral: true
@@ -28,6 +41,12 @@ module.exports = {
       }
 
       const permissions = interaction.guild.members.me?.permissionsIn(voice);
+      console.log('[streetwalk] permission check', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        hasCreateInstantInvite: permissions?.has(PermissionFlagsBits.CreateInstantInvite) ?? null,
+        permissions: permissions?.toArray?.() ?? null
+      });
       if (permissions && !permissions.has(PermissionFlagsBits.CreateInstantInvite)) {
         return interaction.reply({
           content: '❌ I need the **Create Invite** permission in this voice channel to launch Street Walk.',
@@ -35,11 +54,23 @@ module.exports = {
         });
       }
 
+      console.log('[streetwalk] creating activity invite', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        applicationId
+      });
       const invite = await interaction.guild.invites.create(voice.id, {
         targetApplication: applicationId,
         targetType: 2,
         maxAge: 86400,
         maxUses: 0
+      });
+
+      console.log('[streetwalk] invite created successfully', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        inviteCode: invite?.code,
+        expiresAt: invite?.expiresAt
       });
 
       const row = new ActionRowBuilder().addComponents(
@@ -55,7 +86,13 @@ module.exports = {
         ephemeral: true
       });
     } catch (err) {
-      console.error('Activity invite error:', err);
+      console.error('[streetwalk] activity invite error', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        errorMessage: err?.message,
+        errorCode: err?.code,
+        rawError: err
+      });
       return interaction.reply({ content: '❌ Unable to create activity invite. Check bot permissions.', ephemeral: true });
     }
   }

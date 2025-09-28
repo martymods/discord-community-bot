@@ -8,6 +8,26 @@ const {
   MessageFlags
 } = require('discord.js');
 
+const KNOWN_STREETWALK_EMBEDDED_APP_ID = '1037680572660727848';
+
+function resolveStreetwalkAppIds() {
+  const envIds = [process.env.STREETWALK_APP_ID, process.env.ACTIVITY_APP_ID]
+    .filter(Boolean)
+    .flatMap(value =>
+      String(value)
+        .split(',')
+        .map(part => part.trim())
+        .filter(Boolean)
+    );
+
+  const ids = new Set(envIds);
+  if (KNOWN_STREETWALK_EMBEDDED_APP_ID && !ids.has(KNOWN_STREETWALK_EMBEDDED_APP_ID)) {
+    ids.add(KNOWN_STREETWALK_EMBEDDED_APP_ID);
+  }
+
+  return [...ids];
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('streetwalk')
@@ -35,8 +55,8 @@ module.exports = {
 
     // Needs Create Invite on that voice channel
     try {
-      const applicationId = process.env.STREETWALK_APP_ID || process.env.ACTIVITY_APP_ID;
-      if (!applicationId) {
+      const candidateAppIds = resolveStreetwalkAppIds();
+      if (!candidateAppIds.length) {
         console.error('[streetwalk] missing STREETWALK_APP_ID/ACTIVITY_APP_ID environment variable', {
           guildId: interaction.guildId
         });
@@ -60,21 +80,71 @@ module.exports = {
         });
       }
 
-      console.log('[streetwalk] creating activity invite', {
-        guildId: interaction.guildId,
-        channelId: voice.id,
-        applicationId
-      });
-      const invite = await interaction.guild.invites.create(voice.id, {
-        targetApplication: applicationId,
-        targetType: 2,
-        maxAge: 86400,
-        maxUses: 0
-      });
+      const attemptedErrors = [];
+      let invite = null;
+      let usedApplicationId = null;
+
+      for (const applicationId of candidateAppIds) {
+        console.log('[streetwalk] creating activity invite', {
+          guildId: interaction.guildId,
+          channelId: voice.id,
+          applicationId
+        });
+
+        try {
+          invite = await interaction.guild.invites.create(voice.id, {
+            targetApplication: applicationId,
+            targetType: 2,
+            maxAge: 86400,
+            maxUses: 0
+          });
+          usedApplicationId = applicationId;
+          break;
+        } catch (err) {
+          attemptedErrors.push({ applicationId, error: err });
+          console.error('[streetwalk] activity invite error', {
+            guildId: interaction.guildId,
+            channelId: voice.id,
+            applicationId,
+            errorMessage: err?.message,
+            errorCode: err?.code,
+            rawError: err
+          });
+
+          if (
+            !(err?.code === 50035 &&
+            typeof err?.message === 'string' &&
+            err.message.includes('GUILD_INVITE_INVALID_APPLICATION'))
+          ) {
+            throw err;
+          }
+        }
+      }
+
+      if (!invite) {
+        const allInvalidAppIds =
+          attemptedErrors.length > 0 &&
+          attemptedErrors.every(attempt =>
+            attempt?.error?.code === 50035 &&
+            typeof attempt?.error?.message === 'string' &&
+            attempt.error.message.includes('GUILD_INVITE_INVALID_APPLICATION')
+          );
+
+        if (allInvalidAppIds) {
+          return interaction.editReply({
+            content:
+              '❌ Discord rejected the Street Walk application ID. Double-check that STREETWALK_APP_ID is set to an embedded activity ID that your server has access to.',
+            components: []
+          });
+        }
+
+        throw attemptedErrors.at(-1)?.error ?? new Error('streetwalk_invite_failed');
+      }
 
       console.log('[streetwalk] invite created successfully', {
         guildId: interaction.guildId,
         channelId: voice.id,
+        applicationId: usedApplicationId,
         inviteCode: invite?.code,
         expiresAt: invite?.expiresAt
       });
@@ -98,18 +168,6 @@ module.exports = {
         errorCode: err?.code,
         rawError: err
       });
-      if (
-        err?.code === 50035 &&
-        typeof err?.message === 'string' &&
-        err.message.includes('GUILD_INVITE_INVALID_APPLICATION')
-      ) {
-        return interaction.editReply({
-          content:
-            '❌ Discord rejected the Street Walk application ID. Double-check that STREETWALK_APP_ID is set to an embedded activity ID that your server has access to.',
-          components: []
-        });
-      }
-
       return interaction.editReply({
         content: '❌ Unable to create activity invite. Check bot permissions.',
         components: []

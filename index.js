@@ -296,8 +296,6 @@ turfZones.set("Warehouse", { owner: "bounty", lastRaid: 0 });
 
 require('dotenv').config();
 
-const fs = require('fs');
-
 
 
 // Helper: Convert XP to Level

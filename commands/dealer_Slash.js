@@ -7,6 +7,7 @@ const {
   PermissionFlagsBits,
   MessageFlags
 } = require('discord.js');
+const { logStreetwalkEvent } = require('../utils/streetwalkLogger');
 
 const KNOWN_STREETWALK_EMBEDDED_APP_ID = '1037680572660727848';
 
@@ -38,10 +39,19 @@ module.exports = {
       userId: interaction.user?.id,
       channelId: interaction.channelId
     });
+    logStreetwalkEvent('command_invoked', {
+      guildId: interaction.guildId,
+      userId: interaction.user?.id,
+      channelId: interaction.channelId
+    });
 
     const voice = interaction.member?.voice?.channel;
     if (!voice) {
       console.warn('[streetwalk] no voice channel detected for member', {
+        guildId: interaction.guildId,
+        userId: interaction.user?.id
+      });
+      logStreetwalkEvent('missing_voice_channel', {
         guildId: interaction.guildId,
         userId: interaction.user?.id
       });
@@ -60,6 +70,9 @@ module.exports = {
         console.error('[streetwalk] missing STREETWALK_APP_ID/ACTIVITY_APP_ID environment variable', {
           guildId: interaction.guildId
         });
+        logStreetwalkEvent('missing_app_id_configuration', {
+          guildId: interaction.guildId
+        });
         return interaction.editReply({
           content: '⚙️ Street Walk activity is not configured. Set STREETWALK_APP_ID (or ACTIVITY_APP_ID) and try again.',
           components: []
@@ -68,6 +81,12 @@ module.exports = {
 
       const permissions = interaction.guild.members.me?.permissionsIn(voice);
       console.log('[streetwalk] permission check', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        hasCreateInstantInvite: permissions?.has(PermissionFlagsBits.CreateInstantInvite) ?? null,
+        permissions: permissions?.toArray?.() ?? null
+      });
+      logStreetwalkEvent('permission_check', {
         guildId: interaction.guildId,
         channelId: voice.id,
         hasCreateInstantInvite: permissions?.has(PermissionFlagsBits.CreateInstantInvite) ?? null,
@@ -86,6 +105,11 @@ module.exports = {
 
       for (const applicationId of candidateAppIds) {
         console.log('[streetwalk] creating activity invite', {
+          guildId: interaction.guildId,
+          channelId: voice.id,
+          applicationId
+        });
+        logStreetwalkEvent('creating_activity_invite', {
           guildId: interaction.guildId,
           channelId: voice.id,
           applicationId
@@ -116,6 +140,13 @@ module.exports = {
             errorCode: err?.code,
             rawError: err
           });
+          logStreetwalkEvent('activity_invite_error', {
+            guildId: interaction.guildId,
+            channelId: voice.id,
+            applicationId,
+            errorMessage: err?.message,
+            errorCode: err?.code
+          });
 
           if (!isInvalidAppId) {
             throw err;
@@ -139,6 +170,14 @@ module.exports = {
             .map(id => `• ${id}`)
             .join('\n');
 
+          logStreetwalkEvent('all_activity_ids_invalid', {
+            guildId: interaction.guildId,
+            channelId: voice.id,
+            attemptedApplicationIds: attemptedErrors
+              .map(attempt => attempt?.applicationId)
+              .filter(Boolean)
+          });
+
           return interaction.editReply({
             content:
               '❌ Discord rejected the configured Street Walk activity IDs. ' +
@@ -152,6 +191,13 @@ module.exports = {
       }
 
       console.log('[streetwalk] invite created successfully', {
+        guildId: interaction.guildId,
+        channelId: voice.id,
+        applicationId: usedApplicationId,
+        inviteCode: invite?.code,
+        expiresAt: invite?.expiresAt
+      });
+      logStreetwalkEvent('invite_created', {
         guildId: interaction.guildId,
         channelId: voice.id,
         applicationId: usedApplicationId,
@@ -177,6 +223,12 @@ module.exports = {
         errorMessage: err?.message,
         errorCode: err?.code,
         rawError: err
+      });
+      logStreetwalkEvent('activity_invite_exception', {
+        guildId: interaction.guildId,
+        channelId: voice?.id ?? null,
+        errorMessage: err?.message,
+        errorCode: err?.code
       });
 
       const missingCreateInvite = err?.code === 50013 || err?.code === 50001;

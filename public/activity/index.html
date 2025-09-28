@@ -228,7 +228,17 @@
         }
       };
 
-      const loadTimeout = setTimeout(() => settleState(false), 12000);
+      const loadTimeout = setTimeout(() => settleState(false), 20000);
+
+      frame?.addEventListener('load', () => {
+        clearTimeout(loadTimeout);
+        settleState(true);
+      });
+
+      frame?.addEventListener('error', () => {
+        clearTimeout(loadTimeout);
+        settleState(false);
+      });
 
       window.addEventListener('message', (event) => {
         const payload = event?.data;

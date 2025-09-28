@@ -544,19 +544,45 @@ const client = new Client({
 client.commands = new Collection(); // ✅ ADD THIS LINE
 client.slashCommands = new Collection();
 
+const slashCommandsDir = path.join(__dirname, 'commands');
 const slashCommandFiles = fs
-  .readdirSync(path.join(__dirname, 'commands'))
+  .readdirSync(slashCommandsDir)
   .filter(file => file.endsWith('_Slash.js'));
 
 for (const file of slashCommandFiles) {
   try {
-    const commandModule = require(path.join(__dirname, 'commands', file));
+    const commandModule = require(path.join(slashCommandsDir, file));
     if (commandModule?.data?.name && typeof commandModule.execute === 'function') {
       client.slashCommands.set(commandModule.data.name, commandModule);
     }
   } catch (err) {
     console.error(`❌ Failed to load slash command from ${file}:`, err);
   }
+}
+
+function loadSlashCommandByName(commandName) {
+  try {
+    const files = fs
+      .readdirSync(slashCommandsDir)
+      .filter(file => file.endsWith('_Slash.js'));
+
+    for (const file of files) {
+      const fullPath = path.join(slashCommandsDir, file);
+      try {
+        const commandModule = require(fullPath);
+        if (commandModule?.data?.name === commandName && typeof commandModule.execute === 'function') {
+          client.slashCommands ??= new Collection();
+          client.slashCommands.set(commandName, commandModule);
+          return commandModule;
+        }
+      } catch (err) {
+        console.error(`❌ Failed to hot-load slash command from ${file}:`, err);
+      }
+    }
+  } catch (err) {
+    console.error('❌ Failed to search for slash commands:', err);
+  }
+  return null;
 }
 
 
@@ -3574,7 +3600,11 @@ client.on('interactionCreate', async interaction => {
 
   try {
     if (interaction.isChatInputCommand()) {
-      const slashCommand = interaction.client.slashCommands?.get(interaction.commandName);
+      let slashCommand = interaction.client.slashCommands?.get(interaction.commandName);
+      if (!slashCommand) {
+        slashCommand = loadSlashCommandByName(interaction.commandName);
+      }
+
       if (!slashCommand) {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({ content: '❌ That command is not available.', ephemeral: true }).catch(() => {});

@@ -199,7 +199,8 @@
     </main>
 
     <script type="module">
-      const GAME_URL = 'https://streetwalk-web.onrender.com/';
+      const GAME_URL = '/activity/streetwalk/';
+      const EXTERNAL_URL = 'https://streetwalk-web.onrender.com/';
       const frame = document.getElementById('game-frame');
       const openExternalButton = document.getElementById('open-external');
       const loadingOverlay = document.getElementById('loading-overlay');
@@ -208,7 +209,7 @@
       frame.src = GAME_URL;
 
       openExternalButton?.addEventListener('click', () => {
-        window.open(GAME_URL, '_blank', 'noopener');
+        window.open(EXTERNAL_URL, '_blank', 'noopener');
       });
 
       let hasSettled = false;
@@ -227,11 +228,19 @@
         }
       };
 
-      const loadTimeout = setTimeout(() => settleState(false), 8000);
+      const loadTimeout = setTimeout(() => settleState(false), 12000);
 
-      frame.addEventListener('load', () => {
-        clearTimeout(loadTimeout);
-        settleState(true);
+      window.addEventListener('message', (event) => {
+        const payload = event?.data;
+        if (!payload || typeof payload !== 'object') return;
+
+        if (payload.type === 'streetwalk-proxy-ready') {
+          clearTimeout(loadTimeout);
+          settleState(true);
+        } else if (payload.type === 'streetwalk-proxy-error') {
+          clearTimeout(loadTimeout);
+          settleState(false);
+        }
       });
     </script>
   </body>

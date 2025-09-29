@@ -10,7 +10,8 @@ const {
   ButtonStyle,
   REST,
   Routes,
-  Events
+  Events,
+  PermissionFlagsBits
 } = require('discord.js');
 const mongoose = require('./utils/localMongoose');
 const express = require('express'); // ✅ <-- ADD THIS LINE
@@ -538,9 +539,67 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
 });
 
+function canBroadcastToChannel(channel, guild) {
+  if (!channel || typeof channel.isTextBased !== 'function') return false;
+  if (!channel.isTextBased() || (typeof channel.isThread === 'function' && channel.isThread())) {
+    return false;
+  }
+  if (typeof channel.send !== 'function') {
+    return false;
+  }
+
+  const permissionsTarget = guild?.members?.me ?? client?.user;
+  if (!permissionsTarget) return false;
+
+  const permissions = channel.permissionsFor(permissionsTarget);
+  if (!permissions) return false;
+
+  return (
+    permissions.has(PermissionFlagsBits.ViewChannel, true) &&
+    permissions.has(PermissionFlagsBits.SendMessages, true)
+  );
+}
+
+function getBroadcastChannelState(existingGuild) {
+  const response = { channels: [], defaultChannelId: null };
+  if (!client?.readyAt) {
+    return response;
+  }
+
+  const guild = existingGuild ?? client.guilds.cache.get(PRIMARY_GUILD_ID);
+  if (!guild) {
+    return response;
+  }
+
+  for (const channel of guild.channels.cache.values()) {
+    if (!canBroadcastToChannel(channel, guild)) continue;
+    response.channels.push({
+      id: channel.id,
+      name: channel.name,
+      category: channel.parent?.name ?? null
+    });
+  }
+
+  response.channels.sort((a, b) => {
+    const categoryA = a.category ?? '';
+    const categoryB = b.category ?? '';
+    if (categoryA !== categoryB) {
+      return categoryA.localeCompare(categoryB);
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  const defaultChannel = response.channels.find((entry) => entry.name === BROADCAST_CHANNEL_NAME);
+  response.defaultChannelId = defaultChannel?.id ?? response.channels[0]?.id ?? null;
+
+  return response;
+}
+
 app.get('/dashboard/state', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json(dashboardState.getState(client));
+  const state = dashboardState.getState(client);
+  state.broadcast = getBroadcastChannelState();
+  res.json(state);
 });
 
 const PRIMARY_GUILD_ID = process.env.PRIMARY_GUILD_ID || '1353730054693064816';
@@ -563,11 +622,20 @@ app.post('/dashboard/broadcast', async (req, res) => {
       return res.status(404).json({ error: 'Primary guild is not available.' });
     }
 
-    const channel = guild.channels.cache.find(
-      (ch) => ch.name === BROADCAST_CHANNEL_NAME && typeof ch.send === 'function'
-    );
+    const channelId = typeof req.body?.channelId === 'string' ? req.body.channelId.trim() : '';
+    const broadcastState = getBroadcastChannelState(guild);
+    const targetChannelId = channelId || broadcastState.defaultChannelId;
 
-    if (!channel) {
+    if (!targetChannelId) {
+      return res.status(404).json({ error: 'Broadcast channel could not be found.' });
+    }
+
+    const channel = guild.channels.cache.get(targetChannelId);
+
+    if (!canBroadcastToChannel(channel, guild)) {
+      if (channelId) {
+        return res.status(400).json({ error: 'Bot cannot send messages to the selected channel.' });
+      }
       return res.status(404).json({ error: 'Broadcast channel could not be found.' });
     }
 

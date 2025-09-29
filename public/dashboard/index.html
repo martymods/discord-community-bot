@@ -41,6 +41,12 @@
             <p class="broadcast-status" id="broadcast-status" aria-live="polite"></p>
           </div>
           <form id="broadcast-form" class="broadcast-form">
+            <div class="broadcast-channel-control">
+              <label for="broadcast-channel" class="muted">Choose a channel</label>
+              <select id="broadcast-channel" name="channel" aria-label="Select Discord channel" required>
+                <option value="" disabled selected>Loading channels…</option>
+              </select>
+            </div>
             <label for="broadcast-message" class="muted">Send a message to the Discord channel</label>
             <textarea
               id="broadcast-message"

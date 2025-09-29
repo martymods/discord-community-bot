@@ -35,6 +35,28 @@
       </header>
 
       <main class="grid">
+        <section class="card card--wide" id="broadcast-console">
+          <div class="card__header">
+            <h2>Manual Broadcast</h2>
+            <p class="broadcast-status" id="broadcast-status" aria-live="polite"></p>
+          </div>
+          <form id="broadcast-form" class="broadcast-form">
+            <label for="broadcast-message" class="muted">Send a message to the Discord channel</label>
+            <textarea
+              id="broadcast-message"
+              name="message"
+              rows="3"
+              maxlength="500"
+              placeholder="Type your announcement for the crew..."
+              required
+            ></textarea>
+            <div class="broadcast-actions">
+              <button type="submit" id="broadcast-submit">Send to Discord</button>
+              <span class="broadcast-feedback muted" id="broadcast-feedback"></span>
+            </div>
+          </form>
+        </section>
+
         <section class="card card--wide" id="bot-overview">
           <h2>Bot Overview</h2>
           <div class="bot-overview__content">

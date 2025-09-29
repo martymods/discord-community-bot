@@ -19,6 +19,11 @@ const assetContainerEl = document.getElementById('asset-container');
 const commandListEl = document.getElementById('command-list');
 const commandCountEl = document.getElementById('command-count');
 const commandSearchEl = document.getElementById('command-search');
+const broadcastForm = document.getElementById('broadcast-form');
+const broadcastInput = document.getElementById('broadcast-message');
+const broadcastStatusEl = document.getElementById('broadcast-status');
+const broadcastFeedbackEl = document.getElementById('broadcast-feedback');
+const broadcastSubmitEl = document.getElementById('broadcast-submit');
 
 const activityTemplate = document.getElementById('activity-template');
 const commandTemplate = document.getElementById('command-template');
@@ -30,6 +35,81 @@ function start() {
   fetchAndRender();
   if (commandSearchEl) {
     commandSearchEl.addEventListener('input', () => updateCommandList(commandSearchEl.value));
+  }
+  if (broadcastForm) {
+    broadcastForm.addEventListener('submit', handleBroadcastSubmit);
+  }
+}
+
+function setBroadcastStatus(text) {
+  if (broadcastStatusEl) {
+    broadcastStatusEl.textContent = text || '';
+  }
+}
+
+function setBroadcastFeedback(message, { type } = {}) {
+  if (!broadcastFeedbackEl) return;
+  broadcastFeedbackEl.textContent = message || '';
+  broadcastFeedbackEl.classList.remove('error-text', 'success-text');
+  if (type === 'error') {
+    broadcastFeedbackEl.classList.add('error-text');
+  } else if (type === 'success') {
+    broadcastFeedbackEl.classList.add('success-text');
+  }
+}
+
+function setBroadcastSending(isSending) {
+  if (broadcastSubmitEl) {
+    broadcastSubmitEl.disabled = isSending;
+  }
+  if (isSending) {
+    setBroadcastStatus('Sending…');
+  } else if (broadcastStatusEl && broadcastStatusEl.textContent === 'Sending…') {
+    setBroadcastStatus('');
+  }
+}
+
+async function handleBroadcastSubmit(event) {
+  event.preventDefault();
+  if (!broadcastInput) return;
+
+  const message = broadcastInput.value.trim();
+  if (!message) {
+    setBroadcastFeedback('Type a message before sending.', { type: 'error' });
+    broadcastInput.focus();
+    return;
+  }
+
+  setBroadcastFeedback('');
+  setBroadcastSending(true);
+
+  try {
+    const response = await fetch('/dashboard/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (parseError) {
+      payload = null;
+    }
+
+    if (!response.ok || (payload && payload.error)) {
+      const errorMessage = payload?.error || `Request failed with status ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    setBroadcastFeedback('Message delivered to Discord.', { type: 'success' });
+    setBroadcastStatus('Delivered');
+    broadcastInput.value = '';
+  } catch (error) {
+    console.error('Broadcast failed:', error);
+    setBroadcastFeedback(error.message || 'Failed to send message.', { type: 'error' });
+  } finally {
+    setBroadcastSending(false);
   }
 }
 

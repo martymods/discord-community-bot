@@ -122,6 +122,79 @@ body {
   grid-column: span 2;
 }
 
+.broadcast-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.broadcast-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.broadcast-form textarea {
+  resize: vertical;
+  min-height: 120px;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.broadcast-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127, 91, 255, 0.25);
+}
+
+.broadcast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.broadcast-form button {
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #a97bff);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(127, 91, 255, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.broadcast-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.broadcast-form button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(127, 91, 255, 0.4);
+}
+
+.broadcast-feedback {
+  min-height: 1.25rem;
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+.success-text {
+  color: var(--success);
+}
+
 .card__header {
   display: flex;
   justify-content: space-between;

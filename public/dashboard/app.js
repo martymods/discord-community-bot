@@ -24,12 +24,17 @@ const broadcastInput = document.getElementById('broadcast-message');
 const broadcastStatusEl = document.getElementById('broadcast-status');
 const broadcastFeedbackEl = document.getElementById('broadcast-feedback');
 const broadcastSubmitEl = document.getElementById('broadcast-submit');
+const broadcastChannelSelect = document.getElementById('broadcast-channel');
 
 const activityTemplate = document.getElementById('activity-template');
 const commandTemplate = document.getElementById('command-template');
 
 let commandCache = [];
 let pollingHandle;
+let isBroadcastSending = false;
+let broadcastChannelsCacheKey = '';
+
+const BROADCAST_CHANNEL_STORAGE_KEY = 'dashboard:broadcast-channel';
 
 function start() {
   fetchAndRender();
@@ -39,6 +44,10 @@ function start() {
   if (broadcastForm) {
     broadcastForm.addEventListener('submit', handleBroadcastSubmit);
   }
+  if (broadcastChannelSelect) {
+    broadcastChannelSelect.addEventListener('change', handleBroadcastChannelChange);
+  }
+  updateBroadcastControlsState();
 }
 
 function setBroadcastStatus(text) {
@@ -59,9 +68,8 @@ function setBroadcastFeedback(message, { type } = {}) {
 }
 
 function setBroadcastSending(isSending) {
-  if (broadcastSubmitEl) {
-    broadcastSubmitEl.disabled = isSending;
-  }
+  isBroadcastSending = isSending;
+  updateBroadcastControlsState();
   if (isSending) {
     setBroadcastStatus('Sending…');
   } else if (broadcastStatusEl && broadcastStatusEl.textContent === 'Sending…') {
@@ -72,6 +80,13 @@ function setBroadcastSending(isSending) {
 async function handleBroadcastSubmit(event) {
   event.preventDefault();
   if (!broadcastInput) return;
+
+  const channelId = broadcastChannelSelect?.value;
+  if (!channelId) {
+    setBroadcastFeedback('Choose a channel before sending.', { type: 'error' });
+    broadcastChannelSelect?.focus();
+    return;
+  }
 
   const message = broadcastInput.value.trim();
   if (!message) {
@@ -87,7 +102,7 @@ async function handleBroadcastSubmit(event) {
     const response = await fetch('/dashboard/broadcast', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message, channelId })
     });
 
     let payload = null;
@@ -111,6 +126,97 @@ async function handleBroadcastSubmit(event) {
   } finally {
     setBroadcastSending(false);
   }
+}
+
+function handleBroadcastChannelChange() {
+  const value = broadcastChannelSelect?.value;
+  if (value) {
+    storeBroadcastChannelPreference(value);
+    setBroadcastFeedback('');
+    if (broadcastStatusEl?.textContent === 'Delivered') {
+      setBroadcastStatus('');
+    }
+  }
+  updateBroadcastControlsState();
+}
+
+function updateBroadcastControlsState() {
+  const hasChannelSelection = Boolean(broadcastChannelSelect?.value);
+  if (broadcastChannelSelect) {
+    const shouldDisableChannel = isBroadcastSending || !broadcastChannelSelect.options.length;
+    broadcastChannelSelect.disabled = shouldDisableChannel;
+  }
+  if (broadcastSubmitEl) {
+    const shouldDisableSubmit = isBroadcastSending || !hasChannelSelection;
+    broadcastSubmitEl.disabled = shouldDisableSubmit;
+  }
+}
+
+function getStoredBroadcastChannel() {
+  try {
+    return localStorage.getItem(BROADCAST_CHANNEL_STORAGE_KEY);
+  } catch (error) {
+    return null;
+  }
+}
+
+function storeBroadcastChannelPreference(channelId) {
+  try {
+    localStorage.setItem(BROADCAST_CHANNEL_STORAGE_KEY, channelId);
+  } catch (error) {
+    // Ignore storage failures (e.g. privacy mode)
+  }
+}
+
+function renderBroadcastChannels(broadcast = {}) {
+  if (!broadcastChannelSelect) return;
+
+  const channels = Array.isArray(broadcast.channels) ? broadcast.channels : [];
+  const serialized = JSON.stringify(channels.map((channel) => [channel.id, channel.name, channel.category]));
+  if (serialized === broadcastChannelsCacheKey && broadcastChannelSelect.options.length) {
+    updateBroadcastControlsState();
+    return;
+  }
+
+  broadcastChannelsCacheKey = serialized;
+  broadcastChannelSelect.innerHTML = '';
+
+  if (!channels.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No channels available';
+    option.disabled = true;
+    option.selected = true;
+    broadcastChannelSelect.appendChild(option);
+    updateBroadcastControlsState();
+    return;
+  }
+
+  const storedChannel = getStoredBroadcastChannel();
+  const currentValue = broadcastChannelSelect.value;
+  const defaultChannelId = broadcast.defaultChannelId || null;
+  const availableChannelIds = new Set(channels.map((channel) => channel.id));
+
+  const preferredChannelId = [storedChannel, currentValue, defaultChannelId].find(
+    (value) => value && availableChannelIds.has(value)
+  );
+
+  const selectedChannelId = preferredChannelId || channels[0].id;
+
+  for (const channel of channels) {
+    const option = document.createElement('option');
+    option.value = channel.id;
+    const categoryPrefix = channel.category ? `${channel.category} / ` : '';
+    option.textContent = `${categoryPrefix}#${channel.name}`;
+    if (channel.id === selectedChannelId) {
+      option.selected = true;
+    }
+    broadcastChannelSelect.appendChild(option);
+  }
+
+  broadcastChannelSelect.value = selectedChannelId;
+  storeBroadcastChannelPreference(selectedChannelId);
+  updateBroadcastControlsState();
 }
 
 async function fetchAndRender() {
@@ -137,6 +243,7 @@ function renderState(state) {
   lastUpdatedEl.textContent = timestamp.toLocaleTimeString();
 
   renderBot(state.bot ?? {});
+  renderBroadcastChannels(state.broadcast ?? {});
   renderGuilds(state.guilds ?? []);
   renderActivity(state.activity ?? []);
   renderMaps(state.maps ?? {});

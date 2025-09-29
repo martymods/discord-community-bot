@@ -134,6 +134,35 @@ body {
   gap: 1rem;
 }
 
+.broadcast-channel-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.broadcast-form select {
+  appearance: none;
+  padding: 0.65rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.broadcast-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127, 91, 255, 0.25);
+}
+
+.broadcast-form select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .broadcast-form textarea {
   resize: vertical;
   min-height: 120px;

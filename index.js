@@ -543,6 +543,42 @@ app.get('/dashboard/state', (req, res) => {
   res.json(dashboardState.getState(client));
 });
 
+const PRIMARY_GUILD_ID = process.env.PRIMARY_GUILD_ID || '1353730054693064816';
+const BROADCAST_CHANNEL_NAME = process.env.BROADCAST_CHANNEL_NAME || 'general';
+
+app.post('/dashboard/broadcast', async (req, res) => {
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message text is required.' });
+  }
+
+  try {
+    if (!client?.readyAt) {
+      return res.status(503).json({ error: 'Bot is still starting up.' });
+    }
+
+    const guild = client.guilds.cache.get(PRIMARY_GUILD_ID);
+    if (!guild) {
+      return res.status(404).json({ error: 'Primary guild is not available.' });
+    }
+
+    const channel = guild.channels.cache.find(
+      (ch) => ch.name === BROADCAST_CHANNEL_NAME && typeof ch.send === 'function'
+    );
+
+    if (!channel) {
+      return res.status(404).json({ error: 'Broadcast channel could not be found.' });
+    }
+
+    await channel.send(message);
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Failed to broadcast dashboard message:', error);
+    return res.status(500).json({ error: 'Failed to deliver message to Discord.' });
+  }
+});
+
 // Embedded activity sync routes
 const gameSync = require('./server/api/gameSync');
 app.use('/api/game', gameSync);
@@ -7030,25 +7066,6 @@ client.commands.set('breakout', {
     message.channel.send({ embeds: [embed] });
   }
 });
-
-
-setInterval(async () => {
-  const guild = client.guilds.cache.get('1353730054693064816');
-  const channel = guild?.channels?.cache.find(c => c.name === 'general');
-  if (!channel) return;
-
-  const npc = npcNames[Math.floor(Math.random() * npcNames.length)];
-  const drug = drugs[Math.floor(Math.random() * drugs.length)];
-  const qty = Math.floor(Math.random() * 4) + 1;
-  const total = qty * (drug.base + Math.floor(Math.random() * drug.volatility));
-
-  channel.send(`🧥 **${npc}** just bought **${qty}x ${drug.name}** for **$${total}**.\nStreet prices heating up...`);
-
-  // ✅ Apply price boost directly in MongoDB
-  await DealerProfile.updateMany({}, {
-    $inc: { [`prices.${drug.id}`]: Math.floor(Math.random() * 30) }
-  });
-}, Math.floor(Math.random() * 2 * 60 * 1000) + 1200000); // every 2–40 min
 
 
 client.commands.set('debugdealer', {

@@ -751,6 +751,9 @@ const TokenModel = require('./economy/bettingStats');
 const { startRandomChaos } = require('./economy/chaosEvents');
 const { getNextTier, shouldUpgradeBox, tierThreshold } = require('./utils/boxUtils');
 
+const ENABLE_DRAMA_ANNOUNCEMENTS = process.env.ENABLE_DRAMA_ANNOUNCEMENTS === 'true';
+const DRAMA_INTERVAL_MS = 60 * 60 * 1000;
+
 
 
 let todaySnipes = [];
@@ -2052,10 +2055,15 @@ setInterval(() => {
 
 
 // Drama Timer
-setInterval(() => {
-  triggerDrama(client);
-  dashboardState.recordEvent('dramaTick', { intervalMs: 60 * 60 * 1000 });
-}, 60 * 60 * 1000); // Every 1 hour
+if (ENABLE_DRAMA_ANNOUNCEMENTS) {
+  setInterval(() => {
+    triggerDrama(client);
+    dashboardState.recordEvent('dramaTick', { intervalMs: DRAMA_INTERVAL_MS });
+  }, DRAMA_INTERVAL_MS); // Every 1 hour
+  console.log('🎭 Drama announcements enabled.');
+} else {
+  console.log('ℹ️ Drama announcements disabled. Set ENABLE_DRAMA_ANNOUNCEMENTS=true to enable automated drama posts.');
+}
 
 
 // Message Handler
